@@ -1,0 +1,59 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "com.bbn.coffeebreak"
+        minSdkVersion 27
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    implementation 'com.mapbox.mapboxsdk:mapbox-android-sdk:8.2.1'
+    implementation 'androidx.core:core:1.0.0-beta01'
+    implementation 'androidx.appcompat:appcompat:1.0.0-beta01'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.2'
+    implementation 'com.rabbitmq:amqp-client:4.1.0'
+    implementation 'com.google.android.material:material:1.0.0-beta01'
+
+
+    implementation 'com.google.android.gms:play-services-location:17.0.0'
+    implementation 'com.borax12.materialdaterangepicker:library:1.9'
+    implementation 'com.tapadoo.android:alerter:3.0.0'
+    implementation ('com.github.marcoscgdev:DialogSheet:1.0.6'){
+        exclude module: 'support-compat'
+        exclude module: 'support'
+        exclude module: 'design'
+        exclude module: 'recyclerview-v7'
+        exclude module: 'appcompat-v7'
+    }
+    implementation ('com.github.broakenmedia:MultiContactPicker:1.7'){
+        exclude module: 'support'
+        exclude module: 'support-compat'
+        exclude module: 'design'
+        exclude module: 'recyclerview-v7'
+        exclude module: 'appcompat-v7'
+    }
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test:runner:1.1.0-alpha4'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.0-alpha4'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.9.8'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.9.8'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.8'
+    implementation 'commons-lang:commons-lang:2.6'
+}
+
