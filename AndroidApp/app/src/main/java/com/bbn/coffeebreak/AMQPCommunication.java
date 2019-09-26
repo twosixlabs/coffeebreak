@@ -339,7 +339,7 @@ public class AMQPCommunication extends Service {
         factory.setPassword(password);
         factory.setHost(AMQPHost);
         factory.setPort(AMQPPort);
-        factory.setRequestedHeartbeat(60);
+        factory.setRequestedHeartbeat(5);
         factory.setAutomaticRecoveryEnabled(true);
         factory.setConnectionTimeout(2500);
         setupAMQPConnection(ctx);
@@ -419,7 +419,7 @@ public class AMQPCommunication extends Service {
         factory.setPort(AMQPPort);
         factory.setUsername(username);
         factory.setPassword(password);
-        factory.setRequestedHeartbeat(60);
+        factory.setRequestedHeartbeat(5);
         factory.setAutomaticRecoveryEnabled(true);
         factory.setConnectionTimeout(2500);
         setupAMQPConnection(context);
