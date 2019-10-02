@@ -30,7 +30,6 @@ import androidx.core.app.NotificationManagerCompat;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.android.gms.location.LocationServices;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -268,6 +267,7 @@ public class AMQPCommunication extends Service {
                 });
 
             } else if(intent.getAction().equals(getString(R.string.broadcast_start_mpc))){
+
                 Log.d(TAG, "starting mpc...");
                 LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
                 if (locationManager != null) {
@@ -286,14 +286,17 @@ public class AMQPCommunication extends Service {
 
                     if (location != null) {
                         Log.d(TAG, "Got location: " + location);
+                        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                        int noise = preferences.getInt(getString(R.string.noise_value), 5);
                         EncodedLatLon loc = new EncodedLatLon((float)location.getLatitude(), (float)location.getLongitude());
+                        EncodedLatLon noisyLocation = MapActivity.getNoisyLocation(loc, noise);
                         // Spin up the MPC thread
                         ThreadMPC mpc = new ThreadMPC(context,
                                 intent.getStringExtra("meetingID"),
                                 channel,
                                 intent.getStringArrayListExtra("attendees"),
                                 username,
-                                loc.getEncodedLocation(),
+                                noisyLocation.getEncodedLocation(),
                                 mpcResponse);
                         mpc.setMode(ThreadMPC.Mode.STATIC_EXECUTABLES);
                         mHandler.post(mpc);

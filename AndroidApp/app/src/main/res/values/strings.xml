@@ -29,6 +29,7 @@
     <!-- preferences -->
     <string name="shared_preferences">coffeebreak_preferences</string>
     <string name="privacyStreamsConfig">edu.cmu.brandeis.PrivacyStreams</string>
+    <string name="noise_value">noise_value</string>
 
     <!-- Configuration options -->
     <string name="username">username</string>

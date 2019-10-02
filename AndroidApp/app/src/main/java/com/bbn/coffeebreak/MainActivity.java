@@ -1,5 +1,6 @@
 package com.bbn.coffeebreak;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.DialogFragment;
@@ -11,6 +12,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -19,7 +23,10 @@ import android.os.HandlerThread;
 import androidx.annotation.RequiresApi;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.appcompat.widget.Toolbar;
@@ -54,24 +61,25 @@ public class MainActivity extends AppCompatActivity {
 
     private final static String TAG = "[MainActivity]";
 
+    private FusedLocationProviderClient fusedLocationClient;
+
     private static Random generator;
 
     // For sending HTTP Requests
     private HandlerThread httpHandlerThread;
     private Handler mHandler;
 
-    private FusedLocationProviderClient fusedLocationProviderClient;
-
 
     // Broadcast receiver for handling events
     BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
 
+        @SuppressLint("MissingPermission")
         @RequiresApi(api = Build.VERSION_CODES.O)
         @Override
         public void onReceive(final Context context, final Intent intent) {
 
 
-                if(intent.getAction().equals(getString(R.string.broadcast_show_meeting_request))){
+            if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_request))) {
 
                 /*
                 For Showing a Meeting Request Dialog to a user
@@ -90,8 +98,8 @@ public class MainActivity extends AppCompatActivity {
 
                 List<String> attendees = intent.getStringArrayListExtra("attendees");
                 String message = "Invites: ";
-                for(String s : attendees){
-                    if(!s.equals(organizer.substring(0, organizer.indexOf('@'))))
+                for (String s : attendees) {
+                    if (!s.equals(organizer.substring(0, organizer.indexOf('@'))))
                         message += s + "@mail.com; ";
                 }
 
@@ -141,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }).setTitle(organizer + " wants to meet").show();
 
-            }else if(intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))){
+            } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcProgress.setVisibility(View.INVISIBLE);
@@ -162,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         });
                 alertDialog.show();
-            }else if(intent.getAction().equals(getString(R.string.broadcast_show_mpc_progress))){
+            } else if (intent.getAction().equals(getString(R.string.broadcast_show_mpc_progress))) {
                 Log.d(TAG, "Received broadcast to show MPC progress");
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
@@ -337,6 +345,10 @@ public class MainActivity extends AppCompatActivity {
                 DialogFragment dialogFragment = new SettingsFragment();
 
                 dialogFragment.show(ft, "settingsFragment");
+                return true;
+            case R.id.noise_settings:
+                Intent noisyMapActivity = new Intent(MainActivity.this, NoisyLocationMapActivity.class);
+                startActivity(noisyMapActivity);
                 return true;
             default:
                 // If we got here, the user's action was not recognized.
