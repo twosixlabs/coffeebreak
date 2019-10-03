@@ -40,7 +40,7 @@
     <string name="username">username</string>
     <string name="password">password</string>
     <string name="invitee">invitee</string>
-    <string name="defaultUsername">josh</string>
+    <string name="defaultUsername">0000000000</string>
     <string name="defaultPassword">josh</string>
     <string name="amqpIp">amqpIp</string>
     <string name="amqpPort">amqpPort</string>

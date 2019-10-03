@@ -8,12 +8,15 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.telephony.PhoneNumberUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 public class SettingsFragment extends DialogFragment {
 
@@ -48,7 +51,7 @@ public class SettingsFragment extends DialogFragment {
 
         String amqpServer = preferences.getString(getString(R.string.amqpIp), getString(R.string.defaultAmqpIp));
         String amqpPort = preferences.getString(getString(R.string.amqpPort), getString(R.string.defaultAmqpPort));
-        String username = preferences.getString(getString(R.string.username), getString(R.string.defaultUsername));
+        String username = PhoneNumberUtils.formatNumberToE164(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)), "US");
         String password = preferences.getString(getString(R.string.password), getString(R.string.defaultPassword));
 
         amqpServerEditText.setText(amqpServer);
@@ -74,7 +77,11 @@ public class SettingsFragment extends DialogFragment {
                 Intent i = new Intent(getActivity().getApplicationContext(), SplashActivity.class);
                 i.putExtra(getString(R.string.amqpIp), amqpServerEditText.getText().toString());
                 i.putExtra(getString(R.string.amqpPort), amqpPortEditText.getText().toString());
-                i.putExtra(getString(R.string.username), usernameEditText.getText().toString());
+                if(PhoneNumberUtils.formatNumberToE164(usernameEditText.getText().toString(), "US") == null){
+                    Toast.makeText(getContext(), "Not a valid US phone number", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                i.putExtra(getString(R.string.username), PhoneNumberUtils.formatNumberToE164(usernameEditText.getText().toString(), "US"));
                 //i.putExtra(getString(R.string.password), passwordEditText.getText().toString());
 
                 i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);

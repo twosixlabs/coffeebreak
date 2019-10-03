@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -30,7 +31,10 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.telephony.PhoneNumberUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
@@ -41,6 +45,8 @@ import android.widget.Toast;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mapbox.android.core.permissions.PermissionsListener;
+import com.mapbox.android.core.permissions.PermissionsManager;
 import com.marcoscg.dialogsheet.DialogSheet;
 import com.wafflecopter.multicontactpicker.ContactResult;
 import com.wafflecopter.multicontactpicker.MultiContactPicker;
@@ -56,7 +62,7 @@ import java.util.Random;
 import java.util.Set;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements PermissionsListener{
 
 
     private final static String TAG = "[MainActivity]";
@@ -68,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
     // For sending HTTP Requests
     private HandlerThread httpHandlerThread;
     private Handler mHandler;
+
+    private PermissionsManager permissionsManager;
 
 
     // Broadcast receiver for handling events
@@ -208,6 +216,41 @@ public class MainActivity extends AppCompatActivity {
         Toolbar myToolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
 
+        if (!PermissionsManager.areLocationPermissionsGranted(this)) {
+            permissionsManager = new PermissionsManager(this);
+            permissionsManager.requestLocationPermissions(this);
+        }
+
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.READ_CONTACTS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.READ_CONTACTS},
+                    0);
+
+        }
+
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.READ_CONTACTS},
+                    0);
+        }
+
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+            Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.READ_CONTACTS},
+                    0);
+        }
+
+
         httpHandlerThread = new HandlerThread("httpHandlerThread");
         httpHandlerThread.start();
         mHandler = new Handler(httpHandlerThread.getLooper());
@@ -272,9 +315,11 @@ public class MainActivity extends AppCompatActivity {
                 //Get all the names / emails of the picked contacts
                 final String[] contactNames = new String[results.size()];
                 //final String[] contactEmails = new String[results.size()];
+                final String[] contactPhones = new String[results.size()];
                 int j = 0;
                 for(ContactResult c : results){
                     contactNames[j] = c.getDisplayName().toLowerCase();
+                    contactPhones[j] = PhoneNumberUtils.formatNumberToE164(c.getPhoneNumbers().get(0), "US");
                     //contactEmails[j] = c.getEmails().get(0);
                 }
 
@@ -310,10 +355,12 @@ public class MainActivity extends AppCompatActivity {
                 i.setDuration("PT1H");
                 i.setGranularity("PT15M");
                 Set<String> attendees = new HashSet<>(2);
-                for(String name : contactNames)
-                    attendees.add(name);
+                //for(String name : contactNames)
+                //    attendees.add(name);
+                for(String phoneNumber : contactPhones)
+                    attendees.add(phoneNumber);
 
-                attendees.add(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)));
+                attendees.add(PhoneNumberUtils.formatNumberToE164(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)),"US"));
                 i.setAttendees(attendees);
                 Constraints c = new Constraints();
 
@@ -381,5 +428,35 @@ public class MainActivity extends AppCompatActivity {
         httpHandlerThread.quitSafely();
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case 0: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+                } else {
+                    finish();
+                }
+                return;
+            }
 
+        }
+    }
+
+    @Override
+    public void onExplanationNeeded(List<String> permissionsToExplain) {
+        Toast.makeText(this, "User location permission required", Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onPermissionResult(boolean granted) {
+        if (!granted){
+            Toast.makeText(this, "Permission not granted", Toast.LENGTH_LONG).show();
+            finish();
+        }
+    }
 }
