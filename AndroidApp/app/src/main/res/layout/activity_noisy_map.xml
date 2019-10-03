@@ -38,5 +38,29 @@
         android:progressDrawable="@drawable/custom_seekbar"/>
 
 
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true">
+
+
+        <Button
+            android:id="@+id/mock_enable"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:layout_gravity="center_horizontal"
+            android:layout_margin="20dp"
+            android:padding="10dp"
+            android:background="@drawable/grey_rectangle"
+            android:text="Mock location: OFF"/>
+
+    </LinearLayout>
+
+
+
 
 </RelativeLayout>

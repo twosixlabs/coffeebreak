@@ -22,7 +22,7 @@ public class SettingsFragment extends DialogFragment {
     private EditText amqpServerEditText;
     private EditText amqpPortEditText;
     private EditText usernameEditText;
-    private EditText passwordEditText;
+    //private EditText passwordEditText;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -43,7 +43,7 @@ public class SettingsFragment extends DialogFragment {
         amqpServerEditText = (EditText) v.findViewById(R.id.amqp_server_ip);
         amqpPortEditText = (EditText) v.findViewById(R.id.amqp_server_port);
         usernameEditText = (EditText) v.findViewById(R.id.amqp_username);
-        passwordEditText = (EditText) v.findViewById(R.id.amqp_password);
+        //passwordEditText = (EditText) v.findViewById(R.id.amqp_password);
 
 
         String amqpServer = preferences.getString(getString(R.string.amqpIp), getString(R.string.defaultAmqpIp));
@@ -54,7 +54,7 @@ public class SettingsFragment extends DialogFragment {
         amqpServerEditText.setText(amqpServer);
         amqpPortEditText.setText(amqpPort);
         usernameEditText.setText(username);
-        passwordEditText.setText(password);
+        //passwordEditText.setText(password);
 
         Button submitButton = (Button) v.findViewById(R.id.settings_ok_button);
         submitButton.setOnClickListener(new View.OnClickListener() {
@@ -75,7 +75,7 @@ public class SettingsFragment extends DialogFragment {
                 i.putExtra(getString(R.string.amqpIp), amqpServerEditText.getText().toString());
                 i.putExtra(getString(R.string.amqpPort), amqpPortEditText.getText().toString());
                 i.putExtra(getString(R.string.username), usernameEditText.getText().toString());
-                i.putExtra(getString(R.string.password), passwordEditText.getText().toString());
+                //i.putExtra(getString(R.string.password), passwordEditText.getText().toString());
 
                 i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
 

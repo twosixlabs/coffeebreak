@@ -11,13 +11,20 @@ package com.bbn.coffeebreak;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Location;
+import android.location.LocationManager;
+import android.location.LocationProvider;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ResultReceiver;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -33,6 +40,9 @@ import com.mapbox.android.core.location.LocationEngineProvider;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.Annotation;
+import com.mapbox.mapboxsdk.annotations.Marker;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -47,6 +57,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class NoisyLocationMapActivity extends AppCompatActivity implements LocationEngineListener, PermissionsListener, OnMapReadyCallback {
@@ -55,11 +66,15 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     private MapView mMapView;
     private MapboxMap mMapboxMap;
 
+    private static boolean mMockLocation;
+    private static long circleId = 0;
+
     private PermissionsManager permissionsManager;
     private LocationLayerPlugin locationLayerPlugin;
     private LocationEngine locationEngine;
     private Location originLocation;
 
+    private Button mockButton;
     private SeekBar noiseLevel;
     private TextView noiseValue;
     private FusedLocationProviderClient fusedLocationClient;
@@ -83,6 +98,10 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (!PermissionsManager.areLocationPermissionsGranted(this)) {
+            permissionsManager = new PermissionsManager(this);
+            permissionsManager.requestLocationPermissions(this);
+        }
         Mapbox.getInstance(this, getString(R.string.mapbox_key));
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         getUsersLocation();
@@ -92,20 +111,32 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
         mMapView.onCreate(savedInstanceState);
         mMapView.getMapAsync(this);
 
-        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-        int noise = preferences.getInt(getString(R.string.noise_value), 5);
-
-
         noiseValue = (TextView)findViewById(R.id.noise_value);
-        noiseValue.setText(String.valueOf(noise) + "km");
+        mockButton = (Button)findViewById(R.id.mock_enable);
         noiseLevel = (SeekBar)findViewById(R.id.noise_seek_bar);
+
+        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        int noise = preferences.getInt(getString(R.string.noise_value), 5);
+        mMockLocation = preferences.getBoolean(getString(R.string.mock_location), getResources().getBoolean(R.bool.mock_location));
+        if(mMockLocation){
+            mockButton.setBackground(getDrawable(R.drawable.green_rectangle));
+            mockButton.setText("Mock location: ON ");
+        }
+
+        noiseValue.setText(String.valueOf(noise) + "km");
         noiseLevel.setProgress(noise);
         noiseLevel.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 noiseValue.setText(String.valueOf(progress) + "km");
-                mMapboxMap.clear();
-                drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), seekBar.getProgress() * 1000, R.color.transparent_green);
+                mMapboxMap.removeAnnotation(circleId);
+                if(mMockLocation){
+                    Marker m = mMapboxMap.getMarkers().get(0);
+                    drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(m.getPosition().getLatitude(), m.getPosition().getLongitude()), seekBar.getProgress() * 1000, R.color.transparent_green);
+                }else{
+                    drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), seekBar.getProgress() * 1000, R.color.transparent_green);
+                }
             }
 
             @Override
@@ -115,13 +146,67 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                mMapboxMap.clear();
-                drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), seekBar.getProgress() * 1000, R.color.transparent_green);
+                mMapboxMap.removeAnnotation(circleId);
+                if(mMockLocation){
+                    Marker m = mMapboxMap.getMarkers().get(0);
+                    drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(m.getPosition().getLatitude(), m.getPosition().getLongitude()), seekBar.getProgress() * 1000, R.color.transparent_green);
+                }else{
+                    drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), seekBar.getProgress() * 1000, R.color.transparent_green);
+                }
+            }
+        });
+
+        mockButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mMapboxMap.getMarkers().size() < 1){
+                    AlertDialog alertDialog = new AlertDialog.Builder(NoisyLocationMapActivity.this).create();
+                    alertDialog.setTitle("Setting a mock location");
+                    alertDialog.setMessage("To set a mock location, long press anywhere on the map to drop a marker.");
+                    alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Ok",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                    alertDialog.show();
+                    Toast.makeText(NoisyLocationMapActivity.this, "Long press to set mock location first", Toast.LENGTH_LONG).show();
+                }else{
+                    Marker mockLocation = mMapboxMap.getMarkers().get(0);
+                    mMockLocation = !mMockLocation;
+                    editor.putBoolean(getString(R.string.mock_location), mMockLocation);
+                    editor.commit();
+                    if(mMockLocation){
+                        mockButton.setText("Mock location: ON ");
+                        mMapboxMap.removeAnnotation(circleId);
+                        mockButton.setBackground(getDrawable(R.drawable.green_rectangle));
+                        drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(mockLocation.getPosition().getLatitude(), mockLocation.getPosition().getLongitude()), noiseLevel.getProgress() * 1000, R.color.transparent_green);
+                    }else{
+                        mockButton.setText("Mock location: OFF");
+                        mMapboxMap.removeAnnotation(circleId);
+                        mockButton.setBackground(getDrawable(R.drawable.grey_rectangle));
+                        drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), noiseLevel.getProgress() * 1000, R.color.transparent_green);
+                    }
+                }
             }
         });
 
     }
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+        Intent i = new Intent(NoisyLocationMapActivity.this, SplashActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        i.putExtra(getString(R.string.mock_latitude), preferences.getFloat(getString(R.string.mock_latitude), 0.0f));
+        i.putExtra(getString(R.string.mock_longitude), preferences.getFloat(getString(R.string.mock_longitude), 0.0f));
+        i.putExtra(getString(R.string.mock_location), preferences.getBoolean(getString(R.string.mock_location), false));
+        Log.d(TAG, "Setting new mock location: " + String.valueOf(preferences.getFloat(getString(R.string.mock_latitude), 0.0f)));
+        Intent amqpService = new Intent(NoisyLocationMapActivity.this, AMQPCommunication.class);
+        stopService(amqpService);
+        startActivity(i);
+    }
 
     @Override
     protected void onStart() {
@@ -184,6 +269,8 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
         } else {
             locationEngine.addLocationEngineListener(this);
         }
+        locationEngine.removeLocationEngineListener(this);
+
     }
 
     @SuppressWarnings( {"MissingPermission"})
@@ -237,11 +324,70 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     @Override
     public void onMapReady(MapboxMap mapboxMap) {
         mMapboxMap = mapboxMap;
+        noiseLevel = (SeekBar)findViewById(R.id.noise_seek_bar);
+        mockButton = (Button)findViewById(R.id.mock_enable);
+
         //For now, displaying the user's location using Mapbox SDK causes tile loading issues
         enableLocationPlugin();
 
-        drawCircleOverlay(mMapboxMap, this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), 5000, R.color.transparent_green);
+        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        if(mMockLocation){
+            MarkerOptions m = new MarkerOptions().setTitle("Mocked location").setPosition(
+                    new LatLng(preferences.getFloat(getString(R.string.mock_latitude), 0.0f),
+                            preferences.getFloat(getString(R.string.mock_longitude), 0.0f)));
+            mMapboxMap.addMarker(m);
+            drawCircleOverlay(mMapboxMap, this, new LatLng(m.getPosition().getLatitude(), m.getPosition().getLongitude()), preferences.getInt(getString(R.string.noise_value), 5) * 1000, R.color.transparent_green);
+        }else{
+            drawCircleOverlay(mMapboxMap, this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), preferences.getInt(getString(R.string.noise_value), 5) * 1000, R.color.transparent_green);
+        }
 
+        mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(@NonNull LatLng point) {
+                Log.d(TAG, point.getLatitude() + "," + point.getLongitude());
+
+                AlertDialog alertDialog = new AlertDialog.Builder(NoisyLocationMapActivity.this).create();
+                alertDialog.setTitle("Set mock location: ");
+                alertDialog.setMessage("Are you sure you want to set the mocked location to: " + point.getLatitude()
+                        + "," + point.getLongitude());
+                alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "NO",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+                alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "YES",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                // Restart activity with new location
+                                // clear all markers
+                                for(Marker m : mMapboxMap.getMarkers()){
+                                    mMapboxMap.removeMarker(m);
+                                }
+                                MarkerOptions marker = new MarkerOptions().setPosition(point)
+                                        .setTitle("Mocked location");
+
+
+                                mMapboxMap.clear();
+                                drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(marker.getPosition().getLatitude(), marker.getPosition().getLongitude()), noiseLevel.getProgress() * 1000, R.color.transparent_green);
+                                mMapboxMap.addMarker(marker);
+
+                                mockButton.setText("Mock location: ON ");
+                                mockButton.setBackground(getDrawable(R.drawable.green_rectangle));
+
+                                editor.putFloat(getString(R.string.mock_latitude), (float)marker.getPosition().getLatitude());
+                                editor.putFloat(getString(R.string.mock_longitude), (float)marker.getPosition().getLongitude());
+                                editor.putBoolean(getString(R.string.mock_location), true);
+                                mMockLocation = true;
+                                editor.commit();
+                                Log.d(TAG, "Setting in preferences: " + marker.getPosition());
+
+                            }
+                        });
+                alertDialog.show();
+            }
+        });
     }
 
     //Returns the approximate distance between two points on the Earth's surface (in meters)
@@ -286,8 +432,9 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
                 LatLng point = new LatLng(pointLat, pointLon);
                 circlePoints.add(point);
             }
-
-            map.addPolygon(new PolygonOptions().addAll(circlePoints).fillColor(context.getColor(colorId)));
+            PolygonOptions circle = new PolygonOptions().addAll(circlePoints).fillColor(context.getColor(colorId));
+            map.addPolygon(circle);
+            circleId = circle.getPolygon().getId();
         }catch(Exception e){
             e.printStackTrace();
             Log.d(TAG, "Unable to draw circle overlay");

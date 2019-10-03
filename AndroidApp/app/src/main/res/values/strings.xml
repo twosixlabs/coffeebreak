@@ -24,12 +24,17 @@
     <string name="broadcast_show_settings">com.bbn.coffeebreak.action.SHOW_SETTINGS</string>
     <string name="broadcast_show_mpc_progress">com.bbn.coffeebreak.action.SHOW_MPC_PROGRESS</string>
     <string name="broadcast_show_meeting_location">com.bbn.coffeebreak.action.SHOW_MEETING_LOCATION</string>
+    <string name="broadcast_show_location_dialog">com.bbn.coffeebreak.action.SHOW_LOCATION_DIALOG</string>
 
 
     <!-- preferences -->
     <string name="shared_preferences">coffeebreak_preferences</string>
     <string name="privacyStreamsConfig">edu.cmu.brandeis.PrivacyStreams</string>
     <string name="noise_value">noise_value</string>
+    <string name="mock_location">mock_location</string>
+    <string name="mock_latitude">mock_latitude</string>
+    <string name="mock_longitude">mock_longitude</string>
+
 
     <!-- Configuration options -->
     <string name="username">username</string>

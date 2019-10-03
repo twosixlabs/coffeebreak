@@ -101,6 +101,15 @@ public class SplashActivity extends Activity {
                 Log.d(TAG, "Setting AMQP Port: " + demoParams.getString(getResources().getString(R.string.amqpPort)));
             }
 
+            if(demoParams.containsKey(getString(R.string.mock_latitude))){
+                editor.putFloat(getString(R.string.mock_latitude), demoParams.getFloat(getString(R.string.mock_latitude)));
+            }
+
+            if(demoParams.containsKey(getString(R.string.mock_longitude))){
+                editor.putFloat(getString(R.string.mock_longitude), demoParams.getFloat(getString(R.string.mock_longitude)));
+            }
+
+
             editor.commit();
         }
 
@@ -141,6 +150,9 @@ public class SplashActivity extends Activity {
         i.putExtra(getString(R.string.amqpPort), preferences.getString(getString(R.string.amqpPort), getString(R.string.defaultAmqpPort)));
         i.putExtra(getString(R.string.username), preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)));
         i.putExtra(getString(R.string.password), preferences.getString(getString(R.string.password), getString(R.string.defaultPassword)));
+        i.putExtra(getString(R.string.mock_latitude), preferences.getFloat(getString(R.string.mock_latitude),0.0f));
+        i.putExtra(getString(R.string.mock_longitude), preferences.getFloat(getString(R.string.mock_longitude),0.0f));
+        i.putExtra(getString(R.string.mock_location), preferences.getBoolean(getString(R.string.mock_location), false));
         getApplicationContext().startForegroundService(i);
 
     }

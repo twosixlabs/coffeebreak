@@ -99,8 +99,8 @@ public class MainActivity extends AppCompatActivity {
                 List<String> attendees = intent.getStringArrayListExtra("attendees");
                 String message = "Invites: ";
                 for (String s : attendees) {
-                    if (!s.equals(organizer.substring(0, organizer.indexOf('@'))))
-                        message += s + "@mail.com; ";
+                    if (!s.equals(organizer))
+                        message += s +"; ";
                 }
 
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'");
@@ -176,6 +176,24 @@ public class MainActivity extends AppCompatActivity {
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcProgress.setVisibility(View.VISIBLE);
                 mpcMessage.setVisibility(View.VISIBLE);
+            }else if(intent.getAction().equals(getString(R.string.broadcast_show_location_dialog))){
+                AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+                alertDialog.setTitle("Can't get GPS location");
+                alertDialog.setMessage("Go outside to get a GPS location or set a mock location");
+                alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "Set mock location", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Intent noisyMapActivity = new Intent(MainActivity.this, NoisyLocationMapActivity.class);
+                        startActivity(noisyMapActivity);
+                    }
+                });
+                alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Dismiss", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                alertDialog.dismiss();
+                            }
+                });
+                alertDialog.show();
             }
         }
     };
@@ -206,6 +224,7 @@ public class MainActivity extends AppCompatActivity {
         mIntentFilter.addAction(getString(R.string.broadcast_show_meeting_request));
         mIntentFilter.addAction(getString(R.string.broadcast_show_meeting_location));
         mIntentFilter.addAction(getString(R.string.broadcast_show_mpc_progress));
+        mIntentFilter.addAction(getString(R.string.broadcast_show_location_dialog));
         registerReceiver(mBroadcastReceiver, mIntentFilter);
 
 
@@ -252,17 +271,15 @@ public class MainActivity extends AppCompatActivity {
 
                 //Get all the names / emails of the picked contacts
                 final String[] contactNames = new String[results.size()];
-                final String[] contactEmails = new String[results.size()];
+                //final String[] contactEmails = new String[results.size()];
                 int j = 0;
                 for(ContactResult c : results){
-                    contactNames[j] = c.getDisplayName();
-                    contactEmails[j] = c.getEmails().get(0);
-                    j++;
+                    contactNames[j] = c.getDisplayName().toLowerCase();
+                    //contactEmails[j] = c.getEmails().get(0);
                 }
 
                 LocalDateTime beginDate = LocalDateTime.now();
                 ZonedDateTime zBeginDate = beginDate.atZone(ZoneId.systemDefault());
-
 
                 LocalDateTime endDate = beginDate.plusDays(7);
                 ZonedDateTime zEndDate = endDate.atZone(ZoneId.systemDefault());
@@ -288,13 +305,13 @@ public class MainActivity extends AppCompatActivity {
                 i.setMeetingID(String.valueOf(generator.nextInt() & Integer.MAX_VALUE));
                 i.setTitle("Meeting");
                 // set the organizer as the user of the device
-                i.setOrganizer(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)) + "@mail.com");
+                i.setOrganizer(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)));
                 i.setLocation("10 Moulton Street");
                 i.setDuration("PT1H");
                 i.setGranularity("PT15M");
                 Set<String> attendees = new HashSet<>(2);
                 for(String name : contactNames)
-                    attendees.add(name.toLowerCase());
+                    attendees.add(name);
 
                 attendees.add(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)));
                 i.setAttendees(attendees);

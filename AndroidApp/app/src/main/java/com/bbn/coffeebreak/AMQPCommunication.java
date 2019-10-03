@@ -9,6 +9,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -25,6 +26,7 @@ import android.os.Looper;
 import android.os.ResultReceiver;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import android.util.Log;
@@ -219,8 +221,7 @@ public class AMQPCommunication extends Service {
                              */
                             JSONObject response = new JSONObject(new String(intent.getStringExtra("response")));
                             sendMeetingResponse(context, response.toString(),
-                                    intent.getStringExtra("organizer").
-                                    substring(0, intent.getStringExtra("organizer").indexOf('@')));
+                                    intent.getStringExtra("organizer"));
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -270,23 +271,30 @@ public class AMQPCommunication extends Service {
 
                 Log.d(TAG, "starting mpc...");
                 LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                 if (locationManager != null) {
                     boolean isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
                     boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
 
                     Location location = null;
-                    if (isGpsEnabled) {
-                        location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    }else if(isNetworkEnabled){
-                        location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                    if(preferences.getBoolean(getString(R.string.mock_location), false)){
+                        location = new Location("");
+                        location.setLatitude(preferences.getFloat(getString(R.string.mock_latitude), 0.0f));
+                        location.setLongitude(preferences.getFloat(getString(R.string.mock_longitude), 0.0f));
                     }else{
-                        Log.d(TAG, "No method to receive user location");
-                        Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
+                        if (isGpsEnabled) {
+                            location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                        }else if(isNetworkEnabled){
+                            location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                        }else{
+                            Log.d(TAG, "No method to receive user location");
+                            Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
+                        }
                     }
+
 
                     if (location != null) {
                         Log.d(TAG, "Got location: " + location);
-                        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                         int noise = preferences.getInt(getString(R.string.noise_value), 5);
                         EncodedLatLon loc = new EncodedLatLon((float)location.getLatitude(), (float)location.getLongitude());
                         EncodedLatLon noisyLocation = MapActivity.getNoisyLocation(loc, noise);
@@ -304,8 +312,11 @@ public class AMQPCommunication extends Service {
                         showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
                         sendBroadcast(showMpcProgress);
                     }else{
-                        Log.d(TAG, "lastKnownLocation is null");
                         Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
+                        Log.d(TAG, "No method to receive user location");
+                        Intent showLocationDialog = new Intent();
+                        showLocationDialog.setAction(getString(R.string.broadcast_show_location_dialog));
+                        sendBroadcast(showLocationDialog);
                     }
                 } else {
                     Log.d(TAG, "LocationManager is null");
@@ -338,8 +349,8 @@ public class AMQPCommunication extends Service {
         }
 
         factory = new ConnectionFactory();
-        factory.setUsername(username);
-        factory.setPassword(password);
+        factory.setUsername("guest");
+        factory.setPassword("guest");
         factory.setHost(AMQPHost);
         factory.setPort(AMQPPort);
         factory.setRequestedHeartbeat(5);
@@ -404,6 +415,11 @@ public class AMQPCommunication extends Service {
             editor.putString(getString(R.string.username), username);
             editor.putString(getString(R.string.password), password);
 
+
+            editor.putFloat(getString(R.string.mock_latitude), intent.getFloatExtra(getString(R.string.mock_latitude), 0.0f));
+            editor.putFloat(getString(R.string.mock_longitude), intent.getFloatExtra(getString(R.string.mock_longitude), 0.0f));
+            editor.putBoolean(getString(R.string.mock_location), intent.getBooleanExtra(getString(R.string.mock_location), false));
+
             editor.commit();
         }else{
             AMQPHost = preferences.getString(getString(R.string.amqpIp), getString(R.string.defaultAmqpIp));
@@ -412,7 +428,6 @@ public class AMQPCommunication extends Service {
             password = preferences.getString(getString(R.string.password), getString(R.string.defaultPassword));
         }
 
-
         Log.d(TAG, "got username: " + username + " in shared preferences");
 
         invite_queue = "invite-" + username;
@@ -420,8 +435,8 @@ public class AMQPCommunication extends Service {
         factory = new ConnectionFactory();
         factory.setHost(AMQPHost);
         factory.setPort(AMQPPort);
-        factory.setUsername(username);
-        factory.setPassword(password);
+        factory.setUsername("guest");
+        factory.setPassword("guest");
         factory.setRequestedHeartbeat(5);
         factory.setAutomaticRecoveryEnabled(true);
         factory.setConnectionTimeout(2500);
