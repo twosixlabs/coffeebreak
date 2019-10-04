@@ -281,8 +281,15 @@ public class MainActivity extends AppCompatActivity{
                 int j = 0;
                 for(ContactResult c : results){
                     contactNames[j] = c.getDisplayName().toLowerCase();
+                    if(c.getPhoneNumbers().size() == 0){
+                        Toast.makeText(MainActivity.this, "No phone number associated with contact", Toast.LENGTH_LONG).show();
+                        return;
+                    }
                     contactPhones[j] = PhoneNumberUtils.formatNumberToE164(c.getPhoneNumbers().get(0), "US");
-                    //contactEmails[j] = c.getEmails().get(0);
+                    if(contactPhones[j] == null){
+                        Toast.makeText(MainActivity.this, "Contact has invalid US phone number", Toast.LENGTH_LONG).show();
+                        return;
+                    }
                 }
 
                 LocalDateTime beginDate = LocalDateTime.now();
@@ -317,8 +324,7 @@ public class MainActivity extends AppCompatActivity{
                 i.setDuration("PT1H");
                 i.setGranularity("PT15M");
                 Set<String> attendees = new HashSet<>(2);
-                //for(String name : contactNames)
-                //    attendees.add(name);
+
                 for(String phoneNumber : contactPhones)
                     attendees.add(phoneNumber);
 

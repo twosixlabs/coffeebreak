@@ -1,5 +1,6 @@
 package com.bbn.coffeebreak;
 
+import android.annotation.SuppressLint;
 import android.app.DialogFragment;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -9,6 +10,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -53,6 +55,15 @@ public class SettingsFragment extends DialogFragment {
         String amqpPort = preferences.getString(getString(R.string.amqpPort), getString(R.string.defaultAmqpPort));
         String username = PhoneNumberUtils.formatNumberToE164(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)), "US");
         String password = preferences.getString(getString(R.string.password), getString(R.string.defaultPassword));
+        Log.d(TAG, "got username: " + username);
+        if(username == null){
+            TelephonyManager tMgr = (TelephonyManager)getContext().getSystemService(Context.TELEPHONY_SERVICE);
+            @SuppressLint("MissingPermission")
+            String mPhoneNumber = tMgr.getLine1Number();
+            Log.d(TAG, "Got phone number: " + mPhoneNumber);
+            if(mPhoneNumber != "")
+                username = mPhoneNumber;
+        }
 
         amqpServerEditText.setText(amqpServer);
         amqpPortEditText.setText(amqpPort);

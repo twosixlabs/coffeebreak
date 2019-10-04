@@ -137,10 +137,12 @@ public class SplashActivity extends Activity {
         if (ContextCompat.checkSelfPermission(SplashActivity.this,
                 Manifest.permission.READ_CONTACTS)
                 != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(SplashActivity.this,
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(SplashActivity.this,
+                        Manifest.permission.READ_PHONE_NUMBERS) != PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(SplashActivity.this,
-                    new String[]{Manifest.permission.READ_CONTACTS, Manifest.permission.ACCESS_FINE_LOCATION},
+                    new String[]{Manifest.permission.READ_CONTACTS, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_NUMBERS},
                     REQUEST_PERMISSIONS);
 
         }else{
