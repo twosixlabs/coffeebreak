@@ -1,5 +1,6 @@
 package com.bbn.coffeebreak;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.DialogFragment;
 import android.app.Fragment;
@@ -9,12 +10,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 
 import android.util.Log;
 import android.view.Window;
 import android.widget.Toast;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class SplashActivity extends Activity {
 
@@ -23,6 +28,8 @@ public class SplashActivity extends Activity {
     private static String password = "";
     private static String amqpIp = "";
     private static String amqpPort = "";
+
+    final private static int REQUEST_PERMISSIONS = 0;
 
 
     // For ending the Splash Screen
@@ -64,6 +71,7 @@ public class SplashActivity extends Activity {
 
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_splash);
+
 
 
         //setup sharedPreferences for configuration options
@@ -125,13 +133,26 @@ public class SplashActivity extends Activity {
     protected void onResume() {
         super.onResume();
 
-        Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                SetupApp();
-            }
-        }, delay );
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(SplashActivity.this,
+                Manifest.permission.READ_CONTACTS)
+                != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(SplashActivity.this,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(SplashActivity.this,
+                    new String[]{Manifest.permission.READ_CONTACTS, Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_PERMISSIONS);
+
+        }else{
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    SetupApp();
+                }
+            }, delay );
+        }
+
 
     }
 
@@ -155,6 +176,24 @@ public class SplashActivity extends Activity {
         i.putExtra(getString(R.string.mock_location), preferences.getBoolean(getString(R.string.mock_location), false));
         getApplicationContext().startForegroundService(i);
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_PERMISSIONS: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "GRANTED LOCATION PERMISSION");
+                    Intent i = new Intent(SplashActivity.this, SplashActivity.class);
+                    i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(i);
+                } else {
+                    finish();
+                }
+                return;
+            }
+
+        }
     }
 
 }

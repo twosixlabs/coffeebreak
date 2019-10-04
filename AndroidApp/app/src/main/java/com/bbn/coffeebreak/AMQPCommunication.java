@@ -531,7 +531,7 @@ public class AMQPCommunication extends Service {
                         This is an invite response message
                          */
                         Log.d(TAG, "Received invite response code: " + message.getInt("response") + " from " + properties.getReplyTo()
-                            + "for meeting: " + message.getString("meetingID"));
+                            + " for meeting: " + message.getString("meetingID"));
                         if(message.getInt("response") == 1){
                             if(meetingList.incrementMeetingParticipation(message.getString("meetingID"))){
                                 /*

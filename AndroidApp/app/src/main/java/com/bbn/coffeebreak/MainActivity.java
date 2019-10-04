@@ -62,7 +62,7 @@ import java.util.Random;
 import java.util.Set;
 
 
-public class MainActivity extends AppCompatActivity implements PermissionsListener{
+public class MainActivity extends AppCompatActivity{
 
 
     private final static String TAG = "[MainActivity]";
@@ -74,9 +74,6 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
     // For sending HTTP Requests
     private HandlerThread httpHandlerThread;
     private Handler mHandler;
-
-    private PermissionsManager permissionsManager;
-
 
     // Broadcast receiver for handling events
     BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
@@ -215,41 +212,6 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
         setContentView(R.layout.activity_main);
         Toolbar myToolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
-
-        if (!PermissionsManager.areLocationPermissionsGranted(this)) {
-            permissionsManager = new PermissionsManager(this);
-            permissionsManager.requestLocationPermissions(this);
-        }
-
-        // Here, thisActivity is the current activity
-        if (ContextCompat.checkSelfPermission(MainActivity.this,
-                Manifest.permission.READ_CONTACTS)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{Manifest.permission.READ_CONTACTS},
-                    0);
-
-        }
-
-        if (ContextCompat.checkSelfPermission(MainActivity.this,
-                Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{Manifest.permission.READ_CONTACTS},
-                    0);
-        }
-
-        if (ContextCompat.checkSelfPermission(MainActivity.this,
-            Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{Manifest.permission.READ_CONTACTS},
-                    0);
-        }
-
 
         httpHandlerThread = new HandlerThread("httpHandlerThread");
         httpHandlerThread.start();
@@ -426,37 +388,5 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
         super.onDestroy();
         unregisterReceiver(mBroadcastReceiver);
         httpHandlerThread.quitSafely();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String[] permissions, int[] grantResults) {
-        switch (requestCode) {
-            case 0: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-                } else {
-                    finish();
-                }
-                return;
-            }
-
-        }
-    }
-
-    @Override
-    public void onExplanationNeeded(List<String> permissionsToExplain) {
-        Toast.makeText(this, "User location permission required", Toast.LENGTH_LONG).show();
-    }
-
-    @Override
-    public void onPermissionResult(boolean granted) {
-        if (!granted){
-            Toast.makeText(this, "Permission not granted", Toast.LENGTH_LONG).show();
-            finish();
-        }
     }
 }

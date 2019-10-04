@@ -21,6 +21,9 @@ public class MeetingList {
             Meeting m = new Meeting(details);
             meetings.put(m.meetingID, m);
             Log.d(TAG, "Inserting meeting with meeting ID: " + m.meetingID);
+            if(meetings.get(m.meetingID) == null){
+                Log.d(TAG, "Failed to insert meeting ID: " + m.meetingID);
+            }
         } catch (JSONException e) {
             e.printStackTrace();
         }
