@@ -18,7 +18,7 @@ public class ContactPicker {
                 .hideScrollbar(false)
                 .showTrack(true)
                 .searchIconColor(Color.WHITE)
-                .setChoiceMode(MultiContactPicker.CHOICE_MODE_MULTIPLE)
+                .setChoiceMode(MultiContactPicker.CHOICE_MODE_SINGLE)
                 .handleColor(ContextCompat.getColor(c, R.color.colorPrimary))
                 .bubbleColor(ContextCompat.getColor(c, R.color.colorPrimary))
                 .bubbleTextColor(Color.WHITE)
