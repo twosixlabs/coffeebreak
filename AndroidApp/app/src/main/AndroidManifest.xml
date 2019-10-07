@@ -23,8 +23,7 @@
             android:name=".AMQPCommunication"
             android:exported="false"
             android:stopWithTask="false"
-            android:isolatedProcess="false"
-            android:process=":amqp">
+            android:isolatedProcess="false">
         </service>
         <activity
             android:name=".MainActivity"

@@ -1,6 +1,6 @@
 package com.bbn.coffeebreak;
 
-import android.Manifest;
+
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.DialogFragment;
@@ -12,27 +12,18 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.location.Location;
-import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.telephony.PhoneNumberUtils;
 import android.util.Log;
@@ -45,8 +36,6 @@ import android.widget.Toast;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mapbox.android.core.permissions.PermissionsListener;
-import com.mapbox.android.core.permissions.PermissionsManager;
 import com.marcoscg.dialogsheet.DialogSheet;
 import com.wafflecopter.multicontactpicker.ContactResult;
 import com.wafflecopter.multicontactpicker.MultiContactPicker;
@@ -62,12 +51,12 @@ import java.util.Random;
 import java.util.Set;
 
 
-public class MainActivity extends AppCompatActivity{
+public class MainActivity extends AppCompatActivity {
 
 
     private final static String TAG = "[MainActivity]";
 
-    private FusedLocationProviderClient fusedLocationClient;
+    private LocalBroadcastManager mLocalBroadcastManager;
 
     private static Random generator;
 
@@ -105,7 +94,7 @@ public class MainActivity extends AppCompatActivity{
                 String message = "Invites: ";
                 for (String s : attendees) {
                     if (!s.equals(organizer))
-                        message += s +"; ";
+                        message += s + "; ";
                 }
 
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'");
@@ -134,7 +123,7 @@ public class MainActivity extends AppCompatActivity{
                                 response.setResponse(1);
                                 try {
                                     sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
-                                    sendBroadcast(sendMeetingResponse);
+                                    mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
                                 } catch (JsonProcessingException e) {
                                     e.printStackTrace();
                                 }
@@ -147,7 +136,7 @@ public class MainActivity extends AppCompatActivity{
                                 response.setResponse(0);
                                 try {
                                     sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
-                                    sendBroadcast(sendMeetingResponse);
+                                    mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
                                 } catch (JsonProcessingException e) {
                                     e.printStackTrace();
                                 }
@@ -159,14 +148,14 @@ public class MainActivity extends AppCompatActivity{
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcProgress.setVisibility(View.INVISIBLE);
                 mpcMessage.setVisibility(View.INVISIBLE);
-                AlertDialog alertDialog = new AlertDialog.Builder(context).create();
+                AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                 alertDialog.setTitle("Secure Meeting Location");
                 alertDialog.setMessage(intent.getStringExtra("address"));
                 alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Show on map",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int which) {
                                 dialog.dismiss();
-                                Intent showMap = new Intent(context, MapActivity.class);
+                                Intent showMap = new Intent(MainActivity.this, MapActivity.class);
                                 showMap.putExtra("address", intent.getStringExtra("address"));
                                 showMap.putExtra("latitude", intent.getFloatExtra("latitude", 0.0f));
                                 showMap.putExtra("longitude", intent.getFloatExtra("longitude", 0.0f));
@@ -181,7 +170,7 @@ public class MainActivity extends AppCompatActivity{
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcProgress.setVisibility(View.VISIBLE);
                 mpcMessage.setVisibility(View.VISIBLE);
-            }else if(intent.getAction().equals(getString(R.string.broadcast_show_location_dialog))){
+            } else if (intent.getAction().equals(getString(R.string.broadcast_show_location_dialog))) {
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                 alertDialog.setTitle("Can't get GPS location");
                 alertDialog.setMessage("Go outside to get a GPS location or set a mock location");
@@ -193,10 +182,10 @@ public class MainActivity extends AppCompatActivity{
                     }
                 });
                 alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Dismiss", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                alertDialog.dismiss();
-                            }
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        alertDialog.dismiss();
+                    }
                 });
                 alertDialog.show();
             }
@@ -217,6 +206,8 @@ public class MainActivity extends AppCompatActivity{
         httpHandlerThread.start();
         mHandler = new Handler(httpHandlerThread.getLooper());
 
+        mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
+
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
         TextView usernameDisplay = (TextView) findViewById(R.id.usernameDisplay);
@@ -230,7 +221,8 @@ public class MainActivity extends AppCompatActivity{
         mIntentFilter.addAction(getString(R.string.broadcast_show_meeting_location));
         mIntentFilter.addAction(getString(R.string.broadcast_show_mpc_progress));
         mIntentFilter.addAction(getString(R.string.broadcast_show_location_dialog));
-        registerReceiver(mBroadcastReceiver, mIntentFilter);
+
+        mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
 
 
         // Random number generator
@@ -245,7 +237,7 @@ public class MainActivity extends AppCompatActivity{
             }
         });
 
-        if(getIntent().getStringExtra("meetingID") != null){
+        if (getIntent().getStringExtra("meetingID") != null) {
             Intent showMeetingRequest = new Intent();
             Log.d(TAG, "Got intent with meetingID: " + getIntent().getStringExtra("meetingID"));
             showMeetingRequest.putExtra("meetingID", getIntent().getStringExtra("meetingID"));
@@ -254,7 +246,7 @@ public class MainActivity extends AppCompatActivity{
             showMeetingRequest.putExtra("begin", getIntent().getStringExtra("begin"));
             showMeetingRequest.putExtra("end", getIntent().getStringExtra("end"));
             showMeetingRequest.setAction(getString(R.string.broadcast_show_meeting_request));
-            sendBroadcast(showMeetingRequest);
+            mLocalBroadcastManager.sendBroadcast(showMeetingRequest);
         }
 
     }
@@ -266,9 +258,9 @@ public class MainActivity extends AppCompatActivity{
         super.onActivityResult(requestCode, resultCode, data);
 
         //Eventually we may have multiple results returning to this Activity
-        if(requestCode == getResources().getInteger(R.integer.contact_picker_request)){
+        if (requestCode == getResources().getInteger(R.integer.contact_picker_request)) {
 
-            if(resultCode == RESULT_OK) {
+            if (resultCode == RESULT_OK) {
 
                 final SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
@@ -279,14 +271,14 @@ public class MainActivity extends AppCompatActivity{
                 //final String[] contactEmails = new String[results.size()];
                 final String[] contactPhones = new String[results.size()];
                 int j = 0;
-                for(ContactResult c : results){
+                for (ContactResult c : results) {
                     contactNames[j] = c.getDisplayName().toLowerCase();
-                    if(c.getPhoneNumbers().size() == 0){
+                    if (c.getPhoneNumbers().size() == 0) {
                         Toast.makeText(MainActivity.this, "No phone number associated with contact", Toast.LENGTH_LONG).show();
                         return;
                     }
                     contactPhones[j] = PhoneNumberUtils.formatNumberToE164(c.getPhoneNumbers().get(0), "US");
-                    if(contactPhones[j] == null){
+                    if (contactPhones[j] == null) {
                         Toast.makeText(MainActivity.this, "Contact has invalid US phone number", Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -298,7 +290,7 @@ public class MainActivity extends AppCompatActivity{
                 LocalDateTime endDate = beginDate.plusDays(7);
                 ZonedDateTime zEndDate = endDate.atZone(ZoneId.systemDefault());
 
-                if(zEndDate.isBefore(zBeginDate)){
+                if (zEndDate.isBefore(zBeginDate)) {
                     Log.d(TAG, "Invalid date interval... exiting");
                     Toast.makeText(MainActivity.this, "Invalid date interval", Toast.LENGTH_LONG).show();
                     return;
@@ -311,7 +303,7 @@ public class MainActivity extends AppCompatActivity{
                 String endTime = utcEnd.format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "T" + utcEnd.format(DateTimeFormatter.ofPattern("HHmmss")) + "Z";
 
                 Log.d(TAG, "Invite Start Time Zulu: " + beginTime);
-                Log.d(TAG, "Invite End Time Zulu: " +  endTime);
+                Log.d(TAG, "Invite End Time Zulu: " + endTime);
 
 
                 // Build meeting invite to send to scheduling server
@@ -325,10 +317,10 @@ public class MainActivity extends AppCompatActivity{
                 i.setGranularity("PT15M");
                 Set<String> attendees = new HashSet<>(2);
 
-                for(String phoneNumber : contactPhones)
+                for (String phoneNumber : contactPhones)
                     attendees.add(phoneNumber);
 
-                attendees.add(PhoneNumberUtils.formatNumberToE164(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)),"US"));
+                attendees.add(PhoneNumberUtils.formatNumberToE164(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)), "US"));
                 i.setAttendees(attendees);
                 Constraints c = new Constraints();
 
@@ -346,12 +338,12 @@ public class MainActivity extends AppCompatActivity{
                     Intent sendMeetingInvite = new Intent();
                     sendMeetingInvite.putExtra("event", mapper.writeValueAsString(i));
                     sendMeetingInvite.setAction(getString(R.string.broadcast_send_meeting_invite));
-                    sendBroadcast(sendMeetingInvite);
+                    mLocalBroadcastManager.sendBroadcast(sendMeetingInvite);
                 } catch (JsonProcessingException e) {
                     e.printStackTrace();
                 }
 
-            } else if(resultCode == RESULT_CANCELED){
+            } else if (resultCode == RESULT_CANCELED) {
                 Log.d(getString(R.string.app_tag), getString(R.string.message_date_picker_cancel));
             }
         }
@@ -392,7 +384,7 @@ public class MainActivity extends AppCompatActivity{
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mBroadcastReceiver);
+        mLocalBroadcastManager.unregisterReceiver(mBroadcastReceiver);
         httpHandlerThread.quitSafely();
     }
 }

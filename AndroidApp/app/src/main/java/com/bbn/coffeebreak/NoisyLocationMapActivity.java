@@ -194,21 +194,6 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     }
 
     @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-        Intent i = new Intent(NoisyLocationMapActivity.this, SplashActivity.class);
-        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        i.putExtra(getString(R.string.mock_latitude), preferences.getFloat(getString(R.string.mock_latitude), 0.0f));
-        i.putExtra(getString(R.string.mock_longitude), preferences.getFloat(getString(R.string.mock_longitude), 0.0f));
-        i.putExtra(getString(R.string.mock_location), preferences.getBoolean(getString(R.string.mock_location), false));
-        Log.d(TAG, "Setting new mock location: " + String.valueOf(preferences.getFloat(getString(R.string.mock_latitude), 0.0f)));
-        Intent amqpService = new Intent(NoisyLocationMapActivity.this, AMQPCommunication.class);
-        stopService(amqpService);
-        startActivity(i);
-    }
-
-    @Override
     protected void onStart() {
         super.onStart();
         mMapView.onStart();

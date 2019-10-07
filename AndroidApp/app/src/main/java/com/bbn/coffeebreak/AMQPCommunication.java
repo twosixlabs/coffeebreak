@@ -9,7 +9,6 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -26,12 +25,18 @@ import android.os.Looper;
 import android.os.ResultReceiver;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -65,6 +70,10 @@ public class AMQPCommunication extends Service {
 
     private final static String INVITE_EXCHANGE = "invite";
 
+    private LocalBroadcastManager mLocalBroadcastManager;
+    private FusedLocationProviderClient client;
+    private LocationRequest mLocationRequest;
+
     private static String invite_queue;
 
     private static String username = "";
@@ -77,7 +86,7 @@ public class AMQPCommunication extends Service {
     private HandlerThread mHandlerThread;
     private Handler mHandler;
 
-    private MeetingList meetingList;
+    //private MeetingList meetingList;
 
 
     private ResultReceiver starbucksLocationReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
@@ -100,7 +109,7 @@ public class AMQPCommunication extends Service {
                     showMeetingLocation.putExtra("longitude", starbucksLocation.getLongitude());
 
                     showMeetingLocation.setAction(getString(R.string.broadcast_show_meeting_location));
-                    sendBroadcast(showMeetingLocation);
+                    mLocalBroadcastManager.sendBroadcast(showMeetingLocation);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -127,6 +136,17 @@ public class AMQPCommunication extends Service {
                 e.printStackTrace();
             }
 
+        }
+    };
+
+    private LocationCallback locationCallback = new LocationCallback() {
+        @Override
+        public void onLocationResult(LocationResult locationResult) {
+            super.onLocationResult(locationResult);
+            Location location = locationResult.getLastLocation();
+            if (location != null) {
+                Log.d(TAG, "Got location: " + location);
+            }
         }
     };
 
@@ -178,7 +198,7 @@ public class AMQPCommunication extends Service {
             showMeetingRequest.putExtra("begin", resultData.getString("begin"));
             showMeetingRequest.putExtra("end", resultData.getString("end"));
             showMeetingRequest.setAction(getString(R.string.broadcast_show_meeting_request));
-            sendBroadcast(showMeetingRequest);
+            mLocalBroadcastManager.sendBroadcast(showMeetingRequest);
 
         }
     };
@@ -197,14 +217,26 @@ public class AMQPCommunication extends Service {
                             /*
                             Send meeting invite to all participants
                              */
+                            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                            SharedPreferences.Editor editor = preferences.edit();
+
+                            JSONObject meeting = new JSONObject();
                             JSONObject invite = new JSONObject(new String(intent.getStringExtra("event")));
-                            meetingList.insertMeeting(invite);
+                            meeting.put("meetingID", invite.getString("meetingID"));
+                            meeting.put("size", invite.getJSONArray("attendees").length());
+                            meeting.put("responses", 1);
+                            meeting.put("attendees", invite.getJSONArray("attendees"));
+                            meeting.put("organizer", username);
+                            editor.putString(meeting.getString("meetingID"), meeting.toString());
+                            editor.commit();
+                            //meetingList.insertMeeting(invite);
                             for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){
                                 String attendee = invite.getJSONArray("attendees").get(i).toString();
                                 if(!attendee.equals(username)){
                                     sendMeetingInvite(context, invite.toString(), attendee);
                                 }
                             }
+
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -238,7 +270,11 @@ public class AMQPCommunication extends Service {
                             Send meeting start to all participants
                              */
                             JSONObject startMessage = new JSONObject(new String(intent.getStringExtra("event")));
-                            meetingList.removeMeeting(startMessage.getString("meetingID"));
+                            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.remove(startMessage.getString("meetingID"));
+                            editor.commit();
+                            //meetingList.removeMeeting(startMessage.getString("meetingID"));
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < startMessage.getJSONArray("attendees").length(); i++){
                                 String attendee = startMessage.getJSONArray("attendees").get(i).toString();
@@ -253,12 +289,12 @@ public class AMQPCommunication extends Service {
                              */
                             Intent startMpc = new Intent();
                             startMpc.putExtra("meetingID", startMessage.getString("meetingID"));
-                            startMpc.putExtra("organizer", startMessage.getString("organizer"));
+                            startMpc.putExtra("organizer", username);
                             startMpc.putStringArrayListExtra("attendees", attendees);
-                            startMpc.putExtra("begin", startMessage.getJSONObject("constraints").getString("begin"));
-                            startMpc.putExtra("end", startMessage.getJSONObject("constraints").getString("end"));
+                            //startMpc.putExtra("begin", startMessage.getJSONObject("constraints").getString("begin"));
+                            //startMpc.putExtra("end", startMessage.getJSONObject("constraints").getString("end"));
                             startMpc.setAction(getString(R.string.broadcast_start_mpc));
-                            sendBroadcast(startMpc);
+                            mLocalBroadcastManager.sendBroadcast(startMpc);
 
 
                         } catch (JSONException e) {
@@ -272,6 +308,8 @@ public class AMQPCommunication extends Service {
                 Log.d(TAG, "starting mpc...");
                 LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+
+
                 if (locationManager != null) {
                     boolean isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
                     boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
@@ -292,7 +330,6 @@ public class AMQPCommunication extends Service {
                         }
                     }
 
-
                     if (location != null) {
                         Log.d(TAG, "Got location: " + location);
                         int noise = preferences.getInt(getString(R.string.noise_value), 5);
@@ -310,13 +347,13 @@ public class AMQPCommunication extends Service {
                         mHandler.post(mpc);
                         Intent showMpcProgress = new Intent();
                         showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
-                        sendBroadcast(showMpcProgress);
+                        mLocalBroadcastManager.sendBroadcast(showMpcProgress);
                     }else{
                         Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
                         Log.d(TAG, "No method to receive user location");
                         Intent showLocationDialog = new Intent();
                         showLocationDialog.setAction(getString(R.string.broadcast_show_location_dialog));
-                        sendBroadcast(showLocationDialog);
+                        mLocalBroadcastManager.sendBroadcast(showLocationDialog);
                     }
                 } else {
                     Log.d(TAG, "LocationManager is null");
@@ -375,7 +412,19 @@ public class AMQPCommunication extends Service {
         mHandlerThread.start();
         mHandler = new Handler(mHandlerThread.getLooper());
 
-        meetingList = new MeetingList();
+        mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
+
+        client = LocationServices.getFusedLocationProviderClient(this);
+        mLocationRequest = LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(5000)
+                .setFastestInterval(2500);
+
+        client.requestLocationUpdates(mLocationRequest,
+                locationCallback,
+                null);
+
+        //meetingList = new MeetingList();
         createNotificationChannel();
         IntentFilter mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_invite));
@@ -383,7 +432,7 @@ public class AMQPCommunication extends Service {
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_start));
         mIntentFilter.addAction(getString(R.string.broadcast_start_mpc));
 
-        registerReceiver(mBroadcastReceiver, mIntentFilter);
+        mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
 
     }
 
@@ -472,7 +521,7 @@ public class AMQPCommunication extends Service {
                 if(retryCount >= 2){
                     Intent showSettingsFragment = new Intent();
                     showSettingsFragment.setAction(getString(R.string.broadcast_show_settings));
-                    sendBroadcast(showSettingsFragment);
+                    mLocalBroadcastManager.sendBroadcast(showSettingsFragment);
                 }else{
                     e1.printStackTrace();
                     try {
@@ -483,7 +532,6 @@ public class AMQPCommunication extends Service {
                         e.printStackTrace();
                     }
                 }
-
             }
             return null;
         }
@@ -496,7 +544,7 @@ public class AMQPCommunication extends Service {
                 Intent splashEndBroadcast = new Intent();
                 // Send broadcast to end splash screen
                 splashEndBroadcast.setAction(getString(R.string.broadcast_end_splash));
-                sendBroadcast(splashEndBroadcast);
+                mLocalBroadcastManager.sendBroadcast(splashEndBroadcast);
             }else{
                 Log.d(TAG, "Error: Channel is NULL");
             }
@@ -533,16 +581,26 @@ public class AMQPCommunication extends Service {
                         Log.d(TAG, "Received invite response code: " + message.getInt("response") + " from " + properties.getReplyTo()
                             + " for meeting: " + message.getString("meetingID"));
                         if(message.getInt("response") == 1){
-                            if(meetingList.incrementMeetingParticipation(message.getString("meetingID"))){
+                            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                            SharedPreferences.Editor editor = preferences.edit();
+
+                            String meetingId = message.getString("meetingID");
+                            JSONObject meeting = new JSONObject(preferences.getString(meetingId, "{}"));
+                            int responseCount =  meeting.getInt("responses") + 1;
+                            if(responseCount == meeting.getInt("size")){
                                 /*
                                 Send MPC Start message to everyone
                                  */
                                 Log.d(TAG, "Got repsonses for everyone on meetingID: " + message.getString("meetingID"));
                                 Intent sendStartMessage = new Intent();
-                                JSONObject details = meetingList.getMeetingDetails(message.getString("meetingID"));
-                                sendStartMessage.putExtra("event", details.toString());
+                                //JSONObject details = meetingList.getMeetingDetails(message.getString("meetingID"));
+                                sendStartMessage.putExtra("event", meeting.toString());
                                 sendStartMessage.setAction(getString(R.string.broadcast_send_meeting_start));
-                                sendBroadcast(sendStartMessage);
+                                mLocalBroadcastManager.sendBroadcast(sendStartMessage);
+                            }else{
+                                meeting.put("responses", responseCount);
+                                editor.putString(meetingId, meeting.toString());
+                                editor.commit();
                             }
                         }else{
                             /*
@@ -565,10 +623,10 @@ public class AMQPCommunication extends Service {
                             attendees.add(message.getJSONArray("attendees").getString(i));
                         }
                         startMpc.putStringArrayListExtra("attendees", attendees);
-                        startMpc.putExtra("begin", message.getJSONObject("constraints").getString("begin"));
-                        startMpc.putExtra("end", message.getJSONObject("constraints").getString("end"));
+                        //startMpc.putExtra("begin", message.getJSONObject("constraints").getString("begin"));
+                        //startMpc.putExtra("end", message.getJSONObject("constraints").getString("end"));
                         startMpc.setAction(getString(R.string.broadcast_start_mpc));
-                        sendBroadcast(startMpc);
+                        mLocalBroadcastManager.sendBroadcast(startMpc);
 
                     }else if(properties.getType().equals("cancel")){
                         /*
@@ -704,8 +762,9 @@ public class AMQPCommunication extends Service {
             });
 
         }
-        unregisterReceiver(mBroadcastReceiver);
+        mLocalBroadcastManager.unregisterReceiver(mBroadcastReceiver);
         mHandlerThread.quitSafely();
+        client.removeLocationUpdates(locationCallback);
     }
 
     /*

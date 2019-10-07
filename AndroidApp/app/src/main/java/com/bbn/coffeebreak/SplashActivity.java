@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 
@@ -20,6 +21,7 @@ import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 public class SplashActivity extends Activity {
 
@@ -30,6 +32,8 @@ public class SplashActivity extends Activity {
     private static String amqpPort = "";
 
     final private static int REQUEST_PERMISSIONS = 0;
+
+    private LocalBroadcastManager mLocalBroadcastManager;
 
 
     // For ending the Splash Screen
@@ -72,7 +76,7 @@ public class SplashActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_splash);
 
-
+        mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
         //setup sharedPreferences for configuration options
         SharedPreferences sharedPreferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);;
@@ -125,7 +129,7 @@ public class SplashActivity extends Activity {
         IntentFilter mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(getString(R.string.broadcast_end_splash));
         mIntentFilter.addAction(getString(R.string.broadcast_show_settings));
-        registerReceiver(mBroadcastReceiver, mIntentFilter);
+        mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
 
     }
 
@@ -160,7 +164,7 @@ public class SplashActivity extends Activity {
 
     protected void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mBroadcastReceiver);
+        mLocalBroadcastManager.unregisterReceiver(mBroadcastReceiver);
     }
 
 
