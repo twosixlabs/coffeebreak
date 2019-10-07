@@ -74,6 +74,8 @@ public class AMQPCommunication extends Service {
     private FusedLocationProviderClient client;
     private LocationRequest mLocationRequest;
 
+    private Location mLastLocation;
+
     private static String invite_queue;
 
     private static String username = "";
@@ -145,7 +147,8 @@ public class AMQPCommunication extends Service {
             super.onLocationResult(locationResult);
             Location location = locationResult.getLastLocation();
             if (location != null) {
-                Log.d(TAG, "Got location: " + location);
+                //Log.d(TAG, "Got location: " + location);
+                mLastLocation = location;
             }
         }
     };
@@ -306,58 +309,44 @@ public class AMQPCommunication extends Service {
             } else if(intent.getAction().equals(getString(R.string.broadcast_start_mpc))){
 
                 Log.d(TAG, "starting mpc...");
-                LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
-
-                if (locationManager != null) {
-                    boolean isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                    boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-
-                    Location location = null;
-                    if(preferences.getBoolean(getString(R.string.mock_location), false)){
-                        location = new Location("");
-                        location.setLatitude(preferences.getFloat(getString(R.string.mock_latitude), 0.0f));
-                        location.setLongitude(preferences.getFloat(getString(R.string.mock_longitude), 0.0f));
-                    }else{
-                        if (isGpsEnabled) {
-                            location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                        }else if(isNetworkEnabled){
-                            location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                        }else{
-                            Log.d(TAG, "No method to receive user location");
-                            Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
-                        }
-                    }
-
-                    if (location != null) {
-                        Log.d(TAG, "Got location: " + location);
-                        int noise = preferences.getInt(getString(R.string.noise_value), 5);
-                        EncodedLatLon loc = new EncodedLatLon((float)location.getLatitude(), (float)location.getLongitude());
-                        EncodedLatLon noisyLocation = MapActivity.getNoisyLocation(loc, noise);
-                        // Spin up the MPC thread
-                        ThreadMPC mpc = new ThreadMPC(context,
-                                intent.getStringExtra("meetingID"),
-                                channel,
-                                intent.getStringArrayListExtra("attendees"),
-                                username,
-                                noisyLocation.getEncodedLocation(),
-                                mpcResponse);
-                        mpc.setMode(ThreadMPC.Mode.STATIC_EXECUTABLES);
-                        mHandler.post(mpc);
-                        Intent showMpcProgress = new Intent();
-                        showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
-                        mLocalBroadcastManager.sendBroadcast(showMpcProgress);
-                    }else{
-                        Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
-                        Log.d(TAG, "No method to receive user location");
-                        Intent showLocationDialog = new Intent();
-                        showLocationDialog.setAction(getString(R.string.broadcast_show_location_dialog));
-                        mLocalBroadcastManager.sendBroadcast(showLocationDialog);
-                    }
-                } else {
-                    Log.d(TAG, "LocationManager is null");
+                Location location = null;
+                if(preferences.getBoolean(getString(R.string.mock_location), false)){
+                    location = new Location("");
+                    location.setLatitude(preferences.getFloat(getString(R.string.mock_latitude), 0.0f));
+                    location.setLongitude(preferences.getFloat(getString(R.string.mock_longitude), 0.0f));
+                }else{
+                    location = mLastLocation;
                 }
+
+                if (location != null) {
+
+                    Log.d(TAG, "Got location: " + location);
+                    int noise = preferences.getInt(getString(R.string.noise_value), 5);
+                    EncodedLatLon loc = new EncodedLatLon((float)location.getLatitude(), (float)location.getLongitude());
+                    EncodedLatLon noisyLocation = MapActivity.getNoisyLocation(loc, noise);
+                    // Spin up the MPC thread
+                    ThreadMPC mpc = new ThreadMPC(context,
+                            intent.getStringExtra("meetingID"),
+                            channel,
+                            intent.getStringArrayListExtra("attendees"),
+                            username,
+                            noisyLocation.getEncodedLocation(),
+                            mpcResponse);
+                    mpc.setMode(ThreadMPC.Mode.STATIC_EXECUTABLES);
+                    mHandler.post(mpc);
+                    Intent showMpcProgress = new Intent();
+                    showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
+                    mLocalBroadcastManager.sendBroadcast(showMpcProgress);
+                }else{
+                    Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
+                    Log.d(TAG, "No method to receive user location");
+                    Intent showLocationDialog = new Intent();
+                    showLocationDialog.setAction(getString(R.string.broadcast_show_location_dialog));
+                    mLocalBroadcastManager.sendBroadcast(showLocationDialog);
+                }
+
 
             }
         }
@@ -623,8 +612,7 @@ public class AMQPCommunication extends Service {
                             attendees.add(message.getJSONArray("attendees").getString(i));
                         }
                         startMpc.putStringArrayListExtra("attendees", attendees);
-                        //startMpc.putExtra("begin", message.getJSONObject("constraints").getString("begin"));
-                        //startMpc.putExtra("end", message.getJSONObject("constraints").getString("end"));
+
                         startMpc.setAction(getString(R.string.broadcast_start_mpc));
                         mLocalBroadcastManager.sendBroadcast(startMpc);
 
