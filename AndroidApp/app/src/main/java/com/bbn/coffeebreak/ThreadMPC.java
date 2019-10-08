@@ -943,7 +943,7 @@ private void runExecutables(
     final String[] lines = result.stdout.toString().split("\n");
     final int i;
     if (this.programIsTwoPartyMpc()) {
-      i = 0;
+      i = -1;
     } else {
       int j;
       for (j = 0; j != lines.length; ++j) {
