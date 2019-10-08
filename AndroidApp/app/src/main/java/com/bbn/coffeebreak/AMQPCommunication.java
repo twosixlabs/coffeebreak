@@ -421,7 +421,10 @@ public class AMQPCommunication extends Service {
                             username,
                             noisyLocation.getEncodedLocation(),
                             mpcResponse);
-                    mpc.setMode(ThreadMPC.Mode.STATIC_EXECUTABLES);
+                    //mpc.setMode(ThreadMPC.Mode.STATIC_EXECUTABLES);
+                    mpc.setMode(ThreadMPC.Mode.SHARED_EXECUTABLES);
+                    mpc.setCircuitType(ThreadMPC.CircuitType.CBL);
+                    mpc.setCblLookahead(4);
                     mHandler.post(mpc);
                     Intent showMpcProgress = new Intent();
                     showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
