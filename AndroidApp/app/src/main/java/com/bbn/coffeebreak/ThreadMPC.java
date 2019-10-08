@@ -56,6 +56,11 @@ public enum Mode {
   STATIC_EXECUTABLES
 }
 
+public enum CircuitType {
+  CBG,
+  CBL
+}
+
 private interface DummyDeliveryHandler {
   public void handleDelivery(
     int i,
@@ -86,6 +91,8 @@ private static final Object assetMutex = new Object();
 private static final Charset utf8 = Charset.forName("UTF-8");
 
 private Mode mode;
+private CircuitType circuitType;
+private int cblLookahead;
 
 private final String meeting;
 private final Channel channel;
@@ -130,7 +137,7 @@ private final String assetDir;
 private final String filesDir;
 
 private String mpcExecutable = null;
-private String mpcExecutableDir = null;
+private String ldLibraryPath = null;
 private String locationCircuit = null;
 private String locationExecDir = null;
 
@@ -147,6 +154,8 @@ public ThreadMPC(
 ) {
 
   this.mode = ThreadMPC.Mode.DUMMY;
+  this.circuitType = ThreadMPC.CircuitType.CBG;
+  this.cblLookahead = 1;
 
   if (context == null) {
     throw new IllegalArgumentException(
@@ -339,39 +348,37 @@ private void declareQueue(
 @SuppressLint("NewApi")
 private static void deleteRecursively(
   final String path
-) {
-  try {
-    Files.walkFileTree(
-      Paths.get(path),
-      new SimpleFileVisitor<Path>() {
-        @Override
-        public FileVisitResult postVisitDirectory(
-          final Path dir,
-          final IOException exc
-        ) throws
-          IOException
-        {
-          if (exc != null) {
-            throw exc;
-          }
-          Files.delete(dir);
-          return FileVisitResult.CONTINUE;
+) throws
+  Exception
+{
+  Files.walkFileTree(
+    Paths.get(path),
+    new SimpleFileVisitor<Path>() {
+      @Override
+      public FileVisitResult postVisitDirectory(
+        final Path dir,
+        final IOException exc
+      ) throws
+        IOException
+      {
+        if (exc != null) {
+          throw exc;
         }
-        @Override
-        public FileVisitResult visitFile(
-          final Path path,
-          final BasicFileAttributes attrs
-        ) throws
-          IOException
-        {
-          Files.delete(path);
-          return FileVisitResult.CONTINUE;
-        }
+        Files.delete(dir);
+        return FileVisitResult.CONTINUE;
       }
-    );
-  } catch (final IOException e) {
-    throw new RuntimeException(e);
-  }
+      @Override
+      public FileVisitResult visitFile(
+        final Path path,
+        final BasicFileAttributes attrs
+      ) throws
+        IOException
+      {
+        Files.delete(path);
+        return FileVisitResult.CONTINUE;
+      }
+    }
+  );
 }
 
 private ExecResult exec(
@@ -384,7 +391,7 @@ private ExecResult exec(
       Runtime.getRuntime().exec(
         argv,
         new String[] {
-          "LD_LIBRARY_PATH=" + this.mpcExecutableDir
+          "LD_LIBRARY_PATH=" + this.ldLibraryPath
         },
         new File(dir)
       )
@@ -496,6 +503,16 @@ private ExecResult exec(
   }
 }
 
+public final int getCblLookahead(
+) {
+  return this.cblLookahead;
+}
+
+public final ThreadMPC.CircuitType getCircuitType(
+) {
+  return this.circuitType;
+}
+
 public final Exception getException(
 ) {
   return this.exception;
@@ -546,6 +563,7 @@ private String loadAsset(
             }
             if (ax == -1) {
               ThreadMPC.setFilePermissions(filesFile, executable);
+              ThreadMPC.setFilePermissions(filesHash, false);
               return filesFile;
             }
           }
@@ -553,41 +571,23 @@ private String loadAsset(
       }
       Files.deleteIfExists(Paths.get(filesFile));
       Files.deleteIfExists(Paths.get(filesHash));
-      {
-        final InputStream src = this.assets.open(assetFile);
+      try (final InputStream src = this.assets.open(assetFile)) {
         final Path tmp = Paths.get(filesFile + ".tmp");
         final Path dst = Paths.get(filesFile);
-        try {
-          Files.createDirectories(tmp.getParent());
-          Files.deleteIfExists(tmp);
-          Files.copy(src, tmp);
-          Files.move(tmp, dst);
-        } catch (final IOException e1) {
-          try {
-            src.close();
-          } catch (final IOException e2) {
-          }
-          throw e1;
-        }
+        Files.createDirectories(tmp.getParent());
+        Files.deleteIfExists(tmp);
+        Files.copy(src, tmp);
+        Files.move(tmp, dst);
       }
-      ThreadMPC.setFilePermissions(filesFile, executable);
-      {
-        final InputStream src = this.assets.open(assetHash);
+      try (final InputStream src = this.assets.open(assetHash)) {
         final Path tmp = Paths.get(filesHash + ".tmp");
         final Path dst = Paths.get(filesHash);
-        try {
-          Files.createDirectories(tmp.getParent());
-          Files.deleteIfExists(tmp);
-          Files.copy(src, tmp);
-          Files.move(tmp, dst);
-        } catch (final IOException e1) {
-          try {
-            src.close();
-          } catch (final IOException e2) {
-          }
-          throw e1;
-        }
+        Files.createDirectories(tmp.getParent());
+        Files.deleteIfExists(tmp);
+        Files.copy(src, tmp);
+        Files.move(tmp, dst);
       }
+      ThreadMPC.setFilePermissions(filesFile, executable);
       ThreadMPC.setFilePermissions(filesHash, false);
       return filesFile;
     }
@@ -599,19 +599,137 @@ private String loadAsset(
   }
 }
 
+public final void prepare(
+) {
+  switch (this.mode) {
+    case DUMMY: if (true) {
+    } break;
+    case SHARED_EXECUTABLES:
+    case STATIC_EXECUTABLES: if (true) {
+      final String programName;
+      final String circuitName;
+      if (this.programIsTwoPartyMpc()) {
+        programName = "two_party_mpc";
+        circuitName =
+          "coffeeshop_n_" + this.partyCount +
+          "_lookahead_" + this.cblLookahead + ".cbl"
+        ;
+      } else {
+        programName = "n_party_mpc_by_gate";
+        circuitName =
+          "coffeeshop_n_" + this.partyCount + ".cbg"
+        ;
+      }
+      final String arch;
+      {
+        final List<String> abis = Arrays.asList(Build.SUPPORTED_ABIS);
+        if (abis.contains("arm64-v8a")) {
+          arch = "aarch64";
+        } else if (abis.contains("x86_64")) {
+          arch = "x86_64";
+        } else {
+          arch = abis.get(0);
+        }
+      }
+      final String link =
+        (this.mode == ThreadMPC.Mode.SHARED_EXECUTABLES) ?
+          "shared"
+        :
+          "static"
+      ;
+      final String binLinkArch = "bin/" + link + "/" + arch;
+      this.mpcExecutable =
+        this.loadAsset(
+          binLinkArch + "/" + programName,
+          true
+        )
+      ;
+      this.ldLibraryPath =
+        new File(this.mpcExecutable).getParent()
+      ;
+      for (final String x : this.listAssets(binLinkArch)) {
+        if (x.contains(".so") && !x.endsWith(".version")) {
+          this.loadAsset(binLinkArch + "/" + x, true);
+        }
+      }
+      this.locationCircuit =
+        this.loadAsset(
+          circuitName,
+          false
+        )
+      ;
+      this.locationExecDir =
+        this.filesDir +
+        "/" + this.queuePrefix +
+        "/" + new File(this.locationCircuit).getName()
+      ;
+    } break;
+    default: if (true) {
+      throw new RuntimeException();
+    } break;
+  }
+}
+
 private void prepareConsumers(
 ) {
   for (int i = 0; i != this.partyCount; ++i) {
     this.consumers[i] = null;
   }
-  this.consumerExceptions = new AtomicReferenceArray(this.partyCount);
+  this.consumerExceptions = new AtomicReferenceArray<>(this.partyCount);
   this.consumerLatch = new CountDownLatch(this.partyCount - 1);
 }
 
+private boolean programIsTwoPartyMpc(
+) {
+  return
+    this.partyCount == 2 &&
+    this.circuitType == ThreadMPC.CircuitType.CBL
+  ;
+}
+
+/**
+ * Runs the MPC computation.
+ * <p>
+ * The MPC implementation is chosen as follows:
+ * </p>
+ * <ol>
+ * <li>
+ * If
+ * <code>this.mode</code>
+ * is
+ * <code>Mode.DUMMY</code>,
+ * then the dummy implementation is used.
+ * </li>
+ * <li>
+ * Otherwise, if
+ * <code>this.partyCount</code>
+ * is 2 and
+ * <code>this.circuitType</code>
+ * is
+ * <code>CircuitType.CBL</code>,
+ * then the
+ * <code>two_party_mpc</code>
+ * program is used with the appropriate
+ * <code>coffeeshop_n_2_lookahead_*.cbl</code>
+ * circuit considering
+ * <code>this.cblLookahead</code>.
+ * </li>
+ * <li>
+ * Otherwise, the
+ * <code>n_party_mpc_by_gate</code>
+ * program is used with the appropriate
+ * <code>coffeeshop_n_*.cbg</code>
+ * circuit considering
+ * <code>this.partyCount</code>.
+ * </li>
+ * </ol>
+ */
+
 @Override
-public void run(
+public final void run(
 ) {
   try {
+    this.prepare();
     this.exception = null;
     switch (this.mode) {
       case DUMMY: if (true) {
@@ -717,136 +835,144 @@ private void runDummy(
 
 @SuppressLint("NewApi")
 private void runExecutables(
-) {
-  try {
-    final EncodedLatLon locationAnswer;
-    {
-      final ArrayList<String> argv =
-        new ArrayList<String>(
-          Arrays.asList(
-            this.mpcExecutable,
-            "--circuit",
-            this.locationCircuit,
-            "--num_parties",
-            Integer.toString(this.partyCount),
-            "--self_index",
-            Integer.toString(this.partyIndex),
-            "--rabbitmq_ip",
-            this.channel.getConnection().getAddress().getHostAddress(),
-            "--rabbitmq_port",
-            Integer.toString(this.channel.getConnection().getPort()),
-            "--print_only",
-            "--nodeclare_queue",
-            "--input",
-            (
-              "x" + Integer.toString(this.partyIndex) + "_lat=" +
-              Integer.toString((int)(this.location >>> 32)) +
-              ",x" + Integer.toString(this.partyIndex) + "_lng=" +
-              Integer.toString((int)this.location)
-            )
-          )
-        )
-      ;
-      for (int i = 0; i != this.partyCount; ++i) {
-        if (i != this.partyIndex) {
+) throws
+  Exception
+{
+  final EncodedLatLon locationAnswer;
+  {
+    final ArrayList<String> argv = new ArrayList<>();
+    argv.add(this.mpcExecutable);
+    argv.add("--circuit");
+    argv.add(this.locationCircuit);
+    if (!this.programIsTwoPartyMpc()) {
+      argv.add("--num_parties");
+      argv.add(Integer.toString(this.partyCount));
+    }
+    argv.add("--self_index");
+    argv.add(Integer.toString(this.partyIndex));
+    argv.add("--rabbitmq_ip");
+    argv.add(this.channel.getConnection().getAddress().getHostAddress());
+    argv.add("--rabbitmq_port");
+    argv.add(Integer.toString(this.channel.getConnection().getPort()));
+    argv.add("--print_only");
+    argv.add("--nodeclare_queue");
+    argv.add("--input");
+    argv.add(
+      "x" + Integer.toString(this.partyIndex) + "_lat=" +
+      Integer.toString((int)(this.location >>> 32)) +
+      ",x" + Integer.toString(this.partyIndex) + "_lng=" +
+      Integer.toString((int)this.location)
+    );
+    for (int i = 0; i != this.partyCount; ++i) {
+      if (i != this.partyIndex) {
+        if (this.programIsTwoPartyMpc()) {
+          argv.add("--send_queuename");
+          argv.add(this.locationSendQueues[i]);
+          argv.add("--rec_queuename");
+          argv.add(this.locationRecvQueues[i]);
+        } else {
           argv.add("--send_queuename_" + i);
           argv.add(this.locationSendQueues[i]);
           argv.add("--rec_queuename_" + i);
           argv.add(this.locationRecvQueues[i]);
         }
       }
-      this.declareLocationQueues();
-      Log.d(this.TAG,
-        "creating directory: " + this.locationExecDir
-      );
-      Files.createDirectories(Paths.get(this.locationExecDir));
-      ThreadMPC.deleteRecursively(this.locationExecDir);
-      Files.createDirectories(Paths.get(this.locationExecDir));
-      Log.d(this.TAG,
-        "running command: " + String.join(" ", argv)
-      );
-      final ExecResult result;
+    }
+    this.declareLocationQueues();
+    Log.d(this.TAG,
+      "creating directory: " + this.locationExecDir
+    );
+    Files.createDirectories(Paths.get(this.locationExecDir));
+    ThreadMPC.deleteRecursively(this.locationExecDir);
+    Files.createDirectories(Paths.get(this.locationExecDir));
+    Log.d(this.TAG,
+      "running command: " + String.join(" ", argv)
+    );
+    final ExecResult result;
+    try {
+      result =
+        this.exec(
+          argv.toArray(new String[0]),
+          this.locationExecDir
+        )
+      ;
+    } finally {
       try {
-        result =
-          this.exec(
-            argv.toArray(new String[0]),
-            this.locationExecDir
-          )
-        ;
-      } finally {
-        try {
-          ThreadMPC.deleteRecursively(this.locationExecDir);
-        } catch (final Exception e) {
-        }
+        ThreadMPC.deleteRecursively(this.locationExecDir);
+      } catch (final Exception e) {
       }
-      Log.d(this.TAG,
-        "command exited with exit status " + result.exitStatus
-      );
-      Log.d(this.TAG,
-        "stdout:\n" + result.stdout.toString()
-      );
-      Log.d(this.TAG,
-        "stderr:\n" + result.stderr.toString()
-      );
-      if (result.exitStatus != 0) {
-        final RuntimeException e =
-          new RuntimeException(
-            "command failed with exit status " +
-            result.exitStatus + ": " + String.join(" ", argv)
-          )
-        ;
-        if (result.stdoutException != null) {
-          e.addSuppressed(result.stdoutException);
-        }
-        if (result.stderrException != null) {
-          e.addSuppressed(result.stderrException);
-        }
-        throw e;
-      }
+    }
+    Log.d(this.TAG,
+      "command exited with exit status " + result.exitStatus
+    );
+    Log.d(this.TAG,
+      "stdout:\n" + result.stdout.toString()
+    );
+    Log.d(this.TAG,
+      "stderr:\n" + result.stderr.toString()
+    );
+    if (result.exitStatus != 0) {
+      final RuntimeException e =
+        new RuntimeException(
+          "command failed with exit status " +
+          result.exitStatus + ": " + String.join(" ", argv)
+        )
+      ;
       if (result.stdoutException != null) {
-        final RuntimeException e =
-          new RuntimeException(
-            result.stdoutException
-          )
-        ;
-        if (result.stderrException != null) {
-          e.addSuppressed(result.stderrException);
-        }
-        throw e;
+        e.addSuppressed(result.stdoutException);
       }
-      Log.d(this.TAG,
-        "computing average location"
-      );
-      final String[] lines = result.stdout.toString().split("\n");
-      int i;
-      for (i = 0; i != lines.length; ++i) {
-        if (lines[i].equals("Outputs (2):")) {
+      if (result.stderrException != null) {
+        e.addSuppressed(result.stderrException);
+      }
+      throw e;
+    }
+    if (result.stdoutException != null) {
+      final RuntimeException e =
+        new RuntimeException(
+          result.stdoutException
+        )
+      ;
+      if (result.stderrException != null) {
+        e.addSuppressed(result.stderrException);
+      }
+      throw e;
+    }
+    Log.d(this.TAG,
+      "computing average location"
+    );
+    final String[] lines = result.stdout.toString().split("\n");
+    final int i;
+    if (this.programIsTwoPartyMpc()) {
+      i = 0;
+    } else {
+      int j;
+      for (j = 0; j != lines.length; ++j) {
+        if (lines[j].equals("Outputs (2):")) {
           break;
         }
       }
-      if (i == lines.length) {
+      if (j == lines.length) {
         throw new RuntimeException();
       }
-      final long a = Long.parseLong(lines[i + 1].split(":")[1]);
-      final long b = Long.parseLong(lines[i + 2].split(":")[1]);
-      final EncodedLatLon c =
-        EncodedLatLon.convertMpcResultToEncodedLatLon(
-          (a << 32) | (int)b, this.partyCount
-        )
-      ;
-      locationAnswer =
-        new EncodedLatLon(
-          c.getLatitude() / this.partyCount,
-          c.getLongitude() / this.partyCount
-        )
-      ;
+      i = j;
     }
-    this.sendResultsToReceiver(
-      locationAnswer
-    );
-  } catch (final Exception e) {
-    throw new RuntimeException(e);
+    final long a = Long.parseLong(lines[i + 1].split(":")[1]);
+    final long b = Long.parseLong(lines[i + 2].split(":")[1]);
+    final EncodedLatLon c =
+      EncodedLatLon.convertMpcResultToEncodedLatLon(
+        (a << 32) | (int)b, this.partyCount
+      )
+    ;
+    locationAnswer =
+      new EncodedLatLon(
+        c.getLatitude() / this.partyCount,
+        c.getLongitude() / this.partyCount
+      )
+    ;
   }
+  this.sendResultsToReceiver(
+    locationAnswer
+  );
 }
 
 private String slugify(
@@ -910,11 +1036,6 @@ private void sendResultsToReceiver(
     final Bundle results = new Bundle();
     results.putFloat("latitude", locationAnswer.getLatitude());
     results.putFloat("longitude", locationAnswer.getLongitude());
-    results.putString("meetingID", meeting);
-    ArrayList<String> attendees = new ArrayList<>();
-    for(String s : partyNames)
-      attendees.add(s);
-    results.putStringArrayList("attendees", attendees);
     this.receiver.send(0, results);
   }
 }
@@ -952,66 +1073,34 @@ private static void setFilePermissions(
   }
 }
 
-public final void setMode(
+public final ThreadMPC setCblLookahead(
+  final int cblLookahead
+) {
+  if (cblLookahead < 1 || cblLookahead > 4) {
+    final IllegalArgumentException e =
+      new IllegalArgumentException(
+        "cblLookahead must be between 1 and 4"
+      )
+    ;
+    e.initCause(null);
+    throw e;
+  }
+  this.cblLookahead = cblLookahead;
+  return this;
+}
+
+public final ThreadMPC setCircuitType(
+  final ThreadMPC.CircuitType circuitType
+) {
+  this.circuitType = circuitType;
+  return this;
+}
+
+public final ThreadMPC setMode(
   final ThreadMPC.Mode mode
 ) {
   this.mode = mode;
-  switch (this.mode) {
-    case DUMMY: if (true) {
-    } break;
-    case SHARED_EXECUTABLES:
-    case STATIC_EXECUTABLES: if (true) {
-      final String arch;
-      {
-        final List<String> abis = Arrays.asList(Build.SUPPORTED_ABIS);
-        if (abis.contains("arm64-v8a")) {
-          arch = "aarch64";
-        } else if (abis.contains("x86_64")) {
-          arch = "x86_64";
-        } else {
-          arch = abis.get(0);
-        }
-      }
-      final String link =
-        (this.mode == ThreadMPC.Mode.SHARED_EXECUTABLES) ?
-          "shared"
-        :
-          "static"
-      ;
-      final String binLinkArch = "bin/" + link + "/" + arch;
-      this.mpcExecutable =
-        this.loadAsset(
-          binLinkArch + "/n_party_mpc_by_gate",
-          true
-        )
-      ;
-      this.mpcExecutableDir =
-        new File(this.mpcExecutable).getParent()
-      ;
-      for (final String x : this.listAssets(binLinkArch)) {
-        if (x.contains(".so") && !x.endsWith(".version")) {
-          this.loadAsset(binLinkArch + "/" + x, true);
-        }
-      }
-
-      this.locationCircuit =
-        this.loadAsset(
-          (
-            "coffeeshop_n_" + this.partyCount + ".cbg"
-          ),
-          false
-        )
-      ;
-      this.locationExecDir =
-        this.filesDir +
-        "/" + this.queuePrefix +
-        "/" + new File(this.locationCircuit).getName()
-      ;
-    } break;
-    default: if (true) {
-      throw new RuntimeException();
-    } break;
-  }
+  return this;
 }
 
 private void startConsumers(
