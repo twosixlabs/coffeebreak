@@ -422,7 +422,7 @@ public class AMQPCommunication extends Service {
                             noisyLocation.getEncodedLocation(),
                             mpcResponse);
                     //mpc.setMode(ThreadMPC.Mode.STATIC_EXECUTABLES);
-                    mpc.setMode(ThreadMPC.Mode.SHARED_EXECUTABLES);
+                    mpc.setMode(ThreadMPC.Mode.STATIC_EXECUTABLES);
                     mpc.setCircuitType(ThreadMPC.CircuitType.CBL);
                     mpc.setCblLookahead(4);
                     mHandler.post(mpc);

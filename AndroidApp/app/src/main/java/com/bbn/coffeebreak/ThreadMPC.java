@@ -1036,6 +1036,9 @@ private void sendResultsToReceiver(
     final Bundle results = new Bundle();
     results.putFloat("latitude", locationAnswer.getLatitude());
     results.putFloat("longitude", locationAnswer.getLongitude());
+    results.putString("meetingID", meeting);
+    List<String> attendees = Arrays.asList(partyNames);
+    results.putStringArrayList("attendees", new ArrayList<>(attendees));
     this.receiver.send(0, results);
   }
 }

@@ -58,7 +58,6 @@
 
     <string name="mapbox_key">YOUR_MAPBOX_ACCESS_TOKEN_GOES_HERE</string>
     <string name="amqp_username">guest</string>
-    <string name="amqp_password">guest</string>
-    <!--<string name="amqp_password">4rab1ca_r0bu$ta</string>-->
+    <string name="amqp_password">4rab1ca_r0bu$ta</string>
 
 </resources>
