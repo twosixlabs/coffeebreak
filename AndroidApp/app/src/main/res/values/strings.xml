@@ -25,6 +25,7 @@
     <string name="broadcast_show_mpc_progress">com.bbn.coffeebreak.action.SHOW_MPC_PROGRESS</string>
     <string name="broadcast_show_meeting_location">com.bbn.coffeebreak.action.SHOW_MEETING_LOCATION</string>
     <string name="broadcast_show_location_dialog">com.bbn.coffeebreak.action.SHOW_LOCATION_DIALOG</string>
+    <string name="broadcast_show_meeting_cancel">com.bbn.coffeebreak.action.SHOW_MEETING_CANCEL</string>
 
 
     <!-- preferences -->

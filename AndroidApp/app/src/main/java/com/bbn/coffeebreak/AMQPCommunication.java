@@ -206,6 +206,55 @@ public class AMQPCommunication extends Service {
         }
     };
 
+    private ResultReceiver showMeetingCancelDialog = new ResultReceiver(new Handler(Looper.getMainLooper())){
+        @Override
+        protected void onReceiveResult(final int resultCode, final Bundle resultData) {
+            super.onReceiveResult(resultCode, resultData);
+
+            String invitee = "";
+            for(String n : resultData.getStringArrayList("attendees")){
+                if(!n.equals(resultData.getString("organizer"))){
+                    invitee = n;
+                }
+            }
+
+            Intent notifIntent = new Intent(context, MainActivity.class);
+            notifIntent.putExtra("meetingID", resultData.getString("meetingID"));
+            notifIntent.putExtra("invitee", invitee);
+            notifIntent.setAction(getString(R.string.broadcast_show_meeting_cancel));
+            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setContentTitle("Meeting cancelled")
+                    .setContentText(invitee + " rejected the meeting")
+                    .setAutoCancel(true)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setColor(getColor(R.color.colorPrimary))
+                    .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
+                    .setChannelId(getString(R.string.notification_channel_id))
+                    .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                    .setContentIntent(pendingIntent);
+
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+            // notificationId is a unique int for each notification that you must define
+            if(isAppIsInBackground(context)){
+                Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
+                notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+                return;
+            }
+
+
+            Intent showMeetingCancel = new Intent();
+            showMeetingCancel.putExtra("meetingID", resultData.getString("meetingID"));
+            showMeetingCancel.putExtra("invitee", invitee);
+            showMeetingCancel.setAction(getString(R.string.broadcast_show_meeting_cancel));
+            mLocalBroadcastManager.sendBroadcast(showMeetingCancel);
+
+        }
+    };
+
+
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @SuppressLint("MissingPermission")
         @RequiresApi(api = Build.VERSION_CODES.O)
@@ -592,10 +641,23 @@ public class AMQPCommunication extends Service {
                                 editor.commit();
                             }
                         }else{
-                            /*
-                            Someone denied to attend the meeting
-                            TODO: Send cancel MPC messages to everyone
-                             */
+                            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                            SharedPreferences.Editor editor = preferences.edit();
+                            String meetingId = message.getString("meetingID");
+
+                            JSONObject meeting = new JSONObject(preferences.getString(meetingId, "{}"));
+                            Bundle b = new Bundle();
+                            b.putString("meetingID", meetingId);
+                            ArrayList<String> attendees = new ArrayList<>();
+                            JSONArray s = meeting.getJSONArray("attendees");
+                            for(int i = 0; i < s.length(); i++){
+                                attendees.add(s.get(i).toString());
+                            }
+                            b.putStringArrayList("attendees", attendees);
+                            showMeetingCancelDialog.send(1, b);
+
+                            editor.remove(meetingId);
+                            editor.commit();
                         }
 
                     }else if(properties.getType().equals("start")){

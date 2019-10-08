@@ -188,6 +188,17 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
                 alertDialog.show();
+            } else if(intent.getAction().equals(getString(R.string.broadcast_show_meeting_cancel))){
+                String meetingID = intent.getStringExtra("meetingID");
+                String invitee = intent.getStringExtra("invitee");
+                String message = "\n" + invitee + " has rejected the meeting invitation for meeting ID: " + meetingID;
+                MeetingCancelDialog.request(MainActivity.this, message,
+                        new DialogSheet.OnPositiveClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                // do nothing
+                            }
+                        }).setTitle(invitee + " cancelled the meeting").show();
             }
         }
     };
@@ -221,6 +232,7 @@ public class MainActivity extends AppCompatActivity {
         mIntentFilter.addAction(getString(R.string.broadcast_show_meeting_location));
         mIntentFilter.addAction(getString(R.string.broadcast_show_mpc_progress));
         mIntentFilter.addAction(getString(R.string.broadcast_show_location_dialog));
+        mIntentFilter.addAction(getString(R.string.broadcast_show_meeting_cancel));
 
         mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
 
@@ -237,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        if (getIntent().getStringExtra("meetingID") != null) {
+        if (getIntent().getStringExtra("meetingID") != null && getIntent().getStringExtra("organizer") != null) {
             Intent showMeetingRequest = new Intent();
             Log.d(TAG, "Got intent with meetingID: " + getIntent().getStringExtra("meetingID"));
             showMeetingRequest.putExtra("meetingID", getIntent().getStringExtra("meetingID"));
@@ -247,6 +259,13 @@ public class MainActivity extends AppCompatActivity {
             showMeetingRequest.putExtra("end", getIntent().getStringExtra("end"));
             showMeetingRequest.setAction(getString(R.string.broadcast_show_meeting_request));
             mLocalBroadcastManager.sendBroadcast(showMeetingRequest);
+        }else if(getIntent().getStringExtra("meetingID") != null){
+            Intent showMeetingCancel = new Intent();
+            Log.d(TAG, "Got intent with meetingID: " + getIntent().getStringExtra("meetingID"));
+            showMeetingCancel.putExtra("meetingID", getIntent().getStringExtra("meetingID"));
+            showMeetingCancel.putExtra("invitee", getIntent().getStringExtra("invitee"));
+            showMeetingCancel.setAction(getString(R.string.broadcast_show_meeting_cancel));
+            mLocalBroadcastManager.sendBroadcast(showMeetingCancel);
         }
 
     }
