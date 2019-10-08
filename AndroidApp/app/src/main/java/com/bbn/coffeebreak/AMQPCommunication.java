@@ -13,7 +13,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.location.Location;
-import android.location.LocationManager;
 import android.media.RingtoneManager;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -110,8 +109,47 @@ public class AMQPCommunication extends Service {
                     showMeetingLocation.putExtra("latitude", starbucksLocation.getLatitude());
                     showMeetingLocation.putExtra("longitude", starbucksLocation.getLongitude());
 
+                    String invitee = "";
+                    for(String n : resultData.getStringArrayList("attendees")){
+                        if(!n.equals(username)){
+                            invitee = n;
+                        }
+                    }
+
+                    Intent notifIntent = new Intent(context, MainActivity.class);
+
+                    notifIntent.putExtra("meetingID", resultData.getString("meetingID"));
+                    notifIntent.putExtra("address", address);
+                    notifIntent.putExtra("latitude", starbucksLocation.getLatitude());
+                    notifIntent.putExtra("longitude", starbucksLocation.getLongitude());
+                    notifIntent.putExtra("invitee", invitee);
+                    notifIntent.setAction(getString(R.string.broadcast_show_meeting_location));
+                    PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+
+                    NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+                            .setSmallIcon(R.drawable.ic_coffeebreak_56dp)
+                            .setContentTitle("MPC complete")
+                            .setContentText("Finished secure multi-party computation with " + invitee)
+                            .setAutoCancel(true)
+                            .setPriority(NotificationCompat.PRIORITY_HIGH)
+                            .setColor(getColor(R.color.colorPrimary))
+                            .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
+                            .setChannelId(getString(R.string.notification_channel_id))
+                            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                            .setContentIntent(pendingIntent);
+
+                    NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+                    // notificationId is a unique int for each notification that you must define
+                    if(isAppIsInBackground(context)){
+                        Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
+                        notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+                        return;
+                    }
+
                     showMeetingLocation.setAction(getString(R.string.broadcast_show_meeting_location));
                     mLocalBroadcastManager.sendBroadcast(showMeetingLocation);
+
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -133,6 +171,7 @@ public class AMQPCommunication extends Service {
                 //Perform Starbucks location reverse lookup
                 mHandler.post(new StarbucksLocator(resultData.getFloat("latitude"),
                         resultData.getFloat("longitude"),
+                        resultData,
                         starbucksLocationReceiver));
             }catch(Exception e){
                 e.printStackTrace();
@@ -174,7 +213,7 @@ public class AMQPCommunication extends Service {
 
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setSmallIcon(R.drawable.ic_coffeebreak_56dp)
                     .setContentTitle("Meeting Request")
                     .setContentText(resultData.getString("organizer") + " is requesting to meet with you")
                     .setAutoCancel(true)
@@ -192,7 +231,6 @@ public class AMQPCommunication extends Service {
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
                 return;
             }
-
 
             Intent showMeetingRequest = new Intent();
             showMeetingRequest.putExtra("meetingID", resultData.getString("meetingID"));
@@ -225,7 +263,7 @@ public class AMQPCommunication extends Service {
             PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setSmallIcon(R.drawable.ic_coffeebreak_56dp)
                     .setContentTitle("Meeting cancelled")
                     .setContentText(invitee + " rejected the meeting")
                     .setAutoCancel(true)

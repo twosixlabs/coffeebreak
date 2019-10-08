@@ -249,7 +249,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        if (getIntent().getStringExtra("meetingID") != null && getIntent().getStringExtra("organizer") != null) {
+        if(getIntent().getStringExtra("meetingID") != null && getIntent().getStringExtra("address") != null){
+            Log.d(TAG, "Got notif intent!");
+            Intent showMeetingLocation = new Intent();
+            showMeetingLocation.putExtra("address", getIntent().getStringExtra("address"));
+            showMeetingLocation.putExtra("latitude", getIntent().getFloatExtra("latitude", 0.0f));
+            showMeetingLocation.putExtra("longitude", getIntent().getFloatExtra("longitude", 0.0f));
+            showMeetingLocation.setAction(getString(R.string.broadcast_show_meeting_location));
+            mLocalBroadcastManager.sendBroadcast(showMeetingLocation);
+        } else if (getIntent().getStringExtra("meetingID") != null && getIntent().getStringExtra("organizer") != null) {
             Intent showMeetingRequest = new Intent();
             Log.d(TAG, "Got intent with meetingID: " + getIntent().getStringExtra("meetingID"));
             showMeetingRequest.putExtra("meetingID", getIntent().getStringExtra("meetingID"));

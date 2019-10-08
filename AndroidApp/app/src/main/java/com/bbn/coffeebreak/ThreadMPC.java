@@ -910,6 +910,11 @@ private void sendResultsToReceiver(
     final Bundle results = new Bundle();
     results.putFloat("latitude", locationAnswer.getLatitude());
     results.putFloat("longitude", locationAnswer.getLongitude());
+    results.putString("meetingID", meeting);
+    ArrayList<String> attendees = new ArrayList<>();
+    for(String s : partyNames)
+      attendees.add(s);
+    results.putStringArrayList("attendees", attendees);
     this.receiver.send(0, results);
   }
 }

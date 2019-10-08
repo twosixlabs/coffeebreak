@@ -17,6 +17,7 @@ public class StarbucksLocator implements Runnable{
     float mLat;
     float mLon;
     private ResultReceiver mReceiver;
+    private Bundle mBundle;
 
     private final String MAPBOX_BASE_URL = "https://api.mapbox.com/geocoding/v5/mapbox.places/starbucks.json?";
     private final String MAPBOX_RESULTS_LIMIT = "&limit=1";
@@ -25,10 +26,11 @@ public class StarbucksLocator implements Runnable{
     private final String HTTP_REQUEST_TYPE = "GET";
 
 
-    public StarbucksLocator( float lat, float lon, ResultReceiver r){
+    public StarbucksLocator( float lat, float lon, Bundle extras, ResultReceiver r){
         mLat = lat;
         mLon = lon;
         mReceiver = r;
+        mBundle = extras;
     }
 
     @Override
@@ -56,10 +58,10 @@ public class StarbucksLocator implements Runnable{
             Log.d(TAG, "Response: " + response.toString());
 
             // Build result to send back
-            Bundle reverseLookupResult = new Bundle();
-            reverseLookupResult.putString("location", response.toString());
-            reverseLookupResult.putInt("responseCode", responseCode);
-            mReceiver.send(1, reverseLookupResult);
+
+            mBundle.putString("location", response.toString());
+            mBundle.putInt("responseCode", responseCode);
+            mReceiver.send(1, mBundle);
 
         } catch (IOException e) {
             e.printStackTrace();
