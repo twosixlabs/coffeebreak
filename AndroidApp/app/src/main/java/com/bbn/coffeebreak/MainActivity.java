@@ -191,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
             } else if(intent.getAction().equals(getString(R.string.broadcast_show_meeting_cancel))){
                 String meetingID = intent.getStringExtra("meetingID");
                 String invitee = intent.getStringExtra("invitee");
-                String message = "\n" + invitee + " has rejected the meeting invitation for meeting ID: " + meetingID;
+                String message = "\n" + invitee + " has rejected the meeting invitation";
                 MeetingCancelDialog.request(MainActivity.this, message,
                         new DialogSheet.OnPositiveClickListener() {
                             @Override
@@ -255,6 +255,12 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+        ((TextView)(findViewById(R.id.noiseDisplay))).setText("Noise level: " + String.valueOf(preferences.getInt(getString(R.string.noise_value), 5)) + "km");
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override

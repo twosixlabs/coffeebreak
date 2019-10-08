@@ -215,6 +215,15 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     }
 
     @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putInt(getString(R.string.noise_value), noiseLevel.getProgress());
+        editor.commit();
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
         mMapView.onStop();

@@ -466,6 +466,7 @@ public class AMQPCommunication extends Service {
         factory.setPassword("guest");
         factory.setHost(AMQPHost);
         factory.setPort(AMQPPort);
+
         factory.setRequestedHeartbeat(5);
         factory.setAutomaticRecoveryEnabled(true);
         factory.setConnectionTimeout(2500);
@@ -552,9 +553,7 @@ public class AMQPCommunication extends Service {
             username = preferences.getString(getString(R.string.username), getString(R.string.defaultUsername));
             password = preferences.getString(getString(R.string.password), getString(R.string.defaultPassword));
         }
-
-        Log.d(TAG, "got username: " + username + " in shared preferences");
-
+        
         invite_queue = "invite-" + username;
 
         factory = new ConnectionFactory();
