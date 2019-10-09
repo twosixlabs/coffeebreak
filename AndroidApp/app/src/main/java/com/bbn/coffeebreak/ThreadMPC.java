@@ -98,7 +98,10 @@ private final String meeting;
 private final Channel channel;
 private final String[] partyNames;
 
-private final String password;
+private static final String DEFAULT_AMQP_USERNAME = "guest";
+private static final String DEFAULT_AMQP_PASSWORD = "guest";
+private String amqpUsername;
+private String amqpPassword;
 
 private final ResultReceiver receiver;
 
@@ -227,7 +230,8 @@ public ThreadMPC(
 
   this.receiver = receiver;
 
-  this.password = partyName;
+  this.amqpUsername = ThreadMPC.DEFAULT_AMQP_USERNAME;
+  this.amqpPassword = ThreadMPC.DEFAULT_AMQP_PASSWORD;
 
   if (this.meeting.equals(this.slugify(this.meeting, this.queuePrefixMaxLength))) {
     this.queuePrefix = "ThreadMPC:" + this.meeting;
@@ -501,6 +505,16 @@ private ExecResult exec(
   } catch (final Exception e) {
     throw new RuntimeException(e);
   }
+}
+
+public final String getAmqpPassword(
+) {
+  return this.amqpPassword;
+}
+
+public final String getAmqpUsername(
+) {
+  return this.amqpUsername;
 }
 
 public final int getCblLookahead(
@@ -854,6 +868,10 @@ private void runExecutables(
     argv.add(this.channel.getConnection().getAddress().getHostAddress());
     argv.add("--rabbitmq_port");
     argv.add(Integer.toString(this.channel.getConnection().getPort()));
+    argv.add("--rabbitmq_user");
+    argv.add(this.amqpUsername);
+    argv.add("--rabbitmq_pwd");
+    argv.add(this.amqpPassword);
     argv.add("--print_only");
     argv.add("--nodeclare_queue");
     argv.add("--input");
@@ -1041,6 +1059,28 @@ private void sendResultsToReceiver(
     results.putStringArrayList("attendees", new ArrayList<>(attendees));
     this.receiver.send(0, results);
   }
+}
+
+public final ThreadMPC setAmqpPassword(
+  final CharSequence password
+) {
+  if (password == null) {
+    this.amqpPassword = ThreadMPC.DEFAULT_AMQP_PASSWORD;
+  } else {
+    this.amqpPassword = password.toString();
+  }
+  return this;
+}
+
+public final ThreadMPC setAmqpUsername(
+  final CharSequence username
+) {
+  if (username == null) {
+    this.amqpUsername = ThreadMPC.DEFAULT_AMQP_USERNAME;
+  } else {
+    this.amqpUsername = username.toString();
+  }
+  return this;
 }
 
 @SuppressLint("NewApi")
