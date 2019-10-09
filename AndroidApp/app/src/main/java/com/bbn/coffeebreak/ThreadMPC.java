@@ -98,8 +98,12 @@ private final String meeting;
 private final Channel channel;
 private final String[] partyNames;
 
+private final String defaultAmqpHost;
+private final int defaultAmqpPort;
 private static final String DEFAULT_AMQP_USERNAME = "guest";
 private static final String DEFAULT_AMQP_PASSWORD = "guest";
+private String amqpHost;
+private int amqpPort;
 private String amqpUsername;
 private String amqpPassword;
 
@@ -230,6 +234,10 @@ public ThreadMPC(
 
   this.receiver = receiver;
 
+  this.defaultAmqpHost = this.channel.getConnection().getAddress().getHostAddress();
+  this.defaultAmqpPort = this.channel.getConnection().getPort();
+  this.amqpHost = this.defaultAmqpHost;
+  this.amqpPort = this.defaultAmqpPort;
   this.amqpUsername = ThreadMPC.DEFAULT_AMQP_USERNAME;
   this.amqpPassword = ThreadMPC.DEFAULT_AMQP_PASSWORD;
 
@@ -507,9 +515,19 @@ private ExecResult exec(
   }
 }
 
+public final String getAmqpHost(
+) {
+  return this.amqpHost;
+}
+
 public final String getAmqpPassword(
 ) {
   return this.amqpPassword;
+}
+
+public final int getAmqpPort(
+) {
+  return this.amqpPort;
 }
 
 public final String getAmqpUsername(
@@ -781,8 +799,8 @@ private void runDummy(
   try {
 
     //You can get the host address and port of AMQP server from the channel
-    Log.d(TAG, "Communicating with AMQP Server: " + this.channel.getConnection().getAddress().getHostAddress() + ":" +
-        this.channel.getConnection().getPort());
+    Log.d(TAG, "Communicating with AMQP Server: " + this.amqpHost + ":" +
+        this.amqpPort);
 
 
     this.declareLocationQueues();
@@ -865,9 +883,9 @@ private void runExecutables(
     argv.add("--self_index");
     argv.add(Integer.toString(this.partyIndex));
     argv.add("--rabbitmq_ip");
-    argv.add(this.channel.getConnection().getAddress().getHostAddress());
+    argv.add(this.amqpHost);
     argv.add("--rabbitmq_port");
-    argv.add(Integer.toString(this.channel.getConnection().getPort()));
+    argv.add(String.valueOf(this.amqpPort));
     argv.add("--rabbitmq_user");
     argv.add(this.amqpUsername);
     argv.add("--rabbitmq_pwd");
@@ -1061,6 +1079,17 @@ private void sendResultsToReceiver(
   }
 }
 
+public final ThreadMPC setAmqpHost(
+  final CharSequence host
+) {
+  if (host == null) {
+    this.amqpHost = this.defaultAmqpHost;
+  } else {
+    this.amqpHost = host.toString();
+  }
+  return this;
+}
+
 public final ThreadMPC setAmqpPassword(
   final CharSequence password
 ) {
@@ -1068,6 +1097,26 @@ public final ThreadMPC setAmqpPassword(
     this.amqpPassword = ThreadMPC.DEFAULT_AMQP_PASSWORD;
   } else {
     this.amqpPassword = password.toString();
+  }
+  return this;
+}
+
+public final ThreadMPC setAmqpPort(
+  final int port
+) {
+  if (port < 0 || port > 65535) {
+    final IllegalArgumentException e =
+      new IllegalArgumentException(
+        "port must be between 0 and 65535"
+      )
+    ;
+    e.initCause(null);
+    throw e;
+  }
+  if (port == 0) {
+    this.amqpPort = this.defaultAmqpPort;
+  } else {
+    this.amqpPort = port;
   }
   return this;
 }
