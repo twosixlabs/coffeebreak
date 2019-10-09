@@ -422,7 +422,7 @@ public class AMQPCommunication extends Service {
                             noisyLocation.getEncodedLocation(),
                             mpcResponse);
                     //mpc.setMode(ThreadMPC.Mode.STATIC_EXECUTABLES);
-                    mpc.setMode(ThreadMPC.Mode.STATIC_EXECUTABLES);
+                    mpc.setMode(ThreadMPC.Mode.SHARED_EXECUTABLES);
                     mpc.setCircuitType(ThreadMPC.CircuitType.CBL);
                     mpc.setCblLookahead(4);
                     mHandler.post(mpc);
@@ -688,6 +688,7 @@ public class AMQPCommunication extends Service {
                             JSONObject meeting = new JSONObject(preferences.getString(meetingId, "{}"));
                             Bundle b = new Bundle();
                             b.putString("meetingID", meetingId);
+                            b.putString("organizer", meeting.getString("organizer"));
                             ArrayList<String> attendees = new ArrayList<>();
                             JSONArray s = meeting.getJSONArray("attendees");
                             for(int i = 0; i < s.length(); i++){
