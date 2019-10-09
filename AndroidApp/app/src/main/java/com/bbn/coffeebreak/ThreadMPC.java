@@ -107,6 +107,13 @@ private int amqpPort;
 private String amqpUsername;
 private String amqpPassword;
 
+private boolean amqpSslEnabled;
+private String amqpSslCaCert;
+private boolean amqpSslVerifyPeer;
+private boolean amqpSslVerifyHostname;
+private String amqpSslClientCert;
+private String amqpSslClientKey;
+
 private final ResultReceiver receiver;
 
 private final String queuePrefix;
@@ -240,6 +247,13 @@ public ThreadMPC(
   this.amqpPort = this.defaultAmqpPort;
   this.amqpUsername = ThreadMPC.DEFAULT_AMQP_USERNAME;
   this.amqpPassword = ThreadMPC.DEFAULT_AMQP_PASSWORD;
+
+  this.amqpSslEnabled = false;
+  this.amqpSslCaCert = null;
+  this.amqpSslVerifyPeer = false;
+  this.amqpSslVerifyHostname = false;
+  this.amqpSslClientCert = null;
+  this.amqpSslClientKey = null;
 
   if (this.meeting.equals(this.slugify(this.meeting, this.queuePrefixMaxLength))) {
     this.queuePrefix = "ThreadMPC:" + this.meeting;
@@ -391,6 +405,60 @@ private static void deleteRecursively(
       }
     }
   );
+}
+
+public final ThreadMPC disableSsl(
+) {
+  this.amqpSslEnabled = false;
+  this.amqpSslCaCert = null;
+  this.amqpSslVerifyPeer = false;
+  this.amqpSslVerifyHostname = false;
+  this.amqpSslClientCert = null;
+  this.amqpSslClientKey = null;
+  return this;
+}
+
+public final ThreadMPC enableSsl(
+  final CharSequence caCert,
+  final boolean verifyPeer,
+  final boolean verifyHostname,
+  final CharSequence clientCert,
+  final CharSequence clientKey
+) {
+  if (caCert == null) {
+    final NullPointerException e =
+      new NullPointerException(
+        "caCert is null"
+      )
+    ;
+    e.initCause(null);
+    throw e;
+  }
+  if (clientCert == null) {
+    final NullPointerException e =
+      new NullPointerException(
+        "clientCert is null"
+      )
+    ;
+    e.initCause(null);
+    throw e;
+  }
+  if (clientKey == null) {
+    final NullPointerException e =
+      new NullPointerException(
+        "clientKey is null"
+      )
+    ;
+    e.initCause(null);
+    throw e;
+  }
+  this.amqpSslCaCert = caCert.toString();
+  this.amqpSslVerifyPeer = verifyPeer;
+  this.amqpSslVerifyHostname = verifyHostname;
+  this.amqpSslClientCert = clientCert.toString();
+  this.amqpSslClientKey = clientKey.toString();
+  this.amqpSslEnabled = true;
+  return this;
 }
 
 private ExecResult exec(
