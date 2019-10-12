@@ -598,6 +598,36 @@ public final int getAmqpPort(
   return this.amqpPort;
 }
 
+public final String getAmqpSslCaCert(
+) {
+  return this.amqpSslCaCert;
+}
+
+public final String getAmqpSslClientCert(
+) {
+  return this.amqpSslClientCert;
+}
+
+public final String getAmqpSslClientKey(
+) {
+  return this.amqpSslClientKey;
+}
+
+public final boolean getAmqpSslEnabled(
+) {
+  return this.amqpSslEnabled;
+}
+
+public final boolean getAmqpSslVerifyHostname(
+) {
+  return this.amqpSslVerifyHostname;
+}
+
+public final boolean getAmqpSslVerifyPeer(
+) {
+  return this.amqpSslVerifyPeer;
+}
+
 public final String getAmqpUsername(
 ) {
   return this.amqpUsername;
