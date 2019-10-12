@@ -407,60 +407,6 @@ private static void deleteRecursively(
   );
 }
 
-public final ThreadMPC disableSsl(
-) {
-  this.amqpSslEnabled = false;
-  this.amqpSslCaCert = null;
-  this.amqpSslVerifyPeer = false;
-  this.amqpSslVerifyHostname = false;
-  this.amqpSslClientCert = null;
-  this.amqpSslClientKey = null;
-  return this;
-}
-
-public final ThreadMPC enableSsl(
-  final CharSequence caCert,
-  final boolean verifyPeer,
-  final boolean verifyHostname,
-  final CharSequence clientCert,
-  final CharSequence clientKey
-) {
-  if (caCert == null) {
-    final NullPointerException e =
-      new NullPointerException(
-        "caCert is null"
-      )
-    ;
-    e.initCause(null);
-    throw e;
-  }
-  if (clientCert == null) {
-    final NullPointerException e =
-      new NullPointerException(
-        "clientCert is null"
-      )
-    ;
-    e.initCause(null);
-    throw e;
-  }
-  if (clientKey == null) {
-    final NullPointerException e =
-      new NullPointerException(
-        "clientKey is null"
-      )
-    ;
-    e.initCause(null);
-    throw e;
-  }
-  this.amqpSslCaCert = caCert.toString();
-  this.amqpSslVerifyPeer = verifyPeer;
-  this.amqpSslVerifyHostname = verifyHostname;
-  this.amqpSslClientCert = clientCert.toString();
-  this.amqpSslClientKey = clientKey.toString();
-  this.amqpSslEnabled = true;
-  return this;
-}
-
 private ExecResult exec(
   final String[] argv,
   final String dir
