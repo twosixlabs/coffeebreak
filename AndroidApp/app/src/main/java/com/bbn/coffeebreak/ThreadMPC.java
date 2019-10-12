@@ -930,6 +930,31 @@ private void runExecutables(
     argv.add(this.amqpHost);
     argv.add("--rabbitmq_port");
     argv.add(String.valueOf(this.amqpPort));
+    if (this.amqpSslEnabled) {
+      argv.add("--rabbitmq_use_ssl");
+      if (this.amqpSslCaCert != null) {
+        argv.add("--rabbitmq_ssl_ca_cert_file");
+        argv.add(this.amqpSslCaCert);
+      }
+      if (this.amqpSslVerifyPeer) {
+        argv.add("--rabbitmq_ssl_verify_peer");
+      } else {
+        argv.add("--norabbitmq_ssl_verify_peer");
+      }
+      if (this.amqpSslVerifyHostname) {
+        argv.add("--rabbitmq_ssl_verify_hostname");
+      } else {
+        argv.add("--norabbitmq_ssl_verify_hostname");
+      }
+      if (this.amqpSslClientCert != null) {
+        argv.add("--rabbitmq_ssl_client_cert_file");
+        argv.add(this.amqpSslClientCert);
+      }
+      if (this.amqpSslClientKey != null) {
+        argv.add("--rabbitmq_ssl_client_key_file");
+        argv.add(this.amqpSslClientKey);
+      }
+    }
     argv.add("--rabbitmq_user");
     argv.add(this.amqpUsername);
     argv.add("--rabbitmq_pwd");
