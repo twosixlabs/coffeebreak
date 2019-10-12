@@ -1219,6 +1219,60 @@ public final ThreadMPC setAmqpPort(
   return this;
 }
 
+public final ThreadMPC setAmqpSslCaCert(
+  final CharSequence amqpSslCaCert
+) {
+  if (amqpSslCaCert == null) {
+    this.amqpSslCaCert = null;
+  } else {
+    this.amqpSslCaCert = amqpSslCaCert.toString();
+  }
+  return this;
+}
+
+public final ThreadMPC setAmqpSslClientCert(
+  final CharSequence amqpSslClientCert
+) {
+  if (amqpSslClientCert == null) {
+    this.amqpSslClientCert = null;
+  } else {
+    this.amqpSslClientCert = amqpSslClientCert.toString();
+  }
+  return this;
+}
+
+public final ThreadMPC setAmqpSslClientKey(
+  final CharSequence amqpSslClientKey
+) {
+  if (amqpSslClientKey == null) {
+    this.amqpSslClientKey = null;
+  } else {
+    this.amqpSslClientKey = amqpSslClientKey.toString();
+  }
+  return this;
+}
+
+public final ThreadMPC setAmqpSslEnabled(
+  final boolean amqpSslEnabled
+) {
+  this.amqpSslEnabled = amqpSslEnabled;
+  return this;
+}
+
+public final ThreadMPC setAmqpSslVerifyPeer(
+  final boolean amqpSslVerifyPeer
+) {
+  this.amqpSslVerifyPeer = amqpSslVerifyPeer;
+  return this;
+}
+
+public final ThreadMPC setAmqpSslVerifyHostname(
+  final boolean amqpSslVerifyHostname
+) {
+  this.amqpSslVerifyHostname = amqpSslVerifyHostname;
+  return this;
+}
+
 public final ThreadMPC setAmqpUsername(
   final CharSequence username
 ) {
