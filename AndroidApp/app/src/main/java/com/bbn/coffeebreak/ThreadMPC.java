@@ -108,11 +108,11 @@ private String amqpUsername;
 private String amqpPassword;
 
 private boolean amqpSslEnabled;
-private String amqpSslCaCert;
+private String amqpSslCaCertFile;
 private boolean amqpSslVerifyPeer;
 private boolean amqpSslVerifyHostname;
-private String amqpSslClientCert;
-private String amqpSslClientKey;
+private String amqpSslClientCertFile;
+private String amqpSslClientKeyFile;
 
 private final ResultReceiver receiver;
 
@@ -249,11 +249,11 @@ public ThreadMPC(
   this.amqpPassword = ThreadMPC.DEFAULT_AMQP_PASSWORD;
 
   this.amqpSslEnabled = false;
-  this.amqpSslCaCert = null;
+  this.amqpSslCaCertFile = null;
   this.amqpSslVerifyPeer = false;
   this.amqpSslVerifyHostname = false;
-  this.amqpSslClientCert = null;
-  this.amqpSslClientKey = null;
+  this.amqpSslClientCertFile = null;
+  this.amqpSslClientKeyFile = null;
 
   if (this.meeting.equals(this.slugify(this.meeting, this.queuePrefixMaxLength))) {
     this.queuePrefix = "ThreadMPC:" + this.meeting;
@@ -544,19 +544,19 @@ public final int getAmqpPort(
   return this.amqpPort;
 }
 
-public final String getAmqpSslCaCert(
+public final String getAmqpSslCaCertFile(
 ) {
-  return this.amqpSslCaCert;
+  return this.amqpSslCaCertFile;
 }
 
-public final String getAmqpSslClientCert(
+public final String getAmqpSslClientCertFile(
 ) {
-  return this.amqpSslClientCert;
+  return this.amqpSslClientCertFile;
 }
 
-public final String getAmqpSslClientKey(
+public final String getAmqpSslClientKeyFile(
 ) {
-  return this.amqpSslClientKey;
+  return this.amqpSslClientKeyFile;
 }
 
 public final boolean getAmqpSslEnabled(
@@ -932,9 +932,9 @@ private void runExecutables(
     argv.add(String.valueOf(this.amqpPort));
     if (this.amqpSslEnabled) {
       argv.add("--rabbitmq_use_ssl");
-      if (this.amqpSslCaCert != null) {
+      if (this.amqpSslCaCertFile != null) {
         argv.add("--rabbitmq_ssl_ca_cert_file");
-        argv.add(this.amqpSslCaCert);
+        argv.add(this.amqpSslCaCertFile);
       }
       if (this.amqpSslVerifyPeer) {
         argv.add("--rabbitmq_ssl_verify_peer");
@@ -942,13 +942,13 @@ private void runExecutables(
       if (this.amqpSslVerifyHostname) {
         argv.add("--rabbitmq_ssl_verify_hostname");
       }
-      if (this.amqpSslClientCert != null) {
+      if (this.amqpSslClientCertFile != null) {
         argv.add("--rabbitmq_ssl_client_cert_file");
-        argv.add(this.amqpSslClientCert);
+        argv.add(this.amqpSslClientCertFile);
       }
-      if (this.amqpSslClientKey != null) {
+      if (this.amqpSslClientKeyFile != null) {
         argv.add("--rabbitmq_ssl_client_key_file");
-        argv.add(this.amqpSslClientKey);
+        argv.add(this.amqpSslClientKeyFile);
       }
     }
     argv.add("--rabbitmq_user");
@@ -1186,18 +1186,18 @@ public final ThreadMPC setAmqpPort(
   return this;
 }
 
-public final ThreadMPC setAmqpSslCaCert(
+public final ThreadMPC setAmqpSslCaCertFile(
   final CharSequence caCertFile
 ) {
   if (caCertFile == null) {
-    this.amqpSslCaCert = null;
+    this.amqpSslCaCertFile = null;
   } else {
-    this.amqpSslCaCert = caCertFile.toString();
+    this.amqpSslCaCertFile = caCertFile.toString();
   }
   return this;
 }
 
-public final ThreadMPC setAmqpSslClientCert(
+public final ThreadMPC setAmqpSslClientCertFile(
   final CharSequence clientCertFile,
   final CharSequence clientKeyFile
 ) {
@@ -1208,14 +1208,14 @@ public final ThreadMPC setAmqpSslClientCert(
     );
   }
   if (clientCertFile == null) {
-    this.amqpSslClientCert = null;
+    this.amqpSslClientCertFile = null;
   } else {
-    this.amqpSslClientCert = clientCertFile.toString();
+    this.amqpSslClientCertFile = clientCertFile.toString();
   }
   if (clientKeyFile == null) {
-    this.amqpSslClientKey = null;
+    this.amqpSslClientKeyFile = null;
   } else {
-    this.amqpSslClientKey = clientKeyFile.toString();
+    this.amqpSslClientKeyFile = clientKeyFile.toString();
   }
   return this;
 }
