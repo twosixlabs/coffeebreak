@@ -938,13 +938,9 @@ private void runExecutables(
       }
       if (this.amqpSslVerifyPeer) {
         argv.add("--rabbitmq_ssl_verify_peer");
-      } else {
-        argv.add("--norabbitmq_ssl_verify_peer");
       }
       if (this.amqpSslVerifyHostname) {
         argv.add("--rabbitmq_ssl_verify_hostname");
-      } else {
-        argv.add("--norabbitmq_ssl_verify_hostname");
       }
       if (this.amqpSslClientCert != null) {
         argv.add("--rabbitmq_ssl_client_cert_file");
