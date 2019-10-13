@@ -1198,19 +1198,20 @@ public final ThreadMPC setAmqpSslCaCert(
 }
 
 public final ThreadMPC setAmqpSslClientCert(
-  final CharSequence amqpSslClientCert
+  final CharSequence amqpSslClientCert,
+  final CharSequence amqpSslClientKey
 ) {
+  if ((amqpSslClientCert == null) != (amqpSslClientKey == null)) {
+    throw new IllegalArgumentException(
+      "amqpSslClientCert and amqpSslClientKey " +
+      "must be either both null or both not null"
+    );
+  }
   if (amqpSslClientCert == null) {
     this.amqpSslClientCert = null;
   } else {
     this.amqpSslClientCert = amqpSslClientCert.toString();
   }
-  return this;
-}
-
-public final ThreadMPC setAmqpSslClientKey(
-  final CharSequence amqpSslClientKey
-) {
   if (amqpSslClientKey == null) {
     this.amqpSslClientKey = null;
   } else {
