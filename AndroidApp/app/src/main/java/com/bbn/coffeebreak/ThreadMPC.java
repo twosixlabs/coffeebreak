@@ -1187,57 +1187,57 @@ public final ThreadMPC setAmqpPort(
 }
 
 public final ThreadMPC setAmqpSslCaCert(
-  final CharSequence amqpSslCaCert
+  final CharSequence caCertPath
 ) {
-  if (amqpSslCaCert == null) {
+  if (caCertPath == null) {
     this.amqpSslCaCert = null;
   } else {
-    this.amqpSslCaCert = amqpSslCaCert.toString();
+    this.amqpSslCaCert = caCertPath.toString();
   }
   return this;
 }
 
 public final ThreadMPC setAmqpSslClientCert(
-  final CharSequence amqpSslClientCert,
-  final CharSequence amqpSslClientKey
+  final CharSequence clientCertPath,
+  final CharSequence clientKeyPath
 ) {
-  if ((amqpSslClientCert == null) != (amqpSslClientKey == null)) {
+  if ((clientCertPath == null) != (clientKeyPath == null)) {
     throw new IllegalArgumentException(
-      "amqpSslClientCert and amqpSslClientKey " +
+      "clientCertPath and clientKeyPath " +
       "must be either both null or both not null"
     );
   }
-  if (amqpSslClientCert == null) {
+  if (clientCertPath == null) {
     this.amqpSslClientCert = null;
   } else {
-    this.amqpSslClientCert = amqpSslClientCert.toString();
+    this.amqpSslClientCert = clientCertPath.toString();
   }
-  if (amqpSslClientKey == null) {
+  if (clientKeyPath == null) {
     this.amqpSslClientKey = null;
   } else {
-    this.amqpSslClientKey = amqpSslClientKey.toString();
+    this.amqpSslClientKey = clientKeyPath.toString();
   }
   return this;
 }
 
 public final ThreadMPC setAmqpSslEnabled(
-  final boolean amqpSslEnabled
+  final boolean enabled
 ) {
-  this.amqpSslEnabled = amqpSslEnabled;
+  this.amqpSslEnabled = enabled;
   return this;
 }
 
 public final ThreadMPC setAmqpSslVerifyPeer(
-  final boolean amqpSslVerifyPeer
+  final boolean verifyPeer
 ) {
-  this.amqpSslVerifyPeer = amqpSslVerifyPeer;
+  this.amqpSslVerifyPeer = verifyPeer;
   return this;
 }
 
 public final ThreadMPC setAmqpSslVerifyHostname(
-  final boolean amqpSslVerifyHostname
+  final boolean verifyHostname
 ) {
-  this.amqpSslVerifyHostname = amqpSslVerifyHostname;
+  this.amqpSslVerifyHostname = verifyHostname;
   return this;
 }
 
