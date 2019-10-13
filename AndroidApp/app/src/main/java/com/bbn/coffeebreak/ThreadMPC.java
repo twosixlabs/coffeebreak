@@ -1187,35 +1187,35 @@ public final ThreadMPC setAmqpPort(
 }
 
 public final ThreadMPC setAmqpSslCaCert(
-  final CharSequence caCertPath
+  final CharSequence caCertFile
 ) {
-  if (caCertPath == null) {
+  if (caCertFile == null) {
     this.amqpSslCaCert = null;
   } else {
-    this.amqpSslCaCert = caCertPath.toString();
+    this.amqpSslCaCert = caCertFile.toString();
   }
   return this;
 }
 
 public final ThreadMPC setAmqpSslClientCert(
-  final CharSequence clientCertPath,
-  final CharSequence clientKeyPath
+  final CharSequence clientCertFile,
+  final CharSequence clientKeyFile
 ) {
-  if ((clientCertPath == null) != (clientKeyPath == null)) {
+  if ((clientCertFile == null) != (clientKeyFile == null)) {
     throw new IllegalArgumentException(
-      "clientCertPath and clientKeyPath " +
+      "clientCertFile and clientKeyFile " +
       "must be either both null or both not null"
     );
   }
-  if (clientCertPath == null) {
+  if (clientCertFile == null) {
     this.amqpSslClientCert = null;
   } else {
-    this.amqpSslClientCert = clientCertPath.toString();
+    this.amqpSslClientCert = clientCertFile.toString();
   }
-  if (clientKeyPath == null) {
+  if (clientKeyFile == null) {
     this.amqpSslClientKey = null;
   } else {
-    this.amqpSslClientKey = clientKeyPath.toString();
+    this.amqpSslClientKey = clientKeyFile.toString();
   }
   return this;
 }
