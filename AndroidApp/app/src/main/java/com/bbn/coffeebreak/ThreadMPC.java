@@ -17,9 +17,11 @@
  *   "/path/to/client-cert.pem",
  *   "/path/to/client-key.pem"
  * );
- * mpc.run();
+ * CompletableFuture<Void> f = CompletableFuture.runAsync(mpc);
+ * ...
+ * f.join();
  * if (mpc.getException() != null) {
- *   ...
+ *   throw mpc.getException();
  * }
  *
  */
