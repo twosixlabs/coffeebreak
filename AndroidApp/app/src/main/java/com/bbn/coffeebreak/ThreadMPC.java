@@ -766,6 +766,49 @@ private boolean programIsTwoPartyMpc(
 /**
  * Runs the MPC computation.
  * <p>
+ * The networking implementation is always AMQP.
+ * </p>
+ * <p>
+ * For the AMQP networking implementation, connecting to the broker
+ * works as follows:
+ * </p>
+ * <ol>
+ * <li>
+ * If
+ * <code>this.mode</code>
+ * is
+ * <code>Mode.DUMMY</code>,
+ * then the
+ * <code>Channel</code>
+ * that was given to the constructor of this instance is used.
+ * </li>
+ * <li>
+ * Otherwise, if
+ * <code>this.amqpSslEnabled</code>
+ * is
+ * <code>false</code>,
+ * then a non-TLS connection is established using
+ * <code>this.amqpHost</code>,
+ * <code>this.amqpPort</code>,
+ * <code>this.amqpUsername</code>,
+ * and
+ * <code>this.amqpPassword</code>.
+ * </li>
+ * <li>
+ * Otherwise, a TLS connection is established using
+ * <code>this.amqpHost</code>,
+ * <code>this.amqpPort</code>,
+ * <code>this.amqpSslCaCertFile</code>,
+ * <code>this.amqpSslVerifyPeer</code>,
+ * <code>this.amqpSslVerifyHostname</code>,
+ * <code>this.amqpSslClientCertFile</code>,
+ * <code>this.amqpSslClientKeyFile</code>,
+ * <code>this.amqpUsername</code>,
+ * and
+ * <code>this.amqpPassword</code>.
+ * </li>
+ * </ol>
+ * <p>
  * The MPC implementation is chosen as follows:
  * </p>
  * <ol>
