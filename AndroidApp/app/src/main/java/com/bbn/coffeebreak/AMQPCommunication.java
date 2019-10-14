@@ -51,6 +51,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -421,18 +423,20 @@ public class AMQPCommunication extends Service {
                             username,
                             noisyLocation.getEncodedLocation(),
                             mpcResponse);
-                    mpc.setAmqpHost("hostname.of.amqp.server");
-                    mpc.setAmqpPort(5671);
-                    mpc.setAmqpUsername("alice");
-                    mpc.setAmqpPassword("hunter2");
+                    mpc.setAmqpHost(AMQPHost);
+                    mpc.setAmqpPort(AMQPPort);
+                    mpc.setAmqpUsername(username);
+                    mpc.setAmqpPassword(password);
                     mpc.setAmqpSslEnabled(true);
-                    mpc.setAmqpSslCaCertFile("/path/to/ca-cert.pem");
-                    mpc.setAmqpSslVerifyPeer(true);
-                    mpc.setAmqpSslVerifyHostname(true);
+                    // mpc.setAmqpSslCaCertFile("/path/to/ca-cert.pem");
+                    mpc.setAmqpSslVerifyPeer(false);
+                    mpc.setAmqpSslVerifyHostname(false);
+                    /*
                     mpc.setAmqpSslClientCertFile(
                             "/path/to/client-cert.pem",
                             "/path/to/client-key.pem"
                     );
+                     */
                     //mpc.setMode(ThreadMPC.Mode.STATIC_EXECUTABLES);
                     mpc.setMode(ThreadMPC.Mode.SHARED_EXECUTABLES);
                     mpc.setCircuitType(ThreadMPC.CircuitType.CBL);
@@ -485,6 +489,12 @@ public class AMQPCommunication extends Service {
         factory.setRequestedHeartbeat(5);
         factory.setAutomaticRecoveryEnabled(true);
         factory.setConnectionTimeout(2500);
+        try {
+            factory.useSslProtocol();
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            Log.d(TAG, "Can't use TLS");
+        }
+
         setupAMQPConnection(ctx);
     }
 
