@@ -847,9 +847,9 @@ private boolean programIsTwoPartyMpc(
 @Override
 public final void run(
 ) {
+  this.exception = null;
   try {
     this.prepare();
-    this.exception = null;
     switch (this.mode) {
       case DUMMY: if (true) {
         this.runDummy();
