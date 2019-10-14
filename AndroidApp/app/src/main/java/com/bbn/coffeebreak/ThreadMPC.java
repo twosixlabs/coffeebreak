@@ -1,3 +1,29 @@
+/*
+ * Usage example:
+ *
+ * ThreadMPC mpc = new ThreadMPC(...);
+ * mpc.setMode(ThreadMPC.SHARED_EXECUTABLES);
+ * mpc.setCircuitType(ThreadMPC.CircuitType.CBL);
+ * mpc.setCblLookahead(4);
+ * mpc.setAmqpHost("hostname.of.amqp.server");
+ * mpc.setAmqpPort(5671);
+ * mpc.setAmqpUsername("alice");
+ * mpc.setAmqpPassword("hunter2");
+ * mpc.setAmqpSslEnabled(true);
+ * mpc.setAmqpSslCaCertFile("/path/to/ca-cert.pem");
+ * mpc.setAmqpSslVerifyPeer(true);
+ * mpc.setAmqpSslVerifyHostname(true);
+ * mpc.setAmqpSslClientCertFile(
+ *   "/path/to/client-cert.pem",
+ *   "/path/to/client-key.pem"
+ * );
+ * mpc.run();
+ * if (mpc.getException() != null) {
+ *   ...
+ * }
+ *
+ */
+
 package com.bbn.coffeebreak;
 
 import android.annotation.SuppressLint;
