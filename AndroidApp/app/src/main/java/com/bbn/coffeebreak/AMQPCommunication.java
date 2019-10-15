@@ -425,8 +425,8 @@ public class AMQPCommunication extends Service {
                             mpcResponse);
                     mpc.setAmqpHost(AMQPHost);
                     mpc.setAmqpPort(AMQPPort);
-                    mpc.setAmqpUsername(username);
-                    mpc.setAmqpPassword(password);
+                    mpc.setAmqpUsername("guest");
+                    mpc.setAmqpPassword("guest");
                     mpc.setAmqpSslEnabled(true);
                     mpc.setAmqpSslVerifyPeer(false);
                     mpc.setAmqpSslVerifyHostname(false);
@@ -590,6 +590,12 @@ public class AMQPCommunication extends Service {
         factory.setRequestedHeartbeat(5);
         factory.setAutomaticRecoveryEnabled(true);
         factory.setConnectionTimeout(2500);
+        try {
+            factory.useSslProtocol();
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            Log.d(TAG, "Can't use TLS");
+        }
+
         setupAMQPConnection(context);
         return Service.START_STICKY;
     }
