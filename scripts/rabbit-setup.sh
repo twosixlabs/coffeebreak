@@ -7,15 +7,19 @@
 
 # Update packages
 
-yum update
+yum update -y
 
 # Install erlang
 
 curl -s https://packagecloud.io/install/repositories/rabbitmq/erlang/script.rpm.sh | sudo bash
 
+yum install -y erlang
+
 # Install RabbitMQ
 
 curl -s https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh | sudo bash
+
+yum install -y rabbitmq-server
 
 # Turn on management plugin
 
@@ -38,11 +42,11 @@ default_ca = testca
 
 [ testca ]
 dir = .
-certificate = $dir/ca_certificate.pem
-database = $dir/index.txt
-new_certs_dir = $dir/certs
-private_key = $dir/private/ca_private_key.pem
-serial = $dir/serial
+certificate = \$dir/cacert.pem
+database = \$dir/index.txt
+new_certs_dir = \$dir/certs
+private_key = \$dir/private/ca_private_key.pem
+serial = \$dir/serial
 
 default_crl_days = 7
 default_days = 365
@@ -92,24 +96,28 @@ EOF
 ## Generate CA key/cert
 
 openssl req -x509 -config openssl.cnf -newkey rsa:2048 -days 365 \
-    -out ca_certificate.pem -outform PEM -subj /CN=MyTestCA/ -nodes
-openssl x509 -in ca_certificate.pem -out ca_certificate.cer -outform DER
+    -out cacert.pem -outform PEM -subj /CN=MyTestCA/ -nodes
+openssl x509 -in cacert.pem -out cacert.cer -outform DER
 
 ## Generate and sign server cert
 
 cd ..
 mkdir server
 cd server
-openssl genrsa -out private_key.pem 2048
-openssl req -new -key private_key.pem -out req.pem -outform PEM \
+openssl genrsa -out key.pem 2048
+openssl req -new -key key.pem -out req.pem -outform PEM \
     -subj /CN=$2/O=server/ -nodes
 cd ../testca
 openssl ca -config openssl.cnf -in ../server/req.pem -out \
-    ../server/server_certificate.pem -notext -batch -extensions server_ca_extensions
+    ../server/cert.pem -notext -batch -extensions server_ca_extensions
 
+chown rabbitmq /home/server/key.pem /home/server/cert.pem /home/testca/cacert.pem
+chmod 600 /home/server/key.pem /home/server/cert.pem /home/testca/cacert.pem
 
 # Create RabbitMQ config file
 
+mkdir /etc/rabbitmq
+chown rabbitmq /etc/rabbitmq
 cat > /etc/rabbitmq/rabbitmq.config <<EOF
 [
         { rabbit, [
@@ -128,14 +136,28 @@ cat > /etc/rabbitmq/rabbitmq.config <<EOF
 ].
 EOF
 
+# Create RabbitMQ environment file
+
+cat > /etc/rabbitmq/rabbitmq-env.conf <<EOF
+RABBITMQ_USE_LONGNAME=true
+EOF
+
 # Set erlang cookie
 
+mkdir /var/lib/rabbitmq
+chown rabbitmq /var/lib/rabbitmq
 echo $1 > /var/lib/rabbitmq/.erlang.cookie
-
-# If second node, configure clustering
-
-rabbitmqctl join_cluster rabbit@$3
 
 # Start
 
 service rabbitmq-server start
+
+# If second node, shut down, configure clustering, and restart
+
+if [ $# -gt 2 ]
+then
+        rabbitmqctl stop_app
+        rabbitmqctl reset
+        rabbitmqctl join_cluster rabbit@$3
+        rabbitmqctl start_app
+fi
