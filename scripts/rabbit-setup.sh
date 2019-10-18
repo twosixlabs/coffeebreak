@@ -152,6 +152,10 @@ echo $1 > /var/lib/rabbitmq/.erlang.cookie
 
 service rabbitmq-server start
 
+# Change default password
+
+rabbitmqctl change_password guest caffein8
+
 # If second node, shut down, configure clustering, and restart
 
 if [ $# -gt 2 ]

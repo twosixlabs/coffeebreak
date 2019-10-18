@@ -426,7 +426,7 @@ public class AMQPCommunication extends Service {
                     mpc.setAmqpHost(AMQPHost);
                     mpc.setAmqpPort(AMQPPort);
                     mpc.setAmqpUsername("guest");
-                    mpc.setAmqpPassword("guest");
+                    mpc.setAmqpPassword("caffein8");
                     mpc.setAmqpSslEnabled(true);
                     mpc.setAmqpSslVerifyPeer(false);
                     mpc.setAmqpSslVerifyHostname(false);
@@ -483,7 +483,7 @@ public class AMQPCommunication extends Service {
 
         factory = new ConnectionFactory();
         factory.setUsername("guest");
-        factory.setPassword("guest");
+        factory.setPassword("caffein8");
         factory.setHost(AMQPHost);
         factory.setPort(AMQPPort);
 
@@ -586,7 +586,7 @@ public class AMQPCommunication extends Service {
         factory.setHost(AMQPHost);
         factory.setPort(AMQPPort);
         factory.setUsername("guest");
-        factory.setPassword("guest");
+        factory.setPassword("caffein8");
         factory.setRequestedHeartbeat(5);
         factory.setAutomaticRecoveryEnabled(true);
         factory.setConnectionTimeout(2500);
