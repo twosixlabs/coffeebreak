@@ -52,17 +52,17 @@ while getopts "k:i:t:e:s:g:c:a:" opt; do
                         ;;
                 i)      private_key=$OPTARG;((++argCount))
                         ;;
-                t)      timer=$OPTARG;((++argCount))
+                t)      timer=$OPTARG;
                         ;;
-                e)      ec2_image=$OPTARG;((++argCount))
+                e)      ec2_image=$OPTARG;
                         ;;
-                s)      ec2_type=$OPTARG;((++argCount))
+                s)      ec2_type=$OPTARG;
                         ;;
-                g)      security_group=$OPTARG;((++argCount))
+                g)      security_group=$OPTARG;
                         ;;
 		c)	config_file=$OPTARG;((++argCount))
 			;;
-		a)	autorun_script=$OPTARG;((++argCount))
+		a)	autorun_script=$OPTARG;
 			;;
         esac
 done
@@ -124,28 +124,28 @@ echo ${id[0]}, ${id[1]}
 ip=($($aws ec2 describe-instances --filter \
      "Name=instance-id,Values=[${id[0]},${id[1]}]" \
      --query "Reservations[].Instances[].PublicIpAddress" \
-     --output=text))
+     --output=text | tr -d '\r'))
 
 echo ${ip[0]}, ${ip[1]}
 
 ipv6=($($aws ec2 describe-instances --filter \
      "Name=instance-id,Values=[${id[0]},${id[1]}]" \
      --query "Reservations[].Instances[].NetworkInterfaces[].Ipv6Addresses[*]" \
-     --output=text))
+     --output=text | tr -d '\r'))
 
 echo ${ipv6[0]}, ${ipv6[1]}
 
 publicdns=($($aws ec2 describe-instances --filter \
      "Name=instance-id,Values=[${id[0]},${id[1]}]" \
      --query "Reservations[].Instances[].PublicDnsName" \
-     --output=text))
+     --output=text | tr -d '\r'))
 
 echo ${publicdns[0]}, ${publicdns[1]}
 
 privatedns=($($aws ec2 describe-instances --filter \
      "Name=instance-id,Values=[${id[0]},${id[1]}]" \
      --query "Reservations[].Instances[].PrivateDnsName" \
-     --output=text))
+     --output=text | tr -d '\r'))
 
 echo ${privatedns[0]}, ${privatedns[1]}
 
