@@ -17,7 +17,7 @@ security_group="cb-default"
 key_pair_name=""
 private_key=""
 ec2_image="ami-0b69ea66ff7391e80"
-ec2_type="t3a.small"
+ec2_type="t2.micro"
 timer=720 # 12 hours
 
 # Random values shared by the two instances:
