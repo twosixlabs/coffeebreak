@@ -127,13 +127,6 @@ ip=($($aws ec2 describe-instances --filter \
 
 echo ${ip[0]}, ${ip[1]}
 
-ipv6=($($aws ec2 describe-instances --filter \
-     "Name=instance-id,Values=[${id[0]},${id[1]}]" \
-     --query "Reservations[].Instances[].NetworkInterfaces[].Ipv6Addresses[*]" \
-     --output=text | tr -d '\r'))
-
-echo ${ipv6[0]}, ${ipv6[1]}
-
 publicdns=($($aws ec2 describe-instances --filter \
      "Name=instance-id,Values=[${id[0]},${id[1]}]" \
      --query "Reservations[].Instances[].PublicDnsName" \
@@ -149,7 +142,6 @@ privatedns=($($aws ec2 describe-instances --filter \
 echo ${privatedns[0]}, ${privatedns[1]}
 
 echo "[!] EC2 instances started at" ${ip[0]} ", " ${ip[1]}
-echo "[!] EC2 IPV6 addresses assigned:" ${ipv6[0]} ", " ${ipv6[1]}
 
 
 filter="Name=instance-state-name,Values=running,\
@@ -198,28 +190,31 @@ echo "[!] EC2 instance passed reachability checks"
 ##################################################################################
 
 scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i $private_key rabbit-setup.sh ec2-user@${ip[0]}:/home/ec2-user/
+-i $private_key rabbitbuild.sh ec2-user@${ip[0]}:/home/ec2-user/
 scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i $private_key rabbit-setup.sh ec2-user@${ip[1]}:/home/ec2-user/
+-i $private_key rabbitbuild.sh ec2-user@${ip[1]}:/home/ec2-user/
+scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+-i $private_key autorun.sh ec2-user@${ip[0]}:/home/ec2-user/
+scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+-i $private_key autorun.sh ec2-user@${ip[1]}:/home/ec2-user/
 
 echo "[!] Installing on ${publicdns[0]}"
 
 echo ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i $private_key ec2-user@${ip[0]} "sudo bash ./rabbit-setup.sh ${erlang_cookie} ${publicdns[0]}"
+-i $private_key ec2-user@${ip[0]} "sudo bash ./rabbitbuild.sh ${erlang_cookie}"
 
 ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i $private_key ec2-user@${ip[0]} "sudo bash ./rabbit-setup.sh ${erlang_cookie} ${publicdns[0]}"
+-i $private_key ec2-user@${ip[0]} "sudo bash ./rabbitbuild.sh ${erlang_cookie}"
 
 echo "[!] Installing on ${publicdns[1]}"
 
 echo ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i $private_key ec2-user@${ip[1]} "sudo bash ./rabbit-setup.sh ${erlang_cookie} ${publicdns[1]} ${privatedns[0]}"
+-i $private_key ec2-user@${ip[1]} "sudo bash ./rabbitbuild.sh ${erlang_cookie} ${privatedns[0]}"
 
 ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i $private_key ec2-user@${ip[1]} "sudo bash ./rabbit-setup.sh ${erlang_cookie} ${publicdns[1]} ${privatedns[0]}"
+-i $private_key ec2-user@${ip[1]} "sudo bash ./rabbitbuild.sh ${erlang_cookie} ${privatedns[0]}"
 
 ###
 
 echo "[!] EC2 instances started at" ${ip[0]} ", " ${ip[1]}
-echo "[!] EC2 IPV6 addresses assigned:" ${ipv6[0]} ", " ${ipv6[1]}
 echo "[!] Both instances are tagged: rabbit_cluster=" ${instance_tag}
