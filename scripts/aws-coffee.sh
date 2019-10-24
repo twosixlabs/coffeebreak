@@ -108,7 +108,6 @@ $aws ec2 run-instances --image-id $ec2_image --count 2 \
 --instance-type $ec2_type --key-name $key_pair_name \
 --security-group-ids $security_group \
 --block-device-mappings $ebs_storage_mapping \
---ipv6-address-count 1 \
 --tag-specifications "ResourceType=instance,Tags=[{Key=rabbit_cluster,Value=$instance_tag}]" \
 --instance-initiated-shutdown-behavior terminate > /dev/null
 
