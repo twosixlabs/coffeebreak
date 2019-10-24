@@ -124,21 +124,21 @@ chown rabbitmq /var/lib/rabbitmq
 echo $1 > /var/lib/rabbitmq/.erlang.cookie
 
 # Start
-rabbitmq-server start &
+#rabbitmq-server start &
 
-sleep 10 
+echo "[*] Done with autorun script"
 
 # Change default password
 
-rabbitmqctl change_password guest caffein8
+#rabbitmqctl change_password guest caffein8
 
 # If second node, shut down, configure clustering, and restart
 
-if [ $# -gt 1 ]
-then
-        rabbitmqctl stop_app
-        rabbitmqctl reset
-        rabbitmqctl join_cluster rabbit@$2
-        rabbitmqctl start_app
-fi
+#if [ $# -gt 1 ]
+#then
+#        rabbitmqctl stop_app
+#        rabbitmqctl reset
+#        rabbitmqctl join_cluster rabbit@$2
+#        rabbitmqctl start_app
+#fi
 

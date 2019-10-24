@@ -40,3 +40,29 @@ EOF
 
 #start docker container
 docker build -t rabbitserv . && docker run -p 15672:15672 -p 5671:5671 -p 4369:4369 -p 25672:25672 -d -it --hostname $HOSTNAME rabbitserv
+
+echo "[*] Starting rabbitmq..."
+docker exec $(docker container ls -aq) rabbitmq-server start &
+echo "[*] waiting for rabbitmq to start..."
+sleep 10
+echo "[!] DONE."
+# Change default password
+
+echo "[*] changing rabbitmq default password..."
+docker exec $(docker container ls -aq) rabbitmqctl change_password guest caffein8 &
+echo "[!] DONE."
+# If second node, shut down, configure clustering, and restart
+
+
+if [ $# -gt 1 ]
+then
+        echo "[!] joining cluster!"
+        docker exec $(docker container ls -aq) rabbitmqctl stop_app
+        docker exec $(docker container ls -aq) rabbitmqctl reset
+        docker exec $(docker container ls -aq) rabbitmqctl join_cluster rabbit@$2
+        docker exec $(docker container ls -aq) rabbitmqctl start_app
+fi
+
+echo "[!] Finished!"
+echo ""
+echo "PRESS CTRL+C TO CONTINUE..."
