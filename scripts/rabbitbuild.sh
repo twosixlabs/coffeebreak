@@ -39,7 +39,10 @@ RUN /home/rabbitmq/autorun.sh $*
 EOF
 
 #start docker container
-docker build -t rabbitserv . && docker run -p 15672:15672 -p 5671:5671 -p 4369:4369 -p 25672:25672 -d -it --hostname $HOSTNAME rabbitserv
+docker build -t rabbitserv .
+docker run -p 15672:15672 -p 5671:5671 -p 4369:4369 -p 25672:25672 -d -it --hostname $HOSTNAME rabbitserv &
+
+sleep 10
 
 echo "[*] Starting rabbitmq..."
 docker exec $(docker container ls -aq) rabbitmq-server start &
@@ -65,4 +68,4 @@ fi
 
 echo "[!] Finished!"
 echo ""
-echo "PRESS CTRL+C TO CONTINUE..."
+exit

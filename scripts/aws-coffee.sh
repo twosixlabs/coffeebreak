@@ -201,18 +201,22 @@ scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
 echo "[!] Installing on ${publicdns[0]}"
 
 echo ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i $private_key ec2-user@${ip[0]} "sudo bash ./rabbitbuild.sh ${erlang_cookie}"
+-i $private_key ec2-user@${ip[0]} "sudo bash ./rabbitbuild.sh ${erlang_cookie} > /home/ec2-user/startup.log 2>&1"
 
+echo "[*] please wait...(should take about 5 minutes to start rabbitmq server)."
+echo "Log file on ${ip[0]} at /home/ec2-user/startup.log"
 ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i $private_key ec2-user@${ip[0]} "sudo bash ./rabbitbuild.sh ${erlang_cookie}"
+-i $private_key ec2-user@${ip[0]} "sudo bash ./rabbitbuild.sh ${erlang_cookie} > /home/ec2-user/startup.log 2>&1"
 
 echo "[!] Installing on ${publicdns[1]}"
 
 echo ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i $private_key ec2-user@${ip[1]} "sudo bash ./rabbitbuild.sh ${erlang_cookie} ${privatedns[0]}"
+-i $private_key ec2-user@${ip[1]} "sudo bash ./rabbitbuild.sh ${erlang_cookie} ${privatedns[0]} > /home/ec2-user/startup.log 2>&1"
 
+#echo "[*] please wait...(should take about 5 minutes to start rabbitmq server)."
+echo "Log file on ${ip[1]} at /home/ec2-user/startup.log"
 ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--i $private_key ec2-user@${ip[1]} "sudo bash ./rabbitbuild.sh ${erlang_cookie} ${privatedns[0]}"
+-i $private_key ec2-user@${ip[1]} "sudo bash ./rabbitbuild.sh ${erlang_cookie} ${privatedns[0]} > /home/ec2-user/startup.log 2>&1"
 
 ###
 

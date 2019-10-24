@@ -142,3 +142,4 @@ echo "[*] Done with autorun script"
 #        rabbitmqctl start_app
 #fi
 
+exit 0
