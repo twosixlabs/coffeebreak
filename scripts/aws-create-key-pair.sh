@@ -4,10 +4,10 @@
 #  aws variable, and uncomment the aws.cmd variable.
 
 # Linux / Unix:
-aws=aws
+#aws=aws
 
 # Windows (Using Git Bash Shell):
-#aws=aws.cmd
+aws=aws.cmd
 
 usage(){ echo "Usage: $0 -k key_pair_name -i key_pair_path";}
 
