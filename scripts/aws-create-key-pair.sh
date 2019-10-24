@@ -30,3 +30,4 @@ if [ $argCount -lt 2 ]
 fi
 
 $aws ec2 create-key-pair --key-name=$key_pair_name --query 'KeyMaterial' --output text > "${private_key_file}"
+chmod 600 ${private_key_file}

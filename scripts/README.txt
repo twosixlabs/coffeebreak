@@ -9,7 +9,7 @@ Steps:
 
 1. Obtain an AWS account. (one-time)
 2. Create AWS access keys (one-time)
-3. Install the AWS Command Line Interface tools
+3. Install the AWS Command Line Interface tools (one-time)
 4. Set up the AWS EC2 security group (one-time)
 5. Create CLI SSH key pair (one time)
 6. Start the AWS instances with the RabbitMQ server cluster.
