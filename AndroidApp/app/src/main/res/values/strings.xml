@@ -46,7 +46,7 @@
     <string name="amqpIp">amqpIp</string>
     <string name="amqpPort">amqpPort</string>
     <string name="defaultAmqpIp">3.81.149.241</string>
-    <string name="defaultAmqpPort">5672</string>
+    <string name="defaultAmqpPort">5671</string>
 
     <!-- Android Notification Channel -->
     <string name="notification_channel">coffee_break_notification_channel</string>

@@ -67,7 +67,7 @@ public class AMQPCommunication extends Service {
     private final static String TAG = "[RabbitMQClient]";
 
     private static String AMQPHost = "127.0.0.1";
-    private static int AMQPPort = 5672;
+    private static int AMQPPort = 5671;
 
     private final static String INVITE_EXCHANGE = "invite";
 
