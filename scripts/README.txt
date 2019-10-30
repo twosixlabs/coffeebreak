@@ -74,7 +74,7 @@ Run aws-coffee.sh in this directory with the arguments:
 The last lines of output of the script will show the IP addresses of the
 two servers.  Enter each of these into the Cofeebreak app on one of the phones.
 
-The last lines of outout of the script will also include a "tag identifier".
+The last lines of output of the script will also include a "tag identifier".
 Save that for when it's time to shut down the servers.
 
 7. Later, shut down the AWS instances.
