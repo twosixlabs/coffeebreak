@@ -1496,7 +1496,12 @@ private void waitForConsumers(
 //
 
 // TODO: Replace this with the actual interface.
-private interface CoffeeChannel {}
+private interface CoffeeChannel {
+  // Blocks until all data.length bytes are sent.
+  void send(byte[] data) throws IOException;
+  // Blocks until all data.length bytes are received.
+  void recv(byte[] data) throws IOException;
+}
 
 private static final int scheme_n_party_mpc_by_gate = 0;
 private static final int scheme_two_party_mpc = 1;
@@ -1513,14 +1518,24 @@ private int jniMpcSend(
   final CoffeeChannel channel,
   final byte[] data
 ) {
-  return -1;
+  try {
+    channel.send(data);
+    return data.length;
+  } catch (final Throwable t) {
+    return -1;
+  }
 }
 
 private int jniMpcRecv(
   final CoffeeChannel channel,
   final byte[] data
 ) {
-  return -1;
+  try {
+    channel.recv(data);
+    return data.length;
+  } catch (final Throwable t) {
+    return -1;
+  }
 }
 
 private native int jniMpcRunNative(
