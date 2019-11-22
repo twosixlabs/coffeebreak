@@ -1489,4 +1489,63 @@ private void waitForConsumers(
   }
 }
 
+//
+// The JNI MPC hookups. The caller should only call the jniMpcRun()
+// method. All the other stuff is considered to be internal to that
+// method.
+//
+
+// TODO: Replace this with the actual interface.
+private interface CoffeeChannel {}
+
+private static final int scheme_n_party_mpc_by_gate = 0;
+private static final int scheme_two_party_mpc = 1;
+
+private String jniMpcResult;
+
+private void jniMpcSetResult(
+  final String jniMpcResult
+) {
+  this.jniMpcResult = jniMpcResult;
+}
+
+private int jniMpcSend(
+  final CoffeeChannel channel,
+  final byte[] data
+) {
+  return -1;
+}
+
+private int jniMpcRecv(
+  final CoffeeChannel channel,
+  final byte[] data
+) {
+  return -1;
+}
+
+private native int jniMpcRunNative(
+  int scheme,
+  String[] argv,
+  CoffeeChannel[] channels
+);
+
+private String jniMpcRun(
+  final int scheme,
+  final String[] argv,
+  final CoffeeChannel[] channels
+) {
+  this.jniMpcResult = null;
+  final int s =
+    this.jniMpcRunNative(
+      scheme,
+      argv,
+      channels
+    )
+  ;
+  if (s != 0) {
+    throw new RuntimeException(this.jniMpcResult);
+  }
+  return this.jniMpcResult;
+}
+
 }
