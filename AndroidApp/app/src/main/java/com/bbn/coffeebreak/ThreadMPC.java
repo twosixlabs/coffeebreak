@@ -1509,9 +1509,9 @@ private static final int scheme_two_party_mpc = 1;
 private String jniMpcResult;
 
 private void jniMpcSetResult(
-  final String jniMpcResult
+  final String result
 ) {
-  this.jniMpcResult = jniMpcResult;
+  this.jniMpcResult = result;
 }
 
 private int jniMpcSend(
