@@ -1535,7 +1535,7 @@ private int jniMpcRecv(
   }
 }
 
-private native int jniMpcRun2(
+private native int jniMpcRunInner(
   int func,
   String[] argv,
   CoffeeChannel[] channels
@@ -1547,7 +1547,7 @@ private void jniMpcRun(
   final CoffeeChannel[] channels
 ) {
   this.jniMpcExceptionMessage = null;
-  final int s = this.jniMpcRun2(func, argv, channels);
+  final int s = this.jniMpcRunInner(func, argv, channels);
   if (s != 0) {
     throw new RuntimeException(this.jniMpcExceptionMessage);
   }
