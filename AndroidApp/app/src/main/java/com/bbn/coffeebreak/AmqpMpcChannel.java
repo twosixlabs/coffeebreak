@@ -13,7 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-public class AmqpMpcChannel implements CoffeebreakChannel {
+public class AmqpMpcChannel implements CoffeeChannel {
 
     private Channel mChannel;
     private String mSendQueue;
@@ -64,14 +64,16 @@ public class AmqpMpcChannel implements CoffeebreakChannel {
     }
 
     @Override
-    public byte[] receive(int buflen) throws IOException {
+    public void recv(byte[] buf) throws IOException {
         byte[] response = mBlockingQueue.poll();
         if(response == null)
             throw new IOException("received NULL from polling operation");
 
-        if(response.length != buflen)
-            throw new IOException("received " + response.length + " bytes, but was expecting " + buflen);
+        if(response.length != buf.length)
+            throw new IOException("received " + response.length + " bytes, but was expecting " + buf.length);
 
-        return response;
+        for(int i = 0; i < buf.length; i++)
+            buf[i] = response[i];
+
     }
 }
