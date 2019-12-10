@@ -11,8 +11,8 @@ import com.rabbitmq.client.Envelope;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class AmqpMpcChannel implements CoffeeChannel {
 
@@ -30,14 +30,13 @@ public class AmqpMpcChannel implements CoffeeChannel {
 
     private static final String TAG = "AMQP_MPC_Channel";
     private static final String MESSAGE_TYPE = "MPC_ROUND";
-    private static final int BLOCKING_QUEUE_CAPACITY = 250;
 
     public AmqpMpcChannel(Channel channel, String meetingId, String dest, String username){
         mChannel = channel;
         mSendQueue = "MPC:LOCATION:" + meetingId + ":" + username + ":" + dest;
         mRecvQueue = "MPC:LOCATION:" + meetingId + ":" + dest + ":" + username;
         mUsername = username;
-        mBlockingQueue = new ArrayBlockingQueue<byte[]>(BLOCKING_QUEUE_CAPACITY);
+        mBlockingQueue = new LinkedBlockingQueue<byte[]>();
 
         try{
             mChannel.queueDeclare(mSendQueue, false, false, true, null);
