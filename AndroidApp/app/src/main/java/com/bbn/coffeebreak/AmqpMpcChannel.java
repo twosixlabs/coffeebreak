@@ -46,7 +46,12 @@ public class AmqpMpcChannel implements CoffeeChannel {
                 public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                     super.handleDelivery(consumerTag, envelope, properties, body);
                     Log.d(TAG, "Received message from AMQP");
-                    mBlockingQueue.offer(body);
+                    try {
+                        mBlockingQueue.put(body);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException(e);
+                    }
                 }
             };
             mChannel.basicConsume(mRecvQueue, mInviteConsumer);
