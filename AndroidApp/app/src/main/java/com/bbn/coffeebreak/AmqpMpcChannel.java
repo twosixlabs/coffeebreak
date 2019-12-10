@@ -9,6 +9,7 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -47,7 +48,7 @@ public class AmqpMpcChannel implements CoffeeChannel {
                     super.handleDelivery(consumerTag, envelope, properties, body);
                     Log.d(TAG, "Received message from AMQP");
                     try {
-                        mBlockingQueue.put(body);
+                        mBlockingQueue.put(Arrays.copyOf(body, body.length));
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new IOException(e);
