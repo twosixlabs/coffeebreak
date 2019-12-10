@@ -82,9 +82,13 @@ public class AmqpMpcChannel implements CoffeeChannel {
         // then consume messages until we're done
         while (bufIdx < buf.length) {
             int want = buf.length - bufIdx;
-            byte[] r = mBlockingQueue.poll();
-            if (r == null)
-                throw new IOException("received NULL from polling operation");
+            byte[] r;
+            try {
+                r = mBlockingQueue.take();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException(e);
+            }
             if (r.length < want) {
                 // r isn't enough, another loop iteration will occur
                 System.arraycopy(r, 0, buf, bufIdx, r.length);
