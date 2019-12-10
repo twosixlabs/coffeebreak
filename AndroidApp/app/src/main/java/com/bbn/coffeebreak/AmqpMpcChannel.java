@@ -22,6 +22,11 @@ public class AmqpMpcChannel implements CoffeeChannel {
     private Consumer mInviteConsumer;
     private BlockingQueue<byte[]> mBlockingQueue;
 
+    // slop buffer for implementing byte orientation in recv()
+    private byte[] slop = new byte[1024]; // starting capacity
+    private int slopLen = 0; // how much can be consumed in total
+    private int slopIdx = 0; // how much has been consumed so far
+
     private static final String TAG = "AMQP_MPC_Channel";
     private static final String MESSAGE_TYPE = "MPC_ROUND";
     private static final int BLOCKING_QUEUE_CAPACITY = 250;
@@ -65,15 +70,36 @@ public class AmqpMpcChannel implements CoffeeChannel {
 
     @Override
     public void recv(byte[] buf) throws IOException {
-        byte[] response = mBlockingQueue.poll();
-        if(response == null)
-            throw new IOException("received NULL from polling operation");
-
-        if(response.length != buf.length)
-            throw new IOException("received " + response.length + " bytes, but was expecting " + buf.length);
-
-        for(int i = 0; i < buf.length; i++)
-            buf[i] = response[i];
-
+        int bufIdx = slopLen - slopIdx;
+        if (bufIdx >= buf.length) {
+            // slop is enough, no need to consume any messages
+            System.arraycopy(slop, slopIdx, buf, 0, buf.length);
+            slopIdx += buf.length;
+            return;
+        }
+        // otherwise, start by consuming all the slop
+        System.arraycopy(slop, slopIdx, buf, 0, bufIdx);
+        // then consume messages until we're done
+        while (bufIdx < buf.length) {
+            int want = buf.length - bufIdx;
+            byte[] r = mBlockingQueue.poll();
+            if (r == null)
+                throw new IOException("received NULL from polling operation");
+            if (r.length < want) {
+                // r isn't enough, another loop iteration will occur
+                System.arraycopy(r, 0, buf, bufIdx, r.length);
+                bufIdx += r.length;
+            } else {
+                // r is enough, this will be the last loop iteration
+                System.arraycopy(r, 0, buf, bufIdx, want);
+                bufIdx += want;
+                // put any remaining data into the slop buffer
+                slopLen = r.length - want;
+                slopIdx = 0;
+                if (slopLen > slop.length)
+                    slop = new byte[slopLen];
+                System.arraycopy(r, want, slop, 0, slopLen);
+            }
+        }
     }
 }
