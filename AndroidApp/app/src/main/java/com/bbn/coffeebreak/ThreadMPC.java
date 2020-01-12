@@ -150,6 +150,7 @@ implements
     this.filesDir = context.getFilesDir() + "/" + this.assetDir;
     {
       final ArrayList<String> libraryNames = new ArrayList<>();
+      libraryNames.add("libc++_shared.so");
       libraryNames.add("libgmp.so");
       libraryNames.add("libnettle.so.6");
       libraryNames.add("libalsz.so");
