@@ -7,13 +7,7 @@ package com.stealthsoftwareinc.bmc;
 
 /* begin_imports */
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,13 +27,26 @@ implements
 {
 
   public interface Channel {
-    void send(byte[] buf) throws IOException;
-    void recv(byte[] buf) throws IOException;
+
+    void send(
+      byte[] buf
+    ) throws IOException;
+
+    default void recv(
+      byte[] buf
+    ) throws IOException {
+      throw new IllegalStateException("isPush");
+    }
+
+    default boolean isPush(
+    ) {
+      return true;
+    }
+
   }
 
   /**
-   * Converts a push Channel (a Channel whose recv() method always
-   * throws) into a normal Channel.
+   * Converts a push channel into a pull channel.
    */
 
   private static final class PushToPull
@@ -136,29 +143,29 @@ implements
       }
     }
 
+    @Override
+    public final boolean isPush(
+    ) {
+      return false;
+    }
+
   }
 
   private final Channel[] channels;
-  private final boolean channelsArePush;
-  private final ArrayList<BlockingQueue<byte[]>> recvQueues;
-  private final HashMap<Channel, Integer> channelIndexes;
+  private final HashMap<Channel, BlockingQueue<byte[]>> channelQueues;
 
   private final int partyCount;
   private final int partyIndex;
 
-  private final String scrapDirectory;
-  private final String outputFile;
-
   private final int func;
   private final String[] args;
-  private final String logFile;
+  private final String[] log;
 
   public MpcTask(
     final String circuitFile,
     final String inputString,
     final Iterable<Channel> channels,
-    final boolean channelsArePush,
-    final String scrapDirectory
+    final boolean logEnabled
   ) {
     if (circuitFile == null) {
       throw new IllegalArgumentException(
@@ -175,20 +182,9 @@ implements
         "channels == null"
       );
     }
-    if (scrapDirectory == null) {
-      throw new IllegalArgumentException(
-        "scrapDirectory == null"
-      );
-    }
     {
       final ArrayList<Channel> xs = new ArrayList<>();
-      if (channelsArePush) {
-        recvQueues = new ArrayList<>();
-        channelIndexes = new HashMap<>();
-      } else {
-        recvQueues = null;
-        channelIndexes = null;
-      }
+      channelQueues = new HashMap<>();
       int i = 0;
       int j = -1;
       for (final Channel channel : channels) {
@@ -201,16 +197,12 @@ implements
           }
           j = i;
           xs.add(null);
-          if (channelsArePush) {
-            recvQueues.add(null);
-          }
-        } else if (channelsArePush) {
+        } else if (channel.isPush()) {
           final BlockingQueue<byte[]> q =
             new LinkedBlockingQueue<byte[]>()
           ;
           xs.add(new PushToPull(channel, q));
-          recvQueues.add(q);
-          channelIndexes.put(channel, i);
+          channelQueues.put(channel, q);
         } else {
           xs.add(channel);
         }
@@ -229,46 +221,38 @@ implements
         );
       }
       this.channels = xs.toArray(new Channel[0]);
-      this.channelsArePush = channelsArePush;
     }
-    this.scrapDirectory = scrapDirectory;
     {
       final ArrayList<String> args = new ArrayList<>();
-      args.add("--debug2");
+      if (logEnabled) {
+        args.add("--debug2");
+      }
       args.add("--circuit");
       args.add(circuitFile);
       args.add("--input");
       args.add(inputString);
-      args.add("--outfile_path");
-      args.add(scrapDirectory);
-      args.add("--outfile_id");
-      args.add("output");
-      outputFile = Paths.get(scrapDirectory, "output").toString();
-      if (partyCount == 2) {
+      args.add("--nowrite_ot");
+      if (false && partyCount == 2) {
         func = funcTwoPartyMpc;
         if (partyIndex == 0) {
           args.add("--as_server");
         } else {
           args.add("--as_client");
         }
-        args.add("--ot_filepath");
-        args.add(Paths.get(scrapDirectory, "ot").toString());
       } else {
         func = funcNPartyMpcByGate;
         args.add("--num_parties");
         args.add(String.valueOf(partyCount));
         args.add("--self_index");
         args.add(String.valueOf(partyIndex));
-        args.add("--ot_dir");
-        args.add(Paths.get(scrapDirectory, "ots").toString());
       }
       this.args = args.toArray(new String[0]);
-      logFile = scrapDirectory + "/log";
     }
+    log = ((logEnabled) ? new String[1] : null);
   }
 
   /**
-   * Performs a push receive when channelsArePush is enabled.
+   * Performs a receive for a push channel.
    */
 
   public final void recv(
@@ -277,11 +261,6 @@ implements
   ) throws
     IOException
   {
-    if (!channelsArePush) {
-      throw new IllegalStateException(
-        "channelsArePush == false"
-      );
-    }
     if (channelIndex < 0) {
       throw new IllegalArgumentException(
         "channelIndex < 0"
@@ -297,21 +276,11 @@ implements
         "channelIndex == partyIndex"
       );
     }
-    if (buf == null) {
-      throw new IllegalArgumentException(
-        "buf == null"
-      );
-    }
-    try {
-      recvQueues.get(channelIndex).put(Arrays.copyOf(buf, buf.length));
-    } catch (final InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IOException(e);
-    }
+    recv(channels[channelIndex], buf);
   }
 
   /**
-   * Performs a push receive when channelsArePush is enabled.
+   * Performs a receive for a push channel.
    */
 
   public final void recv(
@@ -320,11 +289,6 @@ implements
   ) throws
     IOException
   {
-    if (!channelsArePush) {
-      throw new IllegalStateException(
-        "channelsArePush == false"
-      );
-    }
     if (channel == null) {
       throw new IllegalArgumentException(
         "channel == null"
@@ -335,13 +299,18 @@ implements
         "buf == null"
       );
     }
-    final Integer i = channelIndexes.get(channel);
-    if (i == null) {
+    final BlockingQueue<byte[]> queue = channelQueues.get(channel);
+    if (queue == null) {
       throw new IllegalArgumentException(
         "unknown channel"
       );
     }
-    recv(i, buf);
+    try {
+      queue.put(Arrays.copyOf(buf, buf.length));
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException(e);
+    }
   }
 
   private String jniError;
@@ -377,7 +346,8 @@ implements
     int func,
     String[] args,
     Channel[] channels,
-    String logFile
+    String[] results,
+    String[] log
   );
 
   @Override
@@ -385,60 +355,21 @@ implements
   ) throws
     Exception
   {
-    Files.createDirectories(Paths.get(scrapDirectory));
+    if (log != null) {
+      log[0] = null;
+    }
     jniError = null;
-    final int s = jniCall(func, args, channels, logFile);
+    final String[] results = new String[1];
+    final int s = jniCall(func, args, channels, results, log);
     if (s != 0) {
       throw new RuntimeException(jniError);
     }
-    final StringBuilder result = new StringBuilder();
-    try (
-      final FileInputStream x1 =
-        new FileInputStream(outputFile)
-      ;
-      final InputStreamReader x2 =
-        new InputStreamReader(x1, StandardCharsets.UTF_8)
-      ;
-      final BufferedReader lines =
-        new BufferedReader(x2)
-      ;
-    ) {
-      int state = 0;
-      while (true) {
-        final String line = lines.readLine();
-        if (line == null) {
-          break;
-        }
-        switch (state) {
-          case 0: if (true) {
-            if (line.matches("^Outputs \\((0|[1-9][0-9]*)\\):$")) {
-              state = 1;
-            }
-          } break;
-          case 1: if (true) {
-            if (line.isEmpty()) {
-              state = 2;
-            } else {
-              final String[] fields = line.split(":", -1);
-              if (fields.length != 2) {
-                throw new RuntimeException("output parsing error");
-              }
-              if (!fields[1].matches("^(0|-?[1-9][0-9]*)$")) {
-                throw new RuntimeException("output parsing error");
-              }
-              if (result.length() != 0) {
-                result.append(',');
-              }
-              result.append(fields[1]);
-            }
-          } break;
-        }
-      }
-      if (state == 0) {
-        throw new RuntimeException("output parsing error");
-      }
-    }
-    return result.toString();
+    return results[0];
+  }
+
+  public final String getLog(
+  ) {
+    return ((log != null) ? log[0] : null);
   }
 
 }
