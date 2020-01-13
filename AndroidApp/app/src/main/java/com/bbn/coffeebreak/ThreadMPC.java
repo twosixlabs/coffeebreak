@@ -172,7 +172,10 @@ implements
       }
     }
     final String circuitFile =
-      loadAsset("coffeeshop_n_" + partyCount + ".cbg", false)
+      loadAsset(
+        "coffeeshop_n_" + partyCount + "_lookahead_4.cbg",
+        false
+      )
     ;
     final String inputString =
       "x" + String.valueOf(partyIndex) + "_lat=" +
