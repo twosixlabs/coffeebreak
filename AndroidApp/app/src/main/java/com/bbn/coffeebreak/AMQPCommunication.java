@@ -111,20 +111,12 @@ public class AMQPCommunication extends Service {
                     showMeetingLocation.putExtra("latitude", starbucksLocation.getLatitude());
                     showMeetingLocation.putExtra("longitude", starbucksLocation.getLongitude());
 
-                    String invitee = "";
-                    for(String n : resultData.getStringArrayList("attendees")){
-                        if(!n.equals(username)){
-                            invitee = n;
-                        }
-                    }
-
                     Intent notifIntent = new Intent(context, MainActivity.class);
 
                     notifIntent.putExtra("meetingID", resultData.getString("meetingID"));
                     notifIntent.putExtra("address", address);
                     notifIntent.putExtra("latitude", starbucksLocation.getLatitude());
                     notifIntent.putExtra("longitude", starbucksLocation.getLongitude());
-                    notifIntent.putExtra("invitee", invitee);
                     notifIntent.setAction(getString(R.string.broadcast_show_meeting_location));
                     PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
@@ -132,7 +124,7 @@ public class AMQPCommunication extends Service {
                     NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                             .setSmallIcon(R.drawable.ic_coffeebreak_56dp)
                             .setContentTitle("MPC complete")
-                            .setContentText("Finished secure multi-party computation with " + invitee)
+                            .setContentText("Finished secure multi-party computation")
                             .setAutoCancel(true)
                             .setPriority(NotificationCompat.PRIORITY_HIGH)
                             .setColor(getColor(R.color.colorPrimary))
@@ -166,7 +158,7 @@ public class AMQPCommunication extends Service {
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             super.onReceiveResult(resultCode, resultData);
 
-
+            // Add error catching; remove UI elements for MPC
             try{
                 Log.d(TAG, "GOT MPC RESULT LOCATION: " + resultData.getFloat("latitude") + "," + resultData.getFloat("longitude"));
 
@@ -177,6 +169,7 @@ public class AMQPCommunication extends Service {
                         starbucksLocationReceiver));
             }catch(Exception e){
                 e.printStackTrace();
+
             }
 
         }
@@ -415,37 +408,12 @@ public class AMQPCommunication extends Service {
                     int noise = preferences.getInt(getString(R.string.noise_value), 5);
                     EncodedLatLon loc = new EncodedLatLon((float)location.getLatitude(), (float)location.getLongitude());
                     EncodedLatLon noisyLocation = MapActivity.getNoisyLocation(loc, noise);
-                    // Spin up the MPC thread
-                    ThreadMPC mpc = new ThreadMPC(context,
-                            intent.getStringExtra("meetingID"),
-                            channel,
-                            intent.getStringArrayListExtra("attendees"),
-                            username,
-                            noisyLocation.getEncodedLocation(),
-                            mpcResponse);
-                    mpc.setAmqpHost(AMQPHost);
-                    mpc.setAmqpPort(AMQPPort);
-                    mpc.setAmqpUsername("guest");
-                    mpc.setAmqpPassword("caffein8");
-                    mpc.setAmqpSslEnabled(true);
-                    mpc.setAmqpSslVerifyPeer(false);
-                    mpc.setAmqpSslVerifyHostname(false);
-                    if (mpc.getAmqpSslVerifyPeer()) {
-                        mpc.setAmqpSslCaCertFile("/path/to/ca-cert.pem");
-                    }
-                    if (mpc.getAmqpSslVerifyHostname()) {
-                        mpc.setAmqpSslClientCertFile(
-                                "/path/to/client-cert.pem",
-                                "/path/to/client-key.pem"
-                        );
-                    }
-                    mpc.setMode(ThreadMPC.Mode.SHARED_EXECUTABLES);
-                    mpc.setCircuitType(ThreadMPC.CircuitType.CBL);
-                    mpc.setCblLookahead(4);
-                    mHandler.post(mpc);
-                    Intent showMpcProgress = new Intent();
-                    showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
-                    mLocalBroadcastManager.sendBroadcast(showMpcProgress);
+
+                    // Do this in the background since it requires network operations
+                    new SetupMpcAsyncTask().execute(new SetupMpcTaskParams(intent.getStringArrayListExtra("attendees"),
+                            noisyLocation, intent.getStringExtra("meetingId")));
+
+
                 }else{
                     Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
                     Log.d(TAG, "No method to receive user location");
@@ -923,6 +891,74 @@ public class AMQPCommunication extends Service {
 
         return true;
     }
+
+    private static class SetupMpcTaskParams {
+        List<String> attendees;
+        EncodedLatLon location;
+        String meetingId;
+        SetupMpcTaskParams(List<String> attendees, EncodedLatLon location, String meetingId) {
+            this.attendees = attendees;
+            this.location = location;
+            this.meetingId = meetingId;
+        }
+    }
+
+    /*
+        Creating the AMQP channels requires network operations (queue creation on the AMQP server),
+        so we do this in an AsyncTask and then start the thread.
+
+     */
+    private class SetupMpcAsyncTask extends AsyncTask<SetupMpcTaskParams, Void, Boolean> {
+
+        @Override
+        protected Boolean doInBackground(SetupMpcTaskParams... params) {
+
+            // Create AMQP channels
+            try {
+                List<CoffeeChannel> channels = new ArrayList<>(params[0].attendees.size());
+                for (String s : params[0].attendees) {
+                    if (s.equals(username)) {
+                        channels.add(null);
+                        Log.d(TAG, "adding null channel for " + s);
+                    } else {
+                        channels.add(new AmqpMpcChannel(channel, params[0].meetingId, s, username));
+                        Log.d(TAG, " adding channel for " + s);
+                    }
+                }
+
+                // Spin up the MPC thread
+                ThreadMPC mpc = new ThreadMPC(context,
+                        params[0].meetingId,
+                        channels,
+                        params[0].location.getEncodedLocation(),
+                        mpcResponse);
+
+                mHandler.post(mpc);
+
+            }catch (IOException e){
+                e.printStackTrace();
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean aBoolean) {
+            super.onPostExecute(aBoolean);
+
+            if(aBoolean){
+                //show the result on the UI
+                Intent showMpcProgress = new Intent();
+                showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
+                mLocalBroadcastManager.sendBroadcast(showMpcProgress);
+            }else{
+                // something went wrong
+                Toast.makeText(context, "Something went wrong.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
 
 }
 

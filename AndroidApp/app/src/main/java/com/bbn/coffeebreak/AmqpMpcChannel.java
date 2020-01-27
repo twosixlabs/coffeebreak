@@ -1,5 +1,6 @@
 package com.bbn.coffeebreak;
 
+import android.os.AsyncTask;
 import android.util.Log;
 
 import com.rabbitmq.client.AMQP;
@@ -31,33 +32,30 @@ public class AmqpMpcChannel implements CoffeeChannel {
     private static final String TAG = "AMQP_MPC_Channel";
     private static final String MESSAGE_TYPE = "MPC_ROUND";
 
-    public AmqpMpcChannel(Channel channel, String meetingId, String dest, String username){
+    public AmqpMpcChannel(Channel channel, String meetingId, String dest, String username) throws IOException{
         mChannel = channel;
         mSendQueue = "MPC:LOCATION:" + meetingId + ":" + username + ":" + dest;
         mRecvQueue = "MPC:LOCATION:" + meetingId + ":" + dest + ":" + username;
         mUsername = username;
         mBlockingQueue = new LinkedBlockingQueue<byte[]>();
 
-        try{
-            mChannel.queueDeclare(mSendQueue, false, false, true, null);
-            mChannel.queueDeclare(mRecvQueue, false, false, true, null);
-            mInviteConsumer = new DefaultConsumer(mChannel){
-                @Override
-                public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
-                    super.handleDelivery(consumerTag, envelope, properties, body);
-                    Log.d(TAG, "Received message from AMQP");
-                    try {
-                        mBlockingQueue.put(Arrays.copyOf(body, body.length));
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException(e);
-                    }
+
+        mChannel.queueDeclare(mSendQueue, false, false, true, null);
+        mChannel.queueDeclare(mRecvQueue, false, false, true, null);
+        mInviteConsumer = new DefaultConsumer(mChannel){
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+                super.handleDelivery(consumerTag, envelope, properties, body);
+                Log.d(TAG, "Received message from AMQP");
+                try {
+                    mBlockingQueue.put(Arrays.copyOf(body, body.length));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(e);
                 }
-            };
-            mChannel.basicConsume(mRecvQueue, mInviteConsumer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            }
+        };
+        mChannel.basicConsume(mRecvQueue, mInviteConsumer);
 
     }
 
@@ -111,4 +109,5 @@ public class AmqpMpcChannel implements CoffeeChannel {
             }
         }
     }
+
 }
