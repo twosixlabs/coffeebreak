@@ -191,6 +191,11 @@ implements
     return this.exception;
   }
 
+  public final String getLog(
+  ) {
+    return mpcTask.getLog();
+  }
+
   @SuppressLint("NewApi")
   private String loadAsset(
     final String asset,
