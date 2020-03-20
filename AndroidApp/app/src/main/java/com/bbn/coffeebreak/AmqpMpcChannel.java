@@ -39,7 +39,6 @@ public class AmqpMpcChannel implements CoffeeChannel {
         mUsername = username;
         mBlockingQueue = new LinkedBlockingQueue<byte[]>();
 
-
         mChannel.queueDeclare(mSendQueue, false, false, true, null);
         mChannel.queueDeclare(mRecvQueue, false, false, true, null);
         mInviteConsumer = new DefaultConsumer(mChannel){
@@ -55,7 +54,7 @@ public class AmqpMpcChannel implements CoffeeChannel {
                 }
             }
         };
-        mChannel.basicConsume(mRecvQueue, mInviteConsumer);
+        mChannel.basicConsume(mRecvQueue, true, mInviteConsumer);
 
     }
 
@@ -68,7 +67,10 @@ public class AmqpMpcChannel implements CoffeeChannel {
                 .replyTo(mUsername)
                 .build();
 
-        mChannel.basicPublish("", mSendQueue, basicProperties, data);
+        if(mChannel.isOpen())
+            mChannel.basicPublish("", mSendQueue, basicProperties, data);
+        else
+            throw new IOException("Channel is closed.");
     }
 
     @Override

@@ -148,22 +148,37 @@ public class MainActivity extends AppCompatActivity {
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcProgress.setVisibility(View.INVISIBLE);
                 mpcMessage.setVisibility(View.INVISIBLE);
-                AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
-                alertDialog.setTitle("Secure Meeting Location");
-                alertDialog.setMessage(intent.getStringExtra("address"));
-                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Show on map",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                                Intent showMap = new Intent(MainActivity.this, MapActivity.class);
-                                showMap.putExtra("address", intent.getStringExtra("address"));
-                                showMap.putExtra("latitude", intent.getFloatExtra("latitude", 0.0f));
-                                showMap.putExtra("longitude", intent.getFloatExtra("longitude", 0.0f));
+                if(intent.getStringExtra("address").equals("ERROR")){
+                    AlertDialog errorDialog = new AlertDialog.Builder(MainActivity.this).create();
+                    errorDialog.setTitle("Error performing MPC");
+                    errorDialog.setMessage("Was unable to determine meeting location");
+                    errorDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Ok",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    return;
+                                }
+                            });
+                    errorDialog.show();
+                }else{
+                    AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+                    alertDialog.setTitle("Secure Meeting Location");
+                    alertDialog.setMessage(intent.getStringExtra("address"));
+                    alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Show on map",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    Intent showMap = new Intent(MainActivity.this, MapActivity.class);
+                                    showMap.putExtra("address", intent.getStringExtra("address"));
+                                    showMap.putExtra("latitude", intent.getFloatExtra("latitude", 0.0f));
+                                    showMap.putExtra("longitude", intent.getFloatExtra("longitude", 0.0f));
 
-                                startActivity(showMap);
-                            }
-                        });
-                alertDialog.show();
+                                    startActivity(showMap);
+                                }
+                            });
+                    alertDialog.show();
+                }
+
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_mpc_progress))) {
                 Log.d(TAG, "Received broadcast to show MPC progress");
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
@@ -292,6 +307,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this, "Contact has invalid US phone number", Toast.LENGTH_LONG).show();
                         return;
                     }
+                    j++;
                 }
 
                 LocalDateTime beginDate = LocalDateTime.now();
@@ -327,8 +343,10 @@ public class MainActivity extends AppCompatActivity {
                 i.setGranularity("PT15M");
                 Set<String> attendees = new HashSet<>(2);
 
-                for (String phoneNumber : contactPhones)
+                for (String phoneNumber : contactPhones){
+                    Log.d(TAG, "Adding " + phoneNumber + " to attendee list");
                     attendees.add(phoneNumber);
+                }
 
                 attendees.add(PhoneNumberUtils.formatNumberToE164(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)), "US"));
                 i.setAttendees(attendees);

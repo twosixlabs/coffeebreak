@@ -64,6 +64,8 @@ public class AMQPCommunication extends Service {
     private Connection connection;
     private Channel channel;
 
+    private ThreadMPC mpc;
+
     private final static String TAG = "[RabbitMQClient]";
 
     private static String AMQPHost = "127.0.0.1";
@@ -89,7 +91,7 @@ public class AMQPCommunication extends Service {
     private HandlerThread mHandlerThread;
     private Handler mHandler;
 
-    //private MeetingList meetingList;
+    private MeetingList meetingList;
 
 
     private ResultReceiver starbucksLocationReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
@@ -98,6 +100,7 @@ public class AMQPCommunication extends Service {
             super.onReceiveResult(resultCode, resultData);
             if(resultCode == 1){
                 try {
+                    Log.d(TAG, "LOG: " + mpc.getLog());
                     JSONObject httpResponse = new JSONObject(resultData.getString("location"));
                     JSONArray featuresArray = httpResponse.getJSONArray("features");
                     String address = featuresArray.getJSONObject(0).getString("place_name");
@@ -149,6 +152,13 @@ public class AMQPCommunication extends Service {
                 }
             }else{
                 Log.d(TAG, "Got error in HTTP request for mapbox");
+                Log.d(TAG, "LOG: " + mpc.getLog());
+                Intent showMeetingLocation = new Intent();
+                showMeetingLocation.putExtra("address", "ERROR");
+                showMeetingLocation.putExtra("latitude", 0.0f);
+                showMeetingLocation.putExtra("longitude", 0.0f);
+                showMeetingLocation.setAction(getString(R.string.broadcast_show_meeting_location));
+                mLocalBroadcastManager.sendBroadcast(showMeetingLocation);
             }
         }
     };
@@ -314,10 +324,11 @@ public class AMQPCommunication extends Service {
                             meeting.put("organizer", username);
                             editor.putString(meeting.getString("meetingID"), meeting.toString());
                             editor.commit();
-                            //meetingList.insertMeeting(invite);
+                            meetingList.insertMeeting(invite);
                             for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){
                                 String attendee = invite.getJSONArray("attendees").get(i).toString();
                                 if(!attendee.equals(username)){
+                                    Log.d(TAG, "Sending meeting invite to: " + attendee);
                                     sendMeetingInvite(context, invite.toString(), attendee);
                                 }
                             }
@@ -359,7 +370,7 @@ public class AMQPCommunication extends Service {
                             SharedPreferences.Editor editor = preferences.edit();
                             editor.remove(startMessage.getString("meetingID"));
                             editor.commit();
-                            //meetingList.removeMeeting(startMessage.getString("meetingID"));
+                            meetingList.removeMeeting(startMessage.getString("meetingID"));
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < startMessage.getJSONArray("attendees").length(); i++){
                                 String attendee = startMessage.getJSONArray("attendees").get(i).toString();
@@ -408,10 +419,13 @@ public class AMQPCommunication extends Service {
                     int noise = preferences.getInt(getString(R.string.noise_value), 5);
                     EncodedLatLon loc = new EncodedLatLon((float)location.getLatitude(), (float)location.getLongitude());
                     EncodedLatLon noisyLocation = MapActivity.getNoisyLocation(loc, noise);
+                    Log.d(TAG, "Encoded location = " + loc.getEncodedLocation());
+                    Log.d(TAG, "Latitude int: " + (loc.getEncodedLocation() >> 32));
+                    Log.d(TAG, "Longitude int: " + ((int)loc.getEncodedLocation()));
 
                     // Do this in the background since it requires network operations
                     new SetupMpcAsyncTask().execute(new SetupMpcTaskParams(intent.getStringArrayListExtra("attendees"),
-                            noisyLocation, intent.getStringExtra("meetingId")));
+                            noisyLocation, intent.getStringExtra("meetingID")));
 
 
                 }else{
@@ -495,7 +509,7 @@ public class AMQPCommunication extends Service {
                 locationCallback,
                 null);
 
-        //meetingList = new MeetingList();
+        meetingList = new MeetingList();
         createNotificationChannel();
         IntentFilter mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_invite));
@@ -668,7 +682,7 @@ public class AMQPCommunication extends Service {
                                  */
                                 Log.d(TAG, "Got repsonses for everyone on meetingID: " + message.getString("meetingID"));
                                 Intent sendStartMessage = new Intent();
-                                //JSONObject details = meetingList.getMeetingDetails(message.getString("meetingID"));
+                                JSONObject details = meetingList.getMeetingDetails(message.getString("meetingID"));
                                 sendStartMessage.putExtra("event", meeting.toString());
                                 sendStartMessage.setAction(getString(R.string.broadcast_send_meeting_start));
                                 mLocalBroadcastManager.sendBroadcast(sendStartMessage);
@@ -927,7 +941,7 @@ public class AMQPCommunication extends Service {
                 }
 
                 // Spin up the MPC thread
-                ThreadMPC mpc = new ThreadMPC(context,
+                mpc = new ThreadMPC(context,
                         params[0].meetingId,
                         channels,
                         params[0].location.getEncodedLocation(),
@@ -935,7 +949,7 @@ public class AMQPCommunication extends Service {
 
                 mHandler.post(mpc);
 
-            }catch (IOException e){
+            }catch (Exception e){
                 e.printStackTrace();
                 return false;
             }

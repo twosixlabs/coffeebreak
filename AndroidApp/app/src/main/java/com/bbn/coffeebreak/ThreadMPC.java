@@ -183,6 +183,7 @@ implements
       ",x" + String.valueOf(partyIndex) + "_lng=" +
       String.valueOf((int)location)
     ;
+    Log.d(TAG, "starting task!");
     mpcTask = new MpcTask(circuitFile, inputString, myChannels, true);
   }
 
@@ -270,6 +271,7 @@ implements
       final String[] r = mpcTask.call().split(",", -1);
       final long a = Long.parseLong(r[0]);
       final long b = Long.parseLong(r[1]);
+      Log.d(TAG, "Got lat: " + a + " + " + b + " + " + partyCount);
       final EncodedLatLon c =
         EncodedLatLon.convertMpcResultToEncodedLatLon(
           (a << 32) | (int)b, this.partyCount
