@@ -54,6 +54,9 @@ import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
@@ -88,8 +91,8 @@ public class AMQPCommunication extends Service {
 
     private int retryCount = 0;
 
-    private HandlerThread mHandlerThread;
-    private Handler mHandler;
+    private HandlerThread mHandlerThread, mpcHandlerThread;
+    private Handler mHandler, mpcHandler;
 
     private MeetingList meetingList;
 
@@ -347,6 +350,8 @@ public class AMQPCommunication extends Service {
                             /*
                             Send meeting response back to intiator
                              */
+                            Log.d(TAG, "Calling sendMeetingResponse now");
+
                             JSONObject response = new JSONObject(new String(intent.getStringExtra("response")));
                             sendMeetingResponse(context, response.toString(),
                                     intent.getStringExtra("organizer"));
@@ -494,8 +499,11 @@ public class AMQPCommunication extends Service {
         super.onCreate();
         context = this;
         mHandlerThread = new HandlerThread("AMQP-Handler-Thread");
+        mpcHandlerThread = new HandlerThread("MPC-Handler-Thread");
         mHandlerThread.start();
+        mpcHandlerThread.start();
         mHandler = new Handler(mHandlerThread.getLooper());
+        mpcHandler = new Handler(mpcHandlerThread.getLooper());
 
         mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
@@ -804,6 +812,7 @@ public class AMQPCommunication extends Service {
 
     public void sendMeetingResponse(Context c, String data, String routing_key) {
 
+        Log.d(TAG, "In sendMeetingResponse...");
         //set the message properties
         AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
                 .correlationId(UUID.randomUUID().toString())
@@ -811,12 +820,15 @@ public class AMQPCommunication extends Service {
                 .replyTo(username)
                 .build();
 
+        Log.d(TAG, "basic properties built.");
         if(channel == null){
             Log.d(TAG, "Error sending meeting response");
             return;
         }
+        Log.d(TAG, "Channel is not null...");
 
         try {
+            Log.d(TAG, "attempting to publish on " + INVITE_EXCHANGE + " with routing key " + routing_key);
             channel.basicPublish(INVITE_EXCHANGE, routing_key, basicProperties, data.getBytes());
             Log.d(TAG, "[x] Sent meeting response to " + routing_key);
         } catch (Exception e) {
@@ -866,6 +878,7 @@ public class AMQPCommunication extends Service {
         }
         mLocalBroadcastManager.unregisterReceiver(mBroadcastReceiver);
         mHandlerThread.quitSafely();
+        mpcHandlerThread.quitSafely();
         client.removeLocationUpdates(locationCallback);
     }
 
@@ -930,7 +943,9 @@ public class AMQPCommunication extends Service {
             // Create AMQP channels
             try {
                 List<CoffeeChannel> channels = new ArrayList<>(params[0].attendees.size());
+                Collections.sort(params[0].attendees);
                 for (String s : params[0].attendees) {
+                    Log.d(TAG, "adding " + s);
                     if (s.equals(username)) {
                         channels.add(null);
                         Log.d(TAG, "adding null channel for " + s);
@@ -940,6 +955,7 @@ public class AMQPCommunication extends Service {
                     }
                 }
 
+                Log.d(TAG, "Spinning up MPC thread");
                 // Spin up the MPC thread
                 mpc = new ThreadMPC(context,
                         params[0].meetingId,
@@ -947,7 +963,7 @@ public class AMQPCommunication extends Service {
                         params[0].location.getEncodedLocation(),
                         mpcResponse);
 
-                mHandler.post(mpc);
+                mpcHandler.post(mpc);
 
             }catch (Exception e){
                 e.printStackTrace();
