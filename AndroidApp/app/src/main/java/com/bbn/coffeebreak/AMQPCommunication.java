@@ -94,13 +94,29 @@ public class AMQPCommunication extends Service {
     private HandlerThread mHandlerThread, mpcHandlerThread;
     private Handler mHandler, mpcHandler;
 
-    private MeetingList meetingList;
+    //private MeetingList meetingList;
+    private static List<String> queueList = new ArrayList<>();
 
 
     private ResultReceiver starbucksLocationReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             super.onReceiveResult(resultCode, resultData);
+
+            final Thread cleanupQueues = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for(String s : queueList){
+                        Log.d(TAG, "Removing queue " + s);
+                        try{
+                            channel.queueDelete(s);
+                        }catch(Exception e){
+                            // just catch
+                        }
+                    }
+                }
+            });
+
             if(resultCode == 1){
                 try {
                     Log.d(TAG, "LOG: " + mpc.getLog());
@@ -149,7 +165,7 @@ public class AMQPCommunication extends Service {
 
                     showMeetingLocation.setAction(getString(R.string.broadcast_show_meeting_location));
                     mLocalBroadcastManager.sendBroadcast(showMeetingLocation);
-
+                    mHandler.post(cleanupQueues);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -162,7 +178,11 @@ public class AMQPCommunication extends Service {
                 showMeetingLocation.putExtra("longitude", 0.0f);
                 showMeetingLocation.setAction(getString(R.string.broadcast_show_meeting_location));
                 mLocalBroadcastManager.sendBroadcast(showMeetingLocation);
+                mHandler.post(cleanupQueues);
+
             }
+
+
         }
     };
 
@@ -171,7 +191,6 @@ public class AMQPCommunication extends Service {
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             super.onReceiveResult(resultCode, resultData);
 
-            // Add error catching; remove UI elements for MPC
             try{
                 Log.d(TAG, "GOT MPC RESULT LOCATION: " + resultData.getFloat("latitude") + "," + resultData.getFloat("longitude"));
 
@@ -180,6 +199,7 @@ public class AMQPCommunication extends Service {
                         resultData.getFloat("longitude"),
                         resultData,
                         starbucksLocationReceiver));
+
             }catch(Exception e){
                 e.printStackTrace();
 
@@ -327,7 +347,7 @@ public class AMQPCommunication extends Service {
                             meeting.put("organizer", username);
                             editor.putString(meeting.getString("meetingID"), meeting.toString());
                             editor.commit();
-                            meetingList.insertMeeting(invite);
+                            //meetingList.insertMeeting(invite);
                             for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){
                                 String attendee = invite.getJSONArray("attendees").get(i).toString();
                                 if(!attendee.equals(username)){
@@ -375,7 +395,7 @@ public class AMQPCommunication extends Service {
                             SharedPreferences.Editor editor = preferences.edit();
                             editor.remove(startMessage.getString("meetingID"));
                             editor.commit();
-                            meetingList.removeMeeting(startMessage.getString("meetingID"));
+                            //meetingList.removeMeeting(startMessage.getString("meetingID"));
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < startMessage.getJSONArray("attendees").length(); i++){
                                 String attendee = startMessage.getJSONArray("attendees").get(i).toString();
@@ -500,6 +520,7 @@ public class AMQPCommunication extends Service {
         context = this;
         mHandlerThread = new HandlerThread("AMQP-Handler-Thread");
         mpcHandlerThread = new HandlerThread("MPC-Handler-Thread");
+        mpcHandlerThread.setPriority(Thread.MAX_PRIORITY);
         mHandlerThread.start();
         mpcHandlerThread.start();
         mHandler = new Handler(mHandlerThread.getLooper());
@@ -517,7 +538,7 @@ public class AMQPCommunication extends Service {
                 locationCallback,
                 null);
 
-        meetingList = new MeetingList();
+        //meetingList = new MeetingList();
         createNotificationChannel();
         IntentFilter mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_invite));
@@ -690,7 +711,7 @@ public class AMQPCommunication extends Service {
                                  */
                                 Log.d(TAG, "Got repsonses for everyone on meetingID: " + message.getString("meetingID"));
                                 Intent sendStartMessage = new Intent();
-                                JSONObject details = meetingList.getMeetingDetails(message.getString("meetingID"));
+                                //JSONObject details = meetingList.getMeetingDetails(message.getString("meetingID"));
                                 sendStartMessage.putExtra("event", meeting.toString());
                                 sendStartMessage.setAction(getString(R.string.broadcast_send_meeting_start));
                                 mLocalBroadcastManager.sendBroadcast(sendStartMessage);
@@ -942,6 +963,7 @@ public class AMQPCommunication extends Service {
 
             // Create AMQP channels
             try {
+
                 List<CoffeeChannel> channels = new ArrayList<>(params[0].attendees.size());
                 Collections.sort(params[0].attendees);
                 for (String s : params[0].attendees) {
@@ -950,8 +972,24 @@ public class AMQPCommunication extends Service {
                         channels.add(null);
                         Log.d(TAG, "adding null channel for " + s);
                     } else {
-                        channels.add(new AmqpMpcChannel(channel, params[0].meetingId, s, username));
+                        AmqpMpcChannel c = new AmqpMpcChannel(channel, params[0].meetingId, s, username);
+                        channels.add(c);
                         Log.d(TAG, " adding channel for " + s);
+                        //queueList.add(c.getmSendQueue());
+                        queueList.add(c.getmRecvQueue());
+                        Log.d(TAG, "Added queue: " + c.getmSendQueue());
+                        Log.d(TAG, "Added queue: " + c.getmRecvQueue());
+                    }
+                }
+
+                // Prevents race condition when there are a large number of parties...
+                // every pairwise queue gets created
+                for(int i = 0; i < params[0].attendees.size(); i++){
+                    for(int j = 0; j < params[0].attendees.size(); j++){
+                        if(i != j){
+                            String queueName = "MPC:LOCATION:" + params[0].meetingId + ":" + params[0].attendees.get(i) + ":" + params[0].attendees.get(j);
+                            channel.queueDeclare(queueName, false, false, true, null);
+                        }
                     }
                 }
 

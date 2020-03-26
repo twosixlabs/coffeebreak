@@ -58,6 +58,14 @@ public class AmqpMpcChannel implements CoffeeChannel {
 
     }
 
+    public String getmSendQueue(){
+        return mSendQueue;
+    }
+
+    public String getmRecvQueue(){
+        return mRecvQueue;
+    }
+
     @Override
     public void send(byte[] data) throws IOException {
         //set the message properties
