@@ -167,7 +167,6 @@ public class MainActivity extends AppCompatActivity {
                     alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Show on map",
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
                                     Intent showMap = new Intent(MainActivity.this, MapActivity.class);
                                     showMap.putExtra("address", intent.getStringExtra("address"));
                                     showMap.putExtra("latitude", intent.getFloatExtra("latitude", 0.0f));
