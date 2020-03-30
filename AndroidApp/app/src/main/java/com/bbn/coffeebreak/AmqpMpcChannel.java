@@ -11,9 +11,12 @@ import com.rabbitmq.client.Envelope;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeoutException;
 
 public class AmqpMpcChannel implements CoffeeChannel {
 
@@ -32,15 +35,18 @@ public class AmqpMpcChannel implements CoffeeChannel {
     private static final String TAG = "AMQP_MPC_Channel";
     private static final String MESSAGE_TYPE = "MPC_ROUND";
 
+    private static String consumerTag;
+
     public AmqpMpcChannel(Channel channel, String meetingId, String dest, String username) throws IOException{
         mChannel = channel;
         mSendQueue = "MPC:LOCATION:" + meetingId + ":" + username + ":" + dest;
         mRecvQueue = "MPC:LOCATION:" + meetingId + ":" + dest + ":" + username;
         mUsername = username;
         mBlockingQueue = new LinkedBlockingQueue<byte[]>();
-
-        mChannel.queueDeclare(mSendQueue, false, false, true, null);
-        mChannel.queueDeclare(mRecvQueue, false, false, true, null);
+        Map<String, Object> args = new HashMap<String, Object>();
+        args.put("x-expires", 120000);
+        mChannel.queueDeclare(mSendQueue, false, false, true, args);
+        mChannel.queueDeclare(mRecvQueue, false, false, true, args);
         mInviteConsumer = new DefaultConsumer(mChannel){
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
@@ -54,7 +60,7 @@ public class AmqpMpcChannel implements CoffeeChannel {
                 }
             }
         };
-        mChannel.basicConsume(mRecvQueue, true, mInviteConsumer);
+        consumerTag = mChannel.basicConsume(mRecvQueue, true, mInviteConsumer);
 
     }
 
@@ -64,6 +70,10 @@ public class AmqpMpcChannel implements CoffeeChannel {
 
     public String getmRecvQueue(){
         return mRecvQueue;
+    }
+
+    public String getConsumerTag(){
+        return consumerTag;
     }
 
     @Override

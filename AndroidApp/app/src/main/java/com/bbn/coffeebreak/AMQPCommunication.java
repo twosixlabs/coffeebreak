@@ -58,6 +58,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
@@ -106,14 +107,16 @@ public class AMQPCommunication extends Service {
             final Thread cleanupQueues = new Thread(new Runnable() {
                 @Override
                 public void run() {
+
                     for(String s : queueList){
-                        Log.d(TAG, "Removing queue " + s);
+                        Log.d(TAG, "Removing consumer " + s);
                         try{
-                            channel.queueDelete(s);
+                            channel.basicCancel(s);
                         }catch(Exception e){
                             // just catch
                         }
                     }
+
                 }
             });
 
@@ -963,7 +966,6 @@ public class AMQPCommunication extends Service {
 
             // Create AMQP channels
             try {
-
                 List<CoffeeChannel> channels = new ArrayList<>(params[0].attendees.size());
                 Collections.sort(params[0].attendees);
                 for (String s : params[0].attendees) {
@@ -975,15 +977,13 @@ public class AMQPCommunication extends Service {
                         AmqpMpcChannel c = new AmqpMpcChannel(channel, params[0].meetingId, s, username);
                         channels.add(c);
                         Log.d(TAG, " adding channel for " + s);
-                        //queueList.add(c.getmSendQueue());
-                        queueList.add(c.getmRecvQueue());
-                        Log.d(TAG, "Added queue: " + c.getmSendQueue());
-                        Log.d(TAG, "Added queue: " + c.getmRecvQueue());
+                        queueList.add(c.getConsumerTag());
                     }
                 }
 
                 // Prevents race condition when there are a large number of parties...
                 // every pairwise queue gets created
+                /*
                 for(int i = 0; i < params[0].attendees.size(); i++){
                     for(int j = 0; j < params[0].attendees.size(); j++){
                         if(i != j){
@@ -992,6 +992,7 @@ public class AMQPCommunication extends Service {
                         }
                     }
                 }
+                */
 
                 Log.d(TAG, "Spinning up MPC thread");
                 // Spin up the MPC thread
