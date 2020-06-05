@@ -1,9 +1,18 @@
 package com.bbn.coffeebreak;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
@@ -15,6 +24,7 @@ import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 
 import java.security.SecureRandom;
+import java.util.Objects;
 
 public class MapActivity extends AppCompatActivity {
 
@@ -43,6 +53,20 @@ public class MapActivity extends AppCompatActivity {
                 mapboxMap.addMarker(new MarkerOptions().position(new LatLng(getIntent().getFloatExtra("latitude",0.0f),
                         getIntent().getFloatExtra("longitude",0.0f)))).setTitle(getIntent().getStringExtra("address"));
 
+                TextView addressDisplay = (TextView) findViewById(R.id.address_display);
+                addressDisplay.setText(getIntent().getStringExtra("address"));
+            }
+        });
+
+        Button copy = (Button) findViewById(R.id.copy_button);
+        Objects.requireNonNull(copy).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("address_text", getIntent().getStringExtra("address"));
+                clipboard.setPrimaryClip(clip);
+
+                Toast.makeText(getApplicationContext(), "Address Copied", Toast.LENGTH_SHORT).show();
             }
         });
     }
