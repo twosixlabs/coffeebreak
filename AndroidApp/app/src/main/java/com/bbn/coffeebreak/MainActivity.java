@@ -263,6 +263,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        FloatingActionButton pending_fab = (FloatingActionButton) findViewById(R.id.pending_fab);
+        Objects.requireNonNull(pending_fab).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent pendingActivity = new Intent(MainActivity.this, PendingActivity.class);
+                startActivity(pendingActivity);
+            }
+        });
+
         if(getIntent().getStringExtra("meetingID") != null){
             mLocalBroadcastManager.sendBroadcast(getIntent());
         }
