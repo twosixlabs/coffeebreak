@@ -95,7 +95,7 @@ public class AMQPCommunication extends Service {
     private HandlerThread mHandlerThread, mpcHandlerThread;
     private Handler mHandler, mpcHandler;
 
-    //private MeetingList meetingList;
+    private static MeetingList meetingList;
     private static List<String> queueList = new ArrayList<>();
 
 
@@ -350,7 +350,7 @@ public class AMQPCommunication extends Service {
                             meeting.put("organizer", username);
                             editor.putString(meeting.getString("meetingID"), meeting.toString());
                             editor.commit();
-                            //meetingList.insertMeeting(invite);
+                            meetingList.insertMeeting(invite);
                             for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){
                                 String attendee = invite.getJSONArray("attendees").get(i).toString();
                                 if(!attendee.equals(username)){
@@ -398,7 +398,7 @@ public class AMQPCommunication extends Service {
                             SharedPreferences.Editor editor = preferences.edit();
                             editor.remove(startMessage.getString("meetingID"));
                             editor.commit();
-                            //meetingList.removeMeeting(startMessage.getString("meetingID"));
+                            meetingList.removeMeeting(startMessage.getString("meetingID"));
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < startMessage.getJSONArray("attendees").length(); i++){
                                 String attendee = startMessage.getJSONArray("attendees").get(i).toString();
@@ -541,7 +541,7 @@ public class AMQPCommunication extends Service {
                 locationCallback,
                 null);
 
-        //meetingList = new MeetingList();
+        meetingList = new MeetingList();
         createNotificationChannel();
         IntentFilter mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_invite));
@@ -553,6 +553,7 @@ public class AMQPCommunication extends Service {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
@@ -712,13 +713,18 @@ public class AMQPCommunication extends Service {
                                 /*
                                 Send MPC Start message to everyone
                                  */
-                                Log.d(TAG, "Got repsonses for everyone on meetingID: " + message.getString("meetingID"));
+                                Log.d(TAG, "Got responses for everyone on meetingID: " + message.getString("meetingID"));
                                 Intent sendStartMessage = new Intent();
-                                //JSONObject details = meetingList.getMeetingDetails(message.getString("meetingID"));
+                                JSONObject details = meetingList.getMeetingDetails(message.getString("meetingID"));
+                                Log.d(TAG, "MeetingList details: " + details);
+
                                 sendStartMessage.putExtra("event", meeting.toString());
                                 sendStartMessage.setAction(getString(R.string.broadcast_send_meeting_start));
                                 mLocalBroadcastManager.sendBroadcast(sendStartMessage);
                             }else{
+                                MeetingList.Meeting m = meetingList.getMeeting(meetingId);
+                                m.removePendingInvite(properties.getReplyTo());
+
                                 meeting.put("responses", responseCount);
                                 editor.putString(meetingId, meeting.toString());
                                 editor.commit();
@@ -727,6 +733,8 @@ public class AMQPCommunication extends Service {
                             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                             SharedPreferences.Editor editor = preferences.edit();
                             String meetingId = message.getString("meetingID");
+
+                            meetingList.removeMeeting(meetingId);
 
                             JSONObject meeting = new JSONObject(preferences.getString(meetingId, "{}"));
                             Bundle b = new Bundle();
@@ -1028,6 +1036,8 @@ public class AMQPCommunication extends Service {
         }
     }
 
-
+    public static MeetingList getMeetingList() {
+        return meetingList;
+    }
 }
 
