@@ -34,6 +34,7 @@
         android:layout_height="wrap_content"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
+        android:clickable="true"
         android:backgroundTint="#ff1414"
         android:textColor="@color/white"
         android:textSize="12sp"

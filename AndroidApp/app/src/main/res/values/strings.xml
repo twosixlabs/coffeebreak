@@ -54,6 +54,7 @@
     <string name="notification_channel_id">CoffeeBreakChannel</string>
 
     <integer name="contact_picker_request">0x10</integer>
+    <integer name="pending_request">0x20</integer>
     <integer name="alerter_notification_duration">3000</integer>
 
     <string name="mapbox_key">YOUR_MAPBOX_ACCESS_TOKEN_GOES_HERE</string>

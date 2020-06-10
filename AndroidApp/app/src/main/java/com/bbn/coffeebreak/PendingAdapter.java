@@ -1,19 +1,27 @@
 package com.bbn.coffeebreak;
 
+import android.content.Intent;
+import android.graphics.Color;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.util.Objects;
 
 public class PendingAdapter extends RecyclerView.Adapter<PendingAdapter.ViewHolder> {
+    private final static String TAG = "[PendingAdapter]";
     private List<MeetingList.Meeting> mMeetings;
+    private OnItemClickListener listener;
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
+    public class ViewHolder extends RecyclerView.ViewHolder {
         public TextView meetingIdView;
         public TextView pendingMemView;
         public Button cancelButton;
@@ -24,7 +32,37 @@ public class PendingAdapter extends RecyclerView.Adapter<PendingAdapter.ViewHold
             meetingIdView = (TextView) v.findViewById(R.id.meeting_id_view);
             pendingMemView = (TextView) v.findViewById(R.id.pending_mem_view);
             cancelButton = (Button) v.findViewById(R.id.cancel_button);
+
+            cancelButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Triggers click upwards to the adapter on click
+                    if (listener != null) {
+                        int position = getAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION) {
+                            Log.d(TAG, "meeting cancelled - removed from pending page");
+
+                            listener.onItemClick(cancelButton, position);
+
+                            MeetingList.Meeting meeting = mMeetings.get(position);
+
+                            MeetingList meetingList = AMQPCommunication.getMeetingList();
+                            meetingList.removeMeeting(meeting.meetingID);
+                            notifyItemRemoved(position);
+                        }
+                    }
+                }
+            });
         }
+    }
+
+    // Define the listener interface
+    public interface OnItemClickListener {
+        void onItemClick(View itemView, int position);
+    }
+    // Define the method that allows the parent activity or fragment to define the listener
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
     }
 
     public PendingAdapter(List<MeetingList.Meeting> meetings) {
@@ -55,13 +93,15 @@ public class PendingAdapter extends RecyclerView.Adapter<PendingAdapter.ViewHold
         TextView textView = viewHolder.meetingIdView;
         textView.setText("Meeting ID: " + meeting.meetingID);
 
+        Log.d(TAG, "adding meeting to RecyclerView: " + meeting.meetingID);
+
         TextView textView2 = viewHolder.pendingMemView;
         String pen = meeting.pending_invites.toString();
         pen = pen.substring(1, pen.length() - 1);
         textView2.setText("Waiting on " + pen);
 
-        Button button = viewHolder.cancelButton;
-        button.setEnabled(true);
+        Button cancel_button = viewHolder.cancelButton;
+        cancel_button.setEnabled(true);
     }
 
     @Override

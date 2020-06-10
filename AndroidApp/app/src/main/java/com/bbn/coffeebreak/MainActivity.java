@@ -268,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent pendingActivity = new Intent(MainActivity.this, PendingActivity.class);
-                startActivity(pendingActivity);
+                startActivityForResult(pendingActivity, getResources().getInteger(R.integer.pending_request));
             }
         });
 
@@ -381,6 +381,28 @@ public class MainActivity extends AppCompatActivity {
 
             } else if (resultCode == RESULT_CANCELED) {
                 Log.d(getString(R.string.app_tag), getString(R.string.message_date_picker_cancel));
+            }
+        } else if (requestCode == getResources().getInteger(R.integer.pending_request)) {
+            if (data != null) {
+                Log.d(getString(R.string.app_tag), "cancelling pending meeting");
+
+                final Intent sendMeetingResponse = new Intent();
+                sendMeetingResponse.putExtra("meetingID", data.getStringExtra("meetingID"));
+                sendMeetingResponse.putExtra("organizer", data.getStringExtra("organizer"));
+                sendMeetingResponse.putStringArrayListExtra("attendees", data.getStringArrayListExtra("attendees"));
+                sendMeetingResponse.setAction(getString(R.string.broadcast_send_meeting_response));
+
+                final ObjectMapper mapper = new ObjectMapper();
+
+                InviteResponse response = new InviteResponse();
+                response.setMeetingID(data.getStringExtra("meetingID"));
+                response.setResponse(0);
+                try {
+                    sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
+                    mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
