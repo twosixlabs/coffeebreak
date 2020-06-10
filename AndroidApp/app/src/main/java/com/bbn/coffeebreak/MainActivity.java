@@ -380,11 +380,11 @@ public class MainActivity extends AppCompatActivity {
                 }
 
             } else if (resultCode == RESULT_CANCELED) {
-                Log.d(getString(R.string.app_tag), getString(R.string.message_date_picker_cancel));
+                Log.d(TAG, getString(R.string.message_date_picker_cancel));
             }
         } else if (requestCode == getResources().getInteger(R.integer.pending_request)) {
             if (data != null) {
-                Log.d(getString(R.string.app_tag), "cancelling pending meeting");
+                Log.d(TAG, "cancelling pending meeting");
 
                 final Intent sendMeetingResponse = new Intent();
                 sendMeetingResponse.putExtra("meetingID", data.getStringExtra("meetingID"));

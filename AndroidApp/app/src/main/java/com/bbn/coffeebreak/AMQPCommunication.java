@@ -280,23 +280,23 @@ public class AMQPCommunication extends Service {
         protected void onReceiveResult(final int resultCode, final Bundle resultData) {
             super.onReceiveResult(resultCode, resultData);
 
-            String invitee = "";
-            for(String n : resultData.getStringArrayList("attendees")){
-                if(!n.equals(resultData.getString("organizer"))){
-                    invitee = n;
-                }
-            }
+//            String invitee = "";
+//            for(String n : resultData.getStringArrayList("attendees")){
+//                if(!n.equals(resultData.getString("organizer"))){
+//                    invitee = n;
+//                }
+//            }
 
             Intent notifIntent = new Intent(context, MainActivity.class);
             notifIntent.putExtra("meetingID", resultData.getString("meetingID"));
-            notifIntent.putExtra("invitee", invitee);
+            notifIntent.putExtra("invitee", resultData.getString("user_cancelled"));
             notifIntent.setAction(getString(R.string.broadcast_show_meeting_cancel));
             PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                     .setSmallIcon(R.drawable.ic_coffeebreak_56dp)
                     .setContentTitle("Meeting cancelled")
-                    .setContentText(invitee + " rejected the meeting")
+                    .setContentText(resultData.getString("user_cancelled") + " rejected the meeting")
                     .setAutoCancel(true)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setColor(getColor(R.color.colorPrimary))
@@ -316,7 +316,7 @@ public class AMQPCommunication extends Service {
 
             Intent showMeetingCancel = new Intent();
             showMeetingCancel.putExtra("meetingID", resultData.getString("meetingID"));
-            showMeetingCancel.putExtra("invitee", invitee);
+            showMeetingCancel.putExtra("invitee", resultData.getString("user_cancelled"));
             showMeetingCancel.setAction(getString(R.string.broadcast_show_meeting_cancel));
             mLocalBroadcastManager.sendBroadcast(showMeetingCancel);
 
@@ -740,6 +740,7 @@ public class AMQPCommunication extends Service {
                             Bundle b = new Bundle();
                             b.putString("meetingID", meetingId);
                             b.putString("organizer", meeting.getString("organizer"));
+                            b.putString("user_cancelled", properties.getReplyTo());
                             ArrayList<String> attendees = new ArrayList<>();
                             JSONArray s = meeting.getJSONArray("attendees");
                             for(int i = 0; i < s.length(); i++){
