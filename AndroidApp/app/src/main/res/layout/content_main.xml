@@ -67,17 +67,29 @@
         </RelativeLayout>
 
 
-
         <TextView
             android:id="@+id/mpc_message"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
-            android:text="Performing secure multi-party computation"
+            android:layout_gravity="center_horizontal"
             android:visibility="invisible"
             android:textColor="@color/colorAccent"
             android:paddingTop="10dp"
             android:layout_marginTop="20dp" />
+
+        <Button
+            android:id="@+id/cancel_meeting_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:visibility="invisible"
+            android:enabled="false"
+            android:clickable="true"
+            android:backgroundTint="#ff1414"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:text="Cancel"
+            android:focusable="true" />
 
 
     </LinearLayout>

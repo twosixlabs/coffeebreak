@@ -232,7 +232,6 @@ public class AMQPCommunication extends Service {
         protected void onReceiveResult(final int resultCode, final Bundle resultData) {
             super.onReceiveResult(resultCode, resultData);
 
-
             Intent notifIntent = new Intent(context, MainActivity.class);
             notifIntent.putExtra("meetingID", resultData.getString("meetingID"));
             notifIntent.putExtra("organizer", resultData.getString("organizer"));
@@ -241,7 +240,6 @@ public class AMQPCommunication extends Service {
             notifIntent.putExtra("end", resultData.getString("end"));
             notifIntent.setAction(getString(R.string.broadcast_show_meeting_request));
             PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                     .setSmallIcon(R.drawable.ic_coffeebreak_56dp)
@@ -279,17 +277,12 @@ public class AMQPCommunication extends Service {
         @Override
         protected void onReceiveResult(final int resultCode, final Bundle resultData) {
             super.onReceiveResult(resultCode, resultData);
-
-//            String invitee = "";
-//            for(String n : resultData.getStringArrayList("attendees")){
-//                if(!n.equals(resultData.getString("organizer"))){
-//                    invitee = n;
-//                }
-//            }
+            Log.d(TAG, "in showMeetingCancelDialog");
 
             Intent notifIntent = new Intent(context, MainActivity.class);
             notifIntent.putExtra("meetingID", resultData.getString("meetingID"));
             notifIntent.putExtra("invitee", resultData.getString("user_cancelled"));
+            notifIntent.putStringArrayListExtra("attendees", resultData.getStringArrayList("attendees"));
             notifIntent.setAction(getString(R.string.broadcast_show_meeting_cancel));
             PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
@@ -313,10 +306,10 @@ public class AMQPCommunication extends Service {
                 return;
             }
 
-
             Intent showMeetingCancel = new Intent();
             showMeetingCancel.putExtra("meetingID", resultData.getString("meetingID"));
             showMeetingCancel.putExtra("invitee", resultData.getString("user_cancelled"));
+            showMeetingCancel.putStringArrayListExtra("attendees", resultData.getStringArrayList("attendees"));
             showMeetingCancel.setAction(getString(R.string.broadcast_show_meeting_cancel));
             mLocalBroadcastManager.sendBroadcast(showMeetingCancel);
 
@@ -351,14 +344,24 @@ public class AMQPCommunication extends Service {
                             editor.putString(meeting.getString("meetingID"), meeting.toString());
                             editor.commit();
                             meetingList.insertMeeting(invite);
+
+                            Log.d(TAG, "preferences info: " + preferences.getAll());
+
+                            ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){
                                 String attendee = invite.getJSONArray("attendees").get(i).toString();
+                                attendees.add(attendee);
                                 if(!attendee.equals(username)){
                                     Log.d(TAG, "Sending meeting invite to: " + attendee);
                                     sendMeetingInvite(context, invite.toString(), attendee);
                                 }
                             }
 
+                            Intent sendPendingMessage = new Intent(context, MainActivity.class);
+                            sendPendingMessage.putExtra("meetingID", invite.getString("meetingID"));
+                            //sendPendingMessage.setAction(getString(R.string.broadcast_send_meeting_pending));
+                            sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
+                            mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -371,13 +374,49 @@ public class AMQPCommunication extends Service {
                     public void run() {
                         try {
                             /*
-                            Send meeting response back to intiator
+                            Send meeting response back to all participants
                              */
                             Log.d(TAG, "Calling sendMeetingResponse now");
 
                             JSONObject response = new JSONObject(new String(intent.getStringExtra("response")));
-                            sendMeetingResponse(context, response.toString(),
-                                    intent.getStringExtra("organizer"));
+
+                            JSONObject message = new JSONObject(new String(response.toString().getBytes()));
+                            if(message.getInt("response") == 0) {
+                                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                                SharedPreferences.Editor editor = preferences.edit();
+                                String meetingId = message.getString("meetingID");
+
+                                meetingList.removeMeeting(meetingId);
+
+                                editor.remove(meetingId);
+                                editor.commit();
+                            } else {
+                                MeetingList.Meeting m = meetingList.getMeeting(message.getString("meetingID"));
+                                m.removePendingInvite(username);
+
+                                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                                SharedPreferences.Editor editor = preferences.edit();
+
+                                JSONObject meeting = new JSONObject(preferences.getString(message.getString("meetingID"), "{}"));
+                                int responseCount =  meeting.getInt("responses") + 1;
+
+                                meeting.put("responses", responseCount);
+                                editor.putString(message.getString("meetingID"), meeting.toString());
+                                editor.commit();
+
+                                Intent sendPendingMessage = new Intent(context, MainActivity.class);
+                                sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
+                                sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
+                                mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
+                            }
+
+                            for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
+                                String attendee = response.getJSONArray("attendees").get(i).toString();
+                                if(!attendee.equals(username)){
+                                    Log.d(TAG, "Sending meeting response to: " + attendee);
+                                    sendMeetingResponse(context, response.toString(), attendee);
+                                }
+                            }
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -396,9 +435,12 @@ public class AMQPCommunication extends Service {
                             JSONObject startMessage = new JSONObject(new String(intent.getStringExtra("event")));
                             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                             SharedPreferences.Editor editor = preferences.edit();
+
                             editor.remove(startMessage.getString("meetingID"));
                             editor.commit();
+
                             meetingList.removeMeeting(startMessage.getString("meetingID"));
+
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < startMessage.getJSONArray("attendees").length(); i++){
                                 String attendee = startMessage.getJSONArray("attendees").get(i).toString();
@@ -465,6 +507,11 @@ public class AMQPCommunication extends Service {
                 }
 
 
+            } else if(intent.getAction().equals(getString(R.string.broadcast_send_meeting_pending))){
+                Log.d(TAG, "starting send meeting pending...");
+
+                new PendingAsyncTask().execute(new PendingAsyncTaskParams(intent.getStringArrayListExtra("attendees"),
+                        intent.getStringExtra("meetingID")));
             }
         }
     };
@@ -548,6 +595,7 @@ public class AMQPCommunication extends Service {
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_response));
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_start));
         mIntentFilter.addAction(getString(R.string.broadcast_start_mpc));
+        mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_pending));
 
         mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
 
@@ -570,6 +618,9 @@ public class AMQPCommunication extends Service {
 
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
+        editor.clear();
+        editor.commit();
+        Log.d(TAG, "preference: " + preferences.getAll());
 
         if(intent != null){
             AMQPHost = intent.getStringExtra(getString(R.string.amqpIp));
@@ -728,8 +779,15 @@ public class AMQPCommunication extends Service {
                                 meeting.put("responses", responseCount);
                                 editor.putString(meetingId, meeting.toString());
                                 editor.commit();
+
+                                Intent sendPendingMessage = new Intent(context, MainActivity.class);
+                                sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
+                                sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
+                                mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
                             }
                         }else{
+                            Log.d(TAG, "Response code 0");
+
                             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                             SharedPreferences.Editor editor = preferences.edit();
                             String meetingId = message.getString("meetingID");
@@ -737,20 +795,26 @@ public class AMQPCommunication extends Service {
                             meetingList.removeMeeting(meetingId);
 
                             JSONObject meeting = new JSONObject(preferences.getString(meetingId, "{}"));
+
                             Bundle b = new Bundle();
                             b.putString("meetingID", meetingId);
                             b.putString("organizer", meeting.getString("organizer"));
                             b.putString("user_cancelled", properties.getReplyTo());
+
                             ArrayList<String> attendees = new ArrayList<>();
                             JSONArray s = meeting.getJSONArray("attendees");
                             for(int i = 0; i < s.length(); i++){
                                 attendees.add(s.get(i).toString());
                             }
                             b.putStringArrayList("attendees", attendees);
+
                             showMeetingCancelDialog.send(1, b);
 
                             editor.remove(meetingId);
                             editor.commit();
+
+                            Log.d(TAG, "meeting info: " + meeting.toString());
+                            Log.d(TAG, "preferences info: " + preferences.getAll());
                         }
 
                     }else if(properties.getType().equals("start")){
@@ -781,6 +845,21 @@ public class AMQPCommunication extends Service {
                         /*
                         This is an invite message
                          */
+                        Log.d(TAG, "Received invite message");
+
+                        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                        SharedPreferences.Editor editor = preferences.edit();
+
+                        JSONObject meeting = new JSONObject();
+                        meeting.put("meetingID", message.getString("meetingID"));
+                        meeting.put("size", message.getJSONArray("attendees").length());
+                        meeting.put("responses", 1);
+                        meeting.put("attendees", message.getJSONArray("attendees"));
+                        meeting.put("organizer", message.getString("organizer"));
+                        editor.putString(meeting.getString("meetingID"), meeting.toString());
+                        editor.commit();
+
+                        meetingList.insertMeeting(meeting);
 
                         Bundle temp = new Bundle();
                         temp.putString("meetingID", message.getString("meetingID"));
@@ -798,8 +877,6 @@ public class AMQPCommunication extends Service {
 
                         showMeetingRequestDialog.send(0, temp);
                     }
-
-
 
                 } catch (Exception e) {
                     Log.d(TAG, "Got exception in consumer");
@@ -835,6 +912,7 @@ public class AMQPCommunication extends Service {
             }
 
         try {
+            Log.d(TAG, "attempting to publish on " + INVITE_EXCHANGE + " with routing key " + routing_key);
             channel.basicPublish(INVITE_EXCHANGE, routing_key, basicProperties, data.getBytes());
             Log.d(TAG, "[x] Sent meeting invite to " + routing_key);
         } catch (Exception e) {
@@ -952,6 +1030,55 @@ public class AMQPCommunication extends Service {
         return true;
     }
 
+    private static class PendingAsyncTaskParams {
+        List<String> attendees;
+        String meetingId;
+        PendingAsyncTaskParams(List<String> attendees, String meetingId) {
+            this.attendees = attendees;
+            this.meetingId = meetingId;
+        }
+    }
+
+    /*
+        Creating the AMQP channels requires network operations (queue creation on the AMQP server),
+        so we do this in an AsyncTask and then start the thread.
+
+     */
+    private class PendingAsyncTask extends AsyncTask<PendingAsyncTaskParams, Void, ArrayList<String>> {
+
+        @Override
+        protected ArrayList<String> doInBackground(PendingAsyncTaskParams... params) {
+
+            try {
+                Log.d(TAG, "in doInBackground for PendingAsyncTask");
+
+                ArrayList<String> attendees = (ArrayList) params[0].attendees;
+                return attendees;
+            }catch (Exception e){
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<String> attendees) {
+            super.onPostExecute(attendees);
+
+            Log.d(TAG, "in onPostExecute for PendingAsyncTask");
+
+            if(attendees != null){
+                //show the result on the UI
+                Intent showMeetingPending = new Intent(context, MainActivity.class);
+                showMeetingPending.putStringArrayListExtra("attendees", attendees);
+                showMeetingPending.setAction(getString(R.string.broadcast_show_meeting_pending));
+                mLocalBroadcastManager.sendBroadcast(showMeetingPending);
+            }else{
+                // something went wrong
+                Toast.makeText(context, "Something went wrong.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
     private static class SetupMpcTaskParams {
         List<String> attendees;
         EncodedLatLon location;
@@ -975,6 +1102,8 @@ public class AMQPCommunication extends Service {
 
             // Create AMQP channels
             try {
+                Log.d(TAG, "in doInBackground for SetupMpcAsyncTask");
+
                 List<CoffeeChannel> channels = new ArrayList<>(params[0].attendees.size());
                 Collections.sort(params[0].attendees);
                 for (String s : params[0].attendees) {
@@ -1010,6 +1139,8 @@ public class AMQPCommunication extends Service {
                         channels,
                         params[0].location.getEncodedLocation(),
                         mpcResponse);
+
+                Log.d(TAG, "sending to post execute for SetupMpcAsyncTask");
 
                 mpcHandler.post(mpc);
 

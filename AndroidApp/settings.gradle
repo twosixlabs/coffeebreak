@@ -1,1 +1,1 @@
-include ':app', ':pepsi-debug', ':pepsican-debug'
+include ':app'

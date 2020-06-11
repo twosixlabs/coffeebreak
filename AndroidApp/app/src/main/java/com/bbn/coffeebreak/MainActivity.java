@@ -30,6 +30,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -40,10 +41,14 @@ import com.marcoscg.dialogsheet.DialogSheet;
 import com.wafflecopter.multicontactpicker.ContactResult;
 import com.wafflecopter.multicontactpicker.MultiContactPicker;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -119,6 +124,8 @@ public class MainActivity extends AppCompatActivity {
                                 //sendBroadcast(startMpc);
                                 InviteResponse response = new InviteResponse();
                                 response.setMeetingID(intent.getStringExtra("meetingID"));
+                                response.setAdditionalProperty("attendees", intent.getStringArrayListExtra("attendees"));
+                                response.setAdditionalProperty("organizer", intent.getStringExtra("organizer"));
                                 Log.d(TAG, "Sending meeting response for meetingID: " + intent.getStringExtra("meetingID"));
                                 response.setResponse(1);
                                 try {
@@ -133,6 +140,8 @@ public class MainActivity extends AppCompatActivity {
                             public void onClick(View view) {
                                 InviteResponse response = new InviteResponse();
                                 response.setMeetingID(intent.getStringExtra("meetingID"));
+                                response.setAdditionalProperty("attendees", intent.getStringArrayListExtra("attendees"));
+                                response.setAdditionalProperty("organizer", intent.getStringExtra("organizer"));
                                 response.setResponse(0);
                                 try {
                                     sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
@@ -141,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
                                     e.printStackTrace();
                                 }
                             }
-                        }).setTitle(organizer + " wants to meet").show();
+                        }).setTitle(organizer + " wants to meet").setCancelable(true).show();
 
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
@@ -180,10 +189,16 @@ public class MainActivity extends AppCompatActivity {
 
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_mpc_progress))) {
                 Log.d(TAG, "Received broadcast to show MPC progress");
+
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+                Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
+
+                mpcMessage.setText("Performing secure multi-party computation");
                 mpcProgress.setVisibility(View.VISIBLE);
                 mpcMessage.setVisibility(View.VISIBLE);
+                cancelButton.setVisibility(View.INVISIBLE);
+                cancelButton.setEnabled(false);
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_location_dialog))) {
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                 alertDialog.setTitle("Can't get GPS location");
@@ -203,6 +218,13 @@ public class MainActivity extends AppCompatActivity {
                 });
                 alertDialog.show();
             } else if(intent.getAction().equals(getString(R.string.broadcast_show_meeting_cancel))){
+                TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+                Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
+
+                mpcMessage.setVisibility(View.INVISIBLE);
+                cancelButton.setVisibility(View.INVISIBLE);
+                cancelButton.setEnabled(false);
+
                 String meetingID = intent.getStringExtra("meetingID");
                 String invitee = intent.getStringExtra("invitee");
                 String message = "\n" + invitee + " has rejected the meeting invitation";
@@ -213,6 +235,65 @@ public class MainActivity extends AppCompatActivity {
                                 // do nothing
                             }
                         }).setTitle(invitee + " cancelled the meeting").show();
+            } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_pending))) {
+                Log.d(TAG, "Received broadcast to show pending meeting");
+
+                MeetingList meetingList = AMQPCommunication.getMeetingList();
+                String meetingID = intent.getStringExtra("meetingID");
+                MeetingList.Meeting meeting = meetingList.getMeeting(meetingID);
+                String pen = meeting.pending_invites.toString();
+                pen = pen.substring(1, pen.length() - 1);
+                String message = "Waiting on " + pen;
+
+                TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+                mpcMessage.setText(message);
+                mpcMessage.setVisibility(View.VISIBLE);
+
+                Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
+                cancelButton.setVisibility(View.VISIBLE);
+                cancelButton.setEnabled(true);
+
+                Objects.requireNonNull(cancelButton).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Log.d(TAG, "cancelling pending meeting");
+
+                        mpcMessage.setVisibility(View.INVISIBLE);
+                        cancelButton.setVisibility(View.INVISIBLE);
+                        cancelButton.setEnabled(false);
+
+                        final Intent sendMeetingResponse = new Intent();
+                        sendMeetingResponse.putExtra("meetingID", meetingID);
+                        sendMeetingResponse.putExtra("organizer", meeting.organizer);
+
+                        ArrayList<String> attendees = new ArrayList<String>();
+                        for(int i = 0; i < meeting.attendees.length(); i++){
+                            try {
+                                String attendee = meeting.attendees.get(i).toString();
+                                attendees.add(attendee);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        sendMeetingResponse.putStringArrayListExtra("attendees", attendees);
+                        sendMeetingResponse.setAction(getString(R.string.broadcast_send_meeting_response));
+
+                        final ObjectMapper mapper = new ObjectMapper();
+
+                        InviteResponse response = new InviteResponse();
+                        response.setMeetingID(intent.getStringExtra("meetingID"));
+                        response.setAdditionalProperty("attendees", attendees);
+                        response.setAdditionalProperty("organizer", meeting.organizer);
+                        response.setResponse(0);
+                        try {
+                            sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
+                            mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
+                        } catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
             }
         }
     };
@@ -234,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
         mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+        Log.d(TAG, "pref: " + preferences.getAll());
 
         TextView usernameDisplay = (TextView) findViewById(R.id.usernameDisplay);
         usernameDisplay.setText(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)).toUpperCase());
@@ -247,6 +329,7 @@ public class MainActivity extends AppCompatActivity {
         mIntentFilter.addAction(getString(R.string.broadcast_show_mpc_progress));
         mIntentFilter.addAction(getString(R.string.broadcast_show_location_dialog));
         mIntentFilter.addAction(getString(R.string.broadcast_show_meeting_cancel));
+        mIntentFilter.addAction(getString(R.string.broadcast_show_meeting_pending));
 
         mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
 
@@ -396,6 +479,8 @@ public class MainActivity extends AppCompatActivity {
 
                 InviteResponse response = new InviteResponse();
                 response.setMeetingID(data.getStringExtra("meetingID"));
+                response.setAdditionalProperty("attendees", data.getStringArrayListExtra("attendees"));
+                response.setAdditionalProperty("organizer", data.getStringExtra("organizer"));
                 response.setResponse(0);
                 try {
                     sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
