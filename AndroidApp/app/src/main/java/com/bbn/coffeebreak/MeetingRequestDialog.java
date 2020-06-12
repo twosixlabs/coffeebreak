@@ -7,11 +7,13 @@ import com.marcoscg.dialogsheet.DialogSheet;
 
 public class MeetingRequestDialog {
 
+    private static DialogSheet dialogSheet;
+
     public static DialogSheet request(Context c, String message,
                                       DialogSheet.OnPositiveClickListener posListen,
                                       DialogSheet.OnNegativeClickListener negListen){
 
-        return new DialogSheet(c)
+        dialogSheet = new DialogSheet(c)
                 .setTitle(c.getString(R.string.meeting_request_title))
                 .setMessage(message)
                 .setCancelable(true)
@@ -19,5 +21,10 @@ public class MeetingRequestDialog {
                 .setNegativeButton(c.getString(R.string.deny), negListen)
                 .setButtonsColorRes(R.color.colorPrimary)
                 .setBackgroundColorRes(R.color.white);
+        return dialogSheet;
+    }
+
+    public static void dismiss() {
+        dialogSheet.dismiss();
     }
 }

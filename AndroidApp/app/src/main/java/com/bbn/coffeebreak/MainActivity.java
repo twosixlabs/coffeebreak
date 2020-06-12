@@ -150,7 +150,6 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                         }).setTitle(organizer + " wants to meet").show();
-
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
@@ -234,6 +233,7 @@ public class MainActivity extends AppCompatActivity {
                                 // do nothing
                             }
                         }).setTitle(invitee + " cancelled the meeting").show();
+                MeetingRequestDialog.dismiss();
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_pending))) {
                 Log.d(TAG, "Received broadcast to show pending meeting");
 
@@ -345,14 +345,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        FloatingActionButton pending_fab = (FloatingActionButton) findViewById(R.id.pending_fab);
-        Objects.requireNonNull(pending_fab).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent pendingActivity = new Intent(MainActivity.this, PendingActivity.class);
-                startActivityForResult(pendingActivity, getResources().getInteger(R.integer.pending_request));
-            }
-        });
+//        FloatingActionButton pending_fab = (FloatingActionButton) findViewById(R.id.pending_fab);
+//        Objects.requireNonNull(pending_fab).setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Intent pendingActivity = new Intent(MainActivity.this, PendingActivity.class);
+//                startActivityForResult(pendingActivity, getResources().getInteger(R.integer.pending_request));
+//            }
+//        });
 
         if(getIntent().getStringExtra("meetingID") != null){
             mLocalBroadcastManager.sendBroadcast(getIntent());
