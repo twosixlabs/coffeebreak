@@ -43,7 +43,7 @@ dependencies {
     implementation 'com.google.android.gms:play-services-location:17.0.0'
     implementation 'com.borax12.materialdaterangepicker:library:1.9'
     implementation 'com.tapadoo.android:alerter:3.0.0'
-    implementation ('com.github.marcoscgdev:DialogSheet:1.0.6'){
+    implementation ('com.github.marcoscgdev:DialogSheet:2.0.9'){
         exclude module: 'support-compat'
         exclude module: 'support'
         exclude module: 'design'

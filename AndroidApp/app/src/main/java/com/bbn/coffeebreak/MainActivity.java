@@ -121,7 +121,6 @@ public class MainActivity extends AppCompatActivity {
                         new DialogSheet.OnPositiveClickListener() {
                             @Override
                             public void onClick(View view) {
-                                //sendBroadcast(startMpc);
                                 InviteResponse response = new InviteResponse();
                                 response.setMeetingID(intent.getStringExtra("meetingID"));
                                 response.setAdditionalProperty("attendees", intent.getStringArrayListExtra("attendees"));
@@ -150,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
                                     e.printStackTrace();
                                 }
                             }
-                        }).setTitle(organizer + " wants to meet").setCancelable(true).show();
+                        }).setTitle(organizer + " wants to meet").show();
 
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);

@@ -10,10 +10,11 @@ public class MeetingRequestDialog {
     public static DialogSheet request(Context c, String message,
                                       DialogSheet.OnPositiveClickListener posListen,
                                       DialogSheet.OnNegativeClickListener negListen){
+
         return new DialogSheet(c)
                 .setTitle(c.getString(R.string.meeting_request_title))
                 .setMessage(message)
-                .setCancelable(false)
+                .setCancelable(true)
                 .setPositiveButton(c.getString(R.string.accept), posListen)
                 .setNegativeButton(c.getString(R.string.deny), negListen)
                 .setButtonsColorRes(R.color.colorPrimary)
