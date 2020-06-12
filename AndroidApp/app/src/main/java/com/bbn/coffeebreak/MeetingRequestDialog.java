@@ -16,12 +16,19 @@ public class MeetingRequestDialog {
         dialogSheet = new DialogSheet(c)
                 .setTitle(c.getString(R.string.meeting_request_title))
                 .setMessage(message)
-                .setCancelable(true)
+                .setCancelable(false)
                 .setPositiveButton(c.getString(R.string.accept), posListen)
                 .setNegativeButton(c.getString(R.string.deny), negListen)
                 .setButtonsColorRes(R.color.colorPrimary)
                 .setBackgroundColorRes(R.color.white);
         return dialogSheet;
+    }
+
+    public static boolean dialogExists() {
+        if (dialogSheet == null) {
+            return false;
+        }
+        return true;
     }
 
     public static void dismiss() {

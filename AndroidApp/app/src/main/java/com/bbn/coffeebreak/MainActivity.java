@@ -233,7 +233,9 @@ public class MainActivity extends AppCompatActivity {
                                 // do nothing
                             }
                         }).setTitle(invitee + " cancelled the meeting").show();
-                MeetingRequestDialog.dismiss();
+                if (MeetingRequestDialog.dialogExists()) {
+                    MeetingRequestDialog.dismiss();
+                }
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_pending))) {
                 Log.d(TAG, "Received broadcast to show pending meeting");
 
