@@ -32,6 +32,8 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -99,6 +101,8 @@ public class AMQPCommunication extends Service {
     private static MeetingList meetingList;
     private static List<String> queueList = new ArrayList<>();
 
+    private CountDownTimer mpctimer;
+    private CountDownTimer resendTimer;
 
     private ResultReceiver starbucksLocationReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @Override
@@ -195,6 +199,8 @@ public class AMQPCommunication extends Service {
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             super.onReceiveResult(resultCode, resultData);
 
+            mpctimer.cancel();
+
             try{
                 Log.d(TAG, "GOT MPC RESULT LOCATION: " + resultData.getFloat("latitude") + "," + resultData.getFloat("longitude"));
 
@@ -256,11 +262,11 @@ public class AMQPCommunication extends Service {
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
 
-            CountDownTimer timer = new CountDownTimer(30000, 1000) {
+            new CountDownTimer(10000, 1000) {
                 @Override
                 public void onTick(long l) {
                     //do nothing
-                    Log.d(TAG, "notification timer started");
+                    Log.d(TAG, "notification timer start");
                 }
 
                 @Override
@@ -422,6 +428,46 @@ public class AMQPCommunication extends Service {
                                 }
                             }
 
+                            final ObjectMapper mapper = new ObjectMapper();
+
+                            resendTimer = new CountDownTimer(15000, 1000) {
+                                @Override
+                                public void onTick(long l) {
+                                    //do nothing
+                                    Log.d(TAG, "resend timer start");
+                                }
+
+                                @Override
+                                public void onFinish() {
+                                    Log.d(TAG, "resend timer finished");
+
+                                    try {
+                                        final Intent sendMeetingResponse = new Intent();
+                                        sendMeetingResponse.putExtra("meetingID", invite.getString("meetingID"));
+                                        sendMeetingResponse.putExtra("organizer", username);
+                                        sendMeetingResponse.putStringArrayListExtra("attendees", attendees);
+                                        sendMeetingResponse.setAction(getString(R.string.broadcast_send_meeting_response));
+
+                                        InviteResponse response = new InviteResponse();
+                                        response.setMeetingID(invite.getString("meetingID"));
+                                        response.setAdditionalProperty("attendees", attendees);
+                                        response.setAdditionalProperty("organizer", username);
+                                        response.setResponse(2);
+
+                                        if (MeetingRequestDialog.dialogExists()) {
+                                            MeetingRequestDialog.dismiss();
+                                        }
+
+                                        Log.d(TAG, "Sending meeting timed out response for meetingID: " + intent.getStringExtra("meetingID"));
+
+                                        sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
+                                        mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
+                                    } catch (JSONException | JsonProcessingException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }.start();
+
                             Intent sendPendingMessage = new Intent(context, MainActivity.class);
                             sendPendingMessage.putExtra("meetingID", invite.getString("meetingID"));
                             sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
@@ -445,16 +491,7 @@ public class AMQPCommunication extends Service {
                             JSONObject response = new JSONObject(new String(intent.getStringExtra("response")));
 
                             JSONObject message = new JSONObject(new String(response.toString().getBytes()));
-                            if(message.getInt("response") == 0) {
-                                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-                                SharedPreferences.Editor editor = preferences.edit();
-                                String meetingId = message.getString("meetingID");
-
-                                meetingList.removeMeeting(meetingId);
-
-                                editor.remove(meetingId);
-                                editor.commit();
-                            } else if(message.getInt("response") == 1) {
+                            if(message.getInt("response") == 1) {
                                 MeetingList.Meeting m = meetingList.getMeeting(message.getString("meetingID"));
                                 m.removePendingInvite(username);
 
@@ -472,9 +509,22 @@ public class AMQPCommunication extends Service {
                                 sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
                                 sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
                                 mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
-                            } else {
-                                //meeting invite timed out
-                                Log.d(TAG, "meeting invite timed out");
+                            } else if(message.getInt("response") == 0) {
+                                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                                SharedPreferences.Editor editor = preferences.edit();
+                                String meetingId = message.getString("meetingID");
+
+                                meetingList.removeMeeting(meetingId);
+
+                                editor.remove(meetingId);
+                                editor.commit();
+
+                                if (resendTimer != null) {
+                                    resendTimer.cancel();
+                                }
+                            } else if (message.getInt("response") == 2) {
+                                Log.d(TAG, "Sending meeting response to: " + username);
+                                sendMeetingResponse(context, response.toString(), username);
                             }
 
                             for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
@@ -484,6 +534,7 @@ public class AMQPCommunication extends Service {
                                     sendMeetingResponse(context, response.toString(), attendee);
                                 }
                             }
+
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -507,6 +558,8 @@ public class AMQPCommunication extends Service {
                             editor.commit();
 
                             meetingList.removeMeeting(startMessage.getString("meetingID"));
+
+                            resendTimer.cancel();
 
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < startMessage.getJSONArray("attendees").length(); i++){
@@ -851,9 +904,12 @@ public class AMQPCommunication extends Service {
                             SharedPreferences.Editor editor = preferences.edit();
                             String meetingId = message.getString("meetingID");
 
+                            Log.d(TAG, "preferences: " + preferences.getAll());
+
                             meetingList.removeMeeting(meetingId);
 
                             JSONObject meeting = new JSONObject(preferences.getString(meetingId, "{}"));
+                            Log.d(TAG, "meeting info: " + meeting.toString());
 
                             Bundle b = new Bundle();
                             b.putString("meetingID", meetingId);
@@ -878,8 +934,9 @@ public class AMQPCommunication extends Service {
                             editor.remove(meetingId);
                             editor.commit();
 
-                            Log.d(TAG, "meeting info: " + meeting.toString());
-                            Log.d(TAG, "preferences info: " + preferences.getAll());
+                            if (resendTimer != null) {
+                                resendTimer.cancel();
+                            }
                         }
 
                     }else if(properties.getType().equals("start")){
@@ -887,6 +944,18 @@ public class AMQPCommunication extends Service {
                         start MPC for this meeting
                          */
                         Log.d(TAG, "Received start meeting message!");
+
+                        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                        SharedPreferences.Editor editor = preferences.edit();
+
+                        editor.remove(message.getString("meetingID"));
+                        editor.commit();
+
+                        meetingList.removeMeeting(message.getString("meetingID"));
+
+                        if (resendTimer != null) {
+                            resendTimer.cancel();
+                        }
 
                         Intent startMpc = new Intent();
                         startMpc.putExtra("meetingID", message.getString("meetingID"));
@@ -1118,8 +1187,6 @@ public class AMQPCommunication extends Service {
 
             // Create AMQP channels
             try {
-                Log.d(TAG, "in doInBackground for SetupMpcAsyncTask");
-
                 List<CoffeeChannel> channels = new ArrayList<>(params[0].attendees.size());
                 Collections.sort(params[0].attendees);
                 for (String s : params[0].attendees) {
@@ -1156,8 +1223,6 @@ public class AMQPCommunication extends Service {
                         params[0].location.getEncodedLocation(),
                         mpcResponse);
 
-                Log.d(TAG, "sending to post execute for SetupMpcAsyncTask");
-
                 mpcHandler.post(mpc);
 
             }catch (Exception e){
@@ -1177,6 +1242,22 @@ public class AMQPCommunication extends Service {
                 Intent showMpcProgress = new Intent();
                 showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
                 mLocalBroadcastManager.sendBroadcast(showMpcProgress);
+
+                mpctimer = new CountDownTimer(15000, 1000) {
+                    @Override
+                    public void onTick(long l) {
+                        //do nothing
+                        Log.d(TAG, "reset mpc timer start");
+                    }
+
+                    @Override
+                    public void onFinish() {
+                        Log.d(TAG, "reset mpc timer finished");
+
+                        Bundle b = new Bundle();
+                        starbucksLocationReceiver.send(0, b);
+                    }
+                }.start();
             }else{
                 // something went wrong
                 Toast.makeText(context, "Something went wrong.", Toast.LENGTH_LONG).show();
