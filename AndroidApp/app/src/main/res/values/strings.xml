@@ -18,7 +18,6 @@
     <string name="broadcast_send_meeting_invite">com.bbn.coffeebreak.action.SEND_MEETING_INVITE</string>
     <string name="broadcast_send_meeting_response">com.bbn.coffeebreak.action.SEND_MEETING_RESPONSE</string>
     <string name="broadcast_send_meeting_start">com.bbn.coffeebreak.action.SEND_MEETING_START</string>
-    <string name="broadcast_send_meeting_pending">com.bbn.coffeebreak.action.SEND_MEETING_PENDING</string>
     <string name="broadcast_show_meeting_pending">com.bbn.coffeebreak.action.SHOW_MEETING_PENDING</string>
     <string name="broadcast_send_meeting_cancel">com.bbn.coffeebreak.action.SEND_MEETING_CANCEL</string>
     <string name="broadcast_insert_calendar_event">com.bbn.coffeebreak.action.INSERT_CALENDAR_EVENT</string>

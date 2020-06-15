@@ -14,6 +14,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.HandlerThread;
 
@@ -117,6 +118,37 @@ public class MainActivity extends AppCompatActivity {
 
                 final ObjectMapper mapper = new ObjectMapper();
 
+                CountDownTimer timer = new CountDownTimer(60000, 1000) {
+                    @Override
+                    public void onTick(long l) {
+                        //do nothing
+                    }
+
+                    @Override
+                    public void onFinish() {
+                        Log.d(TAG, "timer finished");
+
+                        InviteResponse response = new InviteResponse();
+                        response.setMeetingID(intent.getStringExtra("meetingID"));
+                        response.setAdditionalProperty("attendees", intent.getStringArrayListExtra("attendees"));
+                        response.setAdditionalProperty("organizer", intent.getStringExtra("organizer"));
+                        response.setResponse(2);
+
+                        if (MeetingRequestDialog.dialogExists()) {
+                            MeetingRequestDialog.dismiss();
+                        }
+
+                        Log.d(TAG, "Sending meeting timed out response for meetingID: " + intent.getStringExtra("meetingID"));
+
+                        try {
+                            sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
+                            mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
+                        } catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }.start();
+
                 MeetingRequestDialog.request(MainActivity.this, message,
                         new DialogSheet.OnPositiveClickListener() {
                             @Override
@@ -148,6 +180,12 @@ public class MainActivity extends AppCompatActivity {
                                 } catch (JsonProcessingException e) {
                                     e.printStackTrace();
                                 }
+                            }
+                        }, new DialogInterface.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialogInterface) {
+                                timer.cancel();
+                                Log.d(TAG, "timer cancelled");
                             }
                         }).setTitle(organizer + " wants to meet").show();
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
@@ -225,14 +263,14 @@ public class MainActivity extends AppCompatActivity {
 
                 String meetingID = intent.getStringExtra("meetingID");
                 String invitee = intent.getStringExtra("invitee");
-                String message = "\n" + invitee + " has rejected the meeting invitation";
+                String message = "\n" + intent.getStringExtra("message");
                 MeetingCancelDialog.request(MainActivity.this, message,
                         new DialogSheet.OnPositiveClickListener() {
                             @Override
                             public void onClick(View view) {
                                 // do nothing
                             }
-                        }).setTitle(invitee + " cancelled the meeting").show();
+                        }).setTitle("Meeting Cancelled").show();
                 if (MeetingRequestDialog.dialogExists()) {
                     MeetingRequestDialog.dismiss();
                 }
@@ -347,14 +385,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        FloatingActionButton pending_fab = (FloatingActionButton) findViewById(R.id.pending_fab);
-//        Objects.requireNonNull(pending_fab).setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                Intent pendingActivity = new Intent(MainActivity.this, PendingActivity.class);
-//                startActivityForResult(pendingActivity, getResources().getInteger(R.integer.pending_request));
-//            }
-//        });
+        /*
+        FloatingActionButton pending_fab = (FloatingActionButton) findViewById(R.id.pending_fab);
+        Objects.requireNonNull(pending_fab).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent pendingActivity = new Intent(MainActivity.this, PendingActivity.class);
+                startActivityForResult(pendingActivity, getResources().getInteger(R.integer.pending_request));
+            }
+        }); */
 
         if(getIntent().getStringExtra("meetingID") != null){
             mLocalBroadcastManager.sendBroadcast(getIntent());

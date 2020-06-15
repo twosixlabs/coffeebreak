@@ -3,6 +3,8 @@ package com.bbn.coffeebreak;
 // DialogSheet from: https://github.com/marcoscgdev/DialogSheet
 
 import android.content.Context;
+import android.content.DialogInterface;
+
 import com.marcoscg.dialogsheet.DialogSheet;
 
 public class MeetingRequestDialog {
@@ -11,7 +13,8 @@ public class MeetingRequestDialog {
 
     public static DialogSheet request(Context c, String message,
                                       DialogSheet.OnPositiveClickListener posListen,
-                                      DialogSheet.OnNegativeClickListener negListen){
+                                      DialogSheet.OnNegativeClickListener negListen,
+                                      DialogInterface.OnDismissListener onDismissListener){
 
         dialogSheet = new DialogSheet(c)
                 .setTitle(c.getString(R.string.meeting_request_title))
@@ -19,8 +22,11 @@ public class MeetingRequestDialog {
                 .setCancelable(false)
                 .setPositiveButton(c.getString(R.string.accept), posListen)
                 .setNegativeButton(c.getString(R.string.deny), negListen)
+                .setOnDismissListener(onDismissListener)
                 .setButtonsColorRes(R.color.colorPrimary)
-                .setBackgroundColorRes(R.color.white);
+                .setBackgroundColorRes(R.color.white)
+                .setRoundedCorners(false);
+
         return dialogSheet;
     }
 

@@ -15,6 +15,7 @@ public class MeetingCancelDialog {
                 .setCancelable(false)
                 .setPositiveButton(android.R.string.ok, posListen)
                 .setButtonsColorRes(R.color.colorPrimary)
-                .setBackgroundColorRes(R.color.white);
+                .setBackgroundColorRes(R.color.white)
+                .setRoundedCorners(false);
     }
 }
