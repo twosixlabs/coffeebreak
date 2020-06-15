@@ -118,39 +118,6 @@ public class MainActivity extends AppCompatActivity {
 
                 final ObjectMapper mapper = new ObjectMapper();
 
-                /*
-                CountDownTimer timer = new CountDownTimer(60000, 1000) {
-                    @Override
-                    public void onTick(long l) {
-                        //do nothing
-                        Log.d(TAG, "resend timer start");
-                    }
-
-                    @Override
-                    public void onFinish() {
-                        Log.d(TAG, "resend timer finished");
-
-                        InviteResponse response = new InviteResponse();
-                        response.setMeetingID(intent.getStringExtra("meetingID"));
-                        response.setAdditionalProperty("attendees", intent.getStringArrayListExtra("attendees"));
-                        response.setAdditionalProperty("organizer", intent.getStringExtra("organizer"));
-                        response.setResponse(2);
-
-                        if (MeetingRequestDialog.dialogExists()) {
-                            MeetingRequestDialog.dismiss();
-                        }
-
-                        Log.d(TAG, "Sending meeting timed out response for meetingID: " + intent.getStringExtra("meetingID"));
-
-                        try {
-                            sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
-                            mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
-                        } catch (JsonProcessingException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }.start();*/
-
                 MeetingRequestDialog.request(MainActivity.this, message,
                         new DialogSheet.OnPositiveClickListener() {
                             @Override
@@ -186,8 +153,7 @@ public class MainActivity extends AppCompatActivity {
                         }, new DialogInterface.OnDismissListener() {
                             @Override
                             public void onDismiss(DialogInterface dialogInterface) {
-                                //timer.cancel();
-                                //Log.d(TAG, "resend timer cancelled");
+                                //do nothing
                             }
                         }).setTitle(organizer + " wants to meet").show();
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
@@ -286,57 +252,6 @@ public class MainActivity extends AppCompatActivity {
                 String pen = meeting.pending_invites.toString();
                 pen = pen.substring(1, pen.length() - 1);
                 String message = "Waiting on " + pen;
-
-                /*final ObjectMapper mapper = new ObjectMapper();
-
-                CountDownTimer timer = new CountDownTimer(15000, 1000) {
-                    @Override
-                    public void onTick(long l) {
-                        //do nothing
-                        Log.d(TAG, "resend timer start");
-                    }
-
-                    @Override
-                    public void onFinish() {
-                        Log.d(TAG, "resend timer finished");
-
-                        final Intent sendMeetingResponse = new Intent();
-                        sendMeetingResponse.putExtra("meetingID", meetingID);
-                        sendMeetingResponse.putExtra("organizer", meeting.organizer);
-
-                        ArrayList<String> attendees = new ArrayList<String>();
-                        for(int i = 0; i < meeting.attendees.length(); i++){
-                            try {
-                                String attendee = meeting.attendees.get(i).toString();
-                                attendees.add(attendee);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        sendMeetingResponse.putStringArrayListExtra("attendees", attendees);
-                        sendMeetingResponse.setAction(getString(R.string.broadcast_send_meeting_response));
-
-                        InviteResponse response = new InviteResponse();
-                        response.setMeetingID(intent.getStringExtra("meetingID"));
-                        response.setAdditionalProperty("attendees", attendees);
-                        response.setAdditionalProperty("organizer", meeting.organizer);
-                        response.setResponse(2);
-
-                        if (MeetingRequestDialog.dialogExists()) {
-                            MeetingRequestDialog.dismiss();
-                        }
-
-                        Log.d(TAG, "Sending meeting timed out response for meetingID: " + intent.getStringExtra("meetingID"));
-
-                        try {
-                            sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
-                            mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
-                        } catch (JsonProcessingException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }.start();*/
 
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcMessage.setText(message);

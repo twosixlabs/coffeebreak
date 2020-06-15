@@ -262,7 +262,7 @@ public class AMQPCommunication extends Service {
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
 
-            new CountDownTimer(10000, 1000) {
+            new CountDownTimer(30000, 1000) {
                 @Override
                 public void onTick(long l) {
                     //do nothing
@@ -430,7 +430,7 @@ public class AMQPCommunication extends Service {
 
                             final ObjectMapper mapper = new ObjectMapper();
 
-                            resendTimer = new CountDownTimer(15000, 1000) {
+                            resendTimer = new CountDownTimer(60000, 1000) {
                                 @Override
                                 public void onTick(long l) {
                                     //do nothing
@@ -1180,10 +1180,10 @@ public class AMQPCommunication extends Service {
         so we do this in an AsyncTask and then start the thread.
 
      */
-    private class SetupMpcAsyncTask extends AsyncTask<SetupMpcTaskParams, Void, Boolean> {
+    private class SetupMpcAsyncTask extends AsyncTask<SetupMpcTaskParams, Void, Integer> {
 
         @Override
-        protected Boolean doInBackground(SetupMpcTaskParams... params) {
+        protected Integer doInBackground(SetupMpcTaskParams... params) {
 
             // Create AMQP channels
             try {
@@ -1227,23 +1227,26 @@ public class AMQPCommunication extends Service {
 
             }catch (Exception e){
                 e.printStackTrace();
-                return false;
+                return null;
             }
 
-            return true;
+            return params[0].attendees.size();
         }
 
         @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
+        protected void onPostExecute(Integer numAttendees) {
+            super.onPostExecute(numAttendees);
 
-            if(aBoolean){
+            if(numAttendees != null){
                 //show the result on the UI
                 Intent showMpcProgress = new Intent();
                 showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
                 mLocalBroadcastManager.sendBroadcast(showMpcProgress);
 
-                mpctimer = new CountDownTimer(15000, 1000) {
+                int numSec = 35000 * numAttendees;
+                Log.d(TAG, "number of seconds until timeout: " + numSec);
+
+                mpctimer = new CountDownTimer(numSec, 1000) {
                     @Override
                     public void onTick(long l) {
                         //do nothing
