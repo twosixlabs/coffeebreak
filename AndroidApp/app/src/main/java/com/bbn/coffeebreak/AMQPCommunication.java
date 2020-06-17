@@ -30,6 +30,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -906,7 +907,11 @@ public class AMQPCommunication extends Service {
                                 editor.putString(meetingId, meeting.toString());
                                 editor.commit();
 
-//                                Log.d(TAG, "------ SHOWING PENDING 3 -------");
+                                Log.d(TAG, "------ SHOWING PENDING 3 -------");
+                                Intent sendPendingMessage = new Intent(context, MainActivity.class);
+                                sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
+                                sendPendingMessage.setAction(getString(R.string.broadcast_update_meeting_pending));
+                                mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
 //                                Intent sendPendingMessage = new Intent(context, MainActivity.class);
 //                                sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
 //                                sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));

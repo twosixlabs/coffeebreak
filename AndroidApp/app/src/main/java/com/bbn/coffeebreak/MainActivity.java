@@ -303,6 +303,18 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
+            } else if (intent.getAction().equals(getString(R.string.broadcast_update_meeting_pending))) {
+                Log.d(TAG, "Received broadcast to update pending meeting invites");
+
+                MeetingList meetingList = AMQPCommunication.getMeetingList();
+                String meetingID = intent.getStringExtra("meetingID");
+                MeetingList.Meeting meeting = meetingList.getMeeting(meetingID);
+                String pen = meeting.pending_invites.toString();
+                pen = pen.substring(1, pen.length() - 1);
+                String message = "Waiting on " + pen;
+
+                TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+                mpcMessage.setText(message);
             }
         }
     };
@@ -339,6 +351,7 @@ public class MainActivity extends AppCompatActivity {
         mIntentFilter.addAction(getString(R.string.broadcast_show_location_dialog));
         mIntentFilter.addAction(getString(R.string.broadcast_show_meeting_cancel));
         mIntentFilter.addAction(getString(R.string.broadcast_show_meeting_pending));
+        mIntentFilter.addAction(getString(R.string.broadcast_update_meeting_pending));
 
         mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
 
