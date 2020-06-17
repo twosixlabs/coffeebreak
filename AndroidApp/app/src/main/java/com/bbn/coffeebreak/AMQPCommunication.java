@@ -514,7 +514,14 @@ public class AMQPCommunication extends Service {
                                 sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
                                 mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
 
-                                sendMeetingResponse(context, response.toString(), intent.getStringExtra("organizer"));
+                                //sendMeetingResponse(context, response.toString(), intent.getStringExtra("organizer"));
+                                for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
+                                    String attendee = response.getJSONArray("attendees").get(i).toString();
+                                    if(!attendee.equals(username)){
+                                        Log.d(TAG, "Sending meeting response to: " + attendee);
+                                        sendMeetingResponse(context, response.toString(), attendee);
+                                    }
+                                }
                             } else if(message.getInt("response") == 0) {
                                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                                 SharedPreferences.Editor editor = preferences.edit();
@@ -896,7 +903,7 @@ public class AMQPCommunication extends Service {
                             String meetingId = message.getString("meetingID");
                             JSONObject meeting = new JSONObject(preferences.getString(meetingId, "{}"));
                             int responseCount =  meeting.getInt("responses") + 1;
-                            if(responseCount == meeting.getInt("size")){
+                            if(responseCount == meeting.getInt("size") && meeting.getString("organizer").equals(username)){
                                 /*
                                 Send MPC Start message to everyone
                                  */
