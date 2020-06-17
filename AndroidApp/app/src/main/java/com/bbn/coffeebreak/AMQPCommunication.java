@@ -332,7 +332,7 @@ public class AMQPCommunication extends Service {
             if(isAppIsInBackground(context)){
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-                return;
+                //return;
             }
         }
     };
@@ -375,7 +375,7 @@ public class AMQPCommunication extends Service {
             if(isAppIsInBackground(context)){
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-                return;
+                //return;
             }
 
             Intent showMeetingCancel = new Intent();
