@@ -513,6 +513,8 @@ public class AMQPCommunication extends Service {
                                 sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
                                 sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
                                 mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
+
+                                sendMeetingResponse(context, response.toString(), intent.getStringExtra("organizer"));
                             } else if(message.getInt("response") == 0) {
                                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                                 SharedPreferences.Editor editor = preferences.edit();
@@ -529,19 +531,26 @@ public class AMQPCommunication extends Service {
                                 if (notiftimer != null) {
                                     notiftimer.cancel();
                                 }
+
+                                for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
+                                    String attendee = response.getJSONArray("attendees").get(i).toString();
+                                    if(!attendee.equals(username)){
+                                        Log.d(TAG, "Sending meeting response to: " + attendee);
+                                        sendMeetingResponse(context, response.toString(), attendee);
+                                    }
+                                }
                             } else if (message.getInt("response") == 2) {
                                 Log.d(TAG, "Sending meeting response to: " + username);
                                 sendMeetingResponse(context, response.toString(), username);
-                            }
 
-                            for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
-                                String attendee = response.getJSONArray("attendees").get(i).toString();
-                                if(!attendee.equals(username)){
-                                    Log.d(TAG, "Sending meeting response to: " + attendee);
-                                    sendMeetingResponse(context, response.toString(), attendee);
+                                for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
+                                    String attendee = response.getJSONArray("attendees").get(i).toString();
+                                    if(!attendee.equals(username)){
+                                        Log.d(TAG, "Sending meeting response to: " + attendee);
+                                        sendMeetingResponse(context, response.toString(), attendee);
+                                    }
                                 }
                             }
-
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -912,10 +921,6 @@ public class AMQPCommunication extends Service {
                                 sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
                                 sendPendingMessage.setAction(getString(R.string.broadcast_update_meeting_pending));
                                 mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
-//                                Intent sendPendingMessage = new Intent(context, MainActivity.class);
-//                                sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
-//                                sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
-//                                mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
                             }
                         } else {
                             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
