@@ -50,7 +50,7 @@ dependencies {
         exclude module: 'recyclerview-v7'
         exclude module: 'appcompat-v7'
     }
-    implementation ('com.github.broakenmedia:MultiContactPicker:1.7'){
+    implementation ('com.github.broakenmedia:MultiContactPicker:1.8.5'){
         exclude module: 'support'
         exclude module: 'support-compat'
         exclude module: 'design'

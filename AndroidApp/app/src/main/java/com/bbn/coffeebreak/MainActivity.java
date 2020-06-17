@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marcoscg.dialogsheet.DialogSheet;
 import com.wafflecopter.multicontactpicker.ContactResult;
 import com.wafflecopter.multicontactpicker.MultiContactPicker;
+import com.wafflecopter.multicontactpicker.RxContacts.PhoneNumber;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -386,7 +387,6 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == getResources().getInteger(R.integer.contact_picker_request)) {
 
             if (resultCode == RESULT_OK) {
-
                 final SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
                 List<ContactResult> results = MultiContactPicker.obtainResult(data);
@@ -402,7 +402,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this, "No phone number associated with contact", Toast.LENGTH_LONG).show();
                         return;
                     }
-                    contactPhones[j] = PhoneNumberUtils.formatNumberToE164(c.getPhoneNumbers().get(0), "US");
+                    contactPhones[j] = PhoneNumberUtils.formatNumberToE164((c.getPhoneNumbers().get(0).getNumber()), "US");
                     if (contactPhones[j] == null) {
                         Toast.makeText(MainActivity.this, "Contact has invalid US phone number", Toast.LENGTH_LONG).show();
                         return;

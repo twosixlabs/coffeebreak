@@ -8,9 +8,13 @@ import android.content.Context;
 import android.graphics.Color;
 import androidx.core.content.ContextCompat;
 
+import com.wafflecopter.multicontactpicker.LimitColumn;
 import com.wafflecopter.multicontactpicker.MultiContactPicker;
+import com.wafflecopter.multicontactpicker.MultiContactPickerActivity;
+import com.wafflecopter.multicontactpicker.RxContacts.RxContacts;
 
 public class ContactPicker {
+    private static MultiContactPicker mcp;
 
     public static void startContactPicker(Context c){
         new MultiContactPicker.Builder((Activity)c)
@@ -22,6 +26,7 @@ public class ContactPicker {
                 .handleColor(ContextCompat.getColor(c, R.color.colorPrimary))
                 .bubbleColor(ContextCompat.getColor(c, R.color.colorPrimary))
                 .bubbleTextColor(Color.WHITE)
+                .limitToColumn(LimitColumn.PHONE)
                 .showPickerForResult(c.getResources().getInteger(R.integer.contact_picker_request));
     }
 }

@@ -103,6 +103,7 @@ public class AMQPCommunication extends Service {
 
     private CountDownTimer mpctimer;
     private CountDownTimer resendTimer;
+    private CountDownTimer notiftimer;
 
     private ResultReceiver starbucksLocationReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @Override
@@ -262,7 +263,7 @@ public class AMQPCommunication extends Service {
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
 
-            new CountDownTimer(30000, 1000) {
+            notiftimer = new CountDownTimer(30000, 1000) {
                 @Override
                 public void onTick(long l) {
                     //do nothing
@@ -468,6 +469,7 @@ public class AMQPCommunication extends Service {
                                 }
                             }.start();
 
+                            Log.d(TAG, "------ SHOWING PENDING 1 -------");
                             Intent sendPendingMessage = new Intent(context, MainActivity.class);
                             sendPendingMessage.putExtra("meetingID", invite.getString("meetingID"));
                             sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
@@ -505,6 +507,7 @@ public class AMQPCommunication extends Service {
                                 editor.putString(message.getString("meetingID"), meeting.toString());
                                 editor.commit();
 
+                                Log.d(TAG, "------ SHOWING PENDING 2 -------");
                                 Intent sendPendingMessage = new Intent(context, MainActivity.class);
                                 sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
                                 sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
@@ -521,6 +524,9 @@ public class AMQPCommunication extends Service {
 
                                 if (resendTimer != null) {
                                     resendTimer.cancel();
+                                }
+                                if (notiftimer != null) {
+                                    notiftimer.cancel();
                                 }
                             } else if (message.getInt("response") == 2) {
                                 Log.d(TAG, "Sending meeting response to: " + username);
@@ -559,7 +565,13 @@ public class AMQPCommunication extends Service {
 
                             meetingList.removeMeeting(startMessage.getString("meetingID"));
 
-                            resendTimer.cancel();
+                            if (resendTimer != null) {
+                                resendTimer.cancel();
+                            }
+
+                            if (notiftimer != null) {
+                                notiftimer.cancel();
+                            }
 
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < startMessage.getJSONArray("attendees").length(); i++){
@@ -894,10 +906,11 @@ public class AMQPCommunication extends Service {
                                 editor.putString(meetingId, meeting.toString());
                                 editor.commit();
 
-                                Intent sendPendingMessage = new Intent(context, MainActivity.class);
-                                sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
-                                sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
-                                mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
+//                                Log.d(TAG, "------ SHOWING PENDING 3 -------");
+//                                Intent sendPendingMessage = new Intent(context, MainActivity.class);
+//                                sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
+//                                sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
+//                                mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
                             }
                         } else {
                             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
@@ -937,6 +950,9 @@ public class AMQPCommunication extends Service {
                             if (resendTimer != null) {
                                 resendTimer.cancel();
                             }
+                            if (notiftimer != null) {
+                                notiftimer.cancel();
+                            }
                         }
 
                     }else if(properties.getType().equals("start")){
@@ -955,6 +971,9 @@ public class AMQPCommunication extends Service {
 
                         if (resendTimer != null) {
                             resendTimer.cancel();
+                        }
+                        if (notiftimer != null) {
+                            notiftimer.cancel();
                         }
 
                         Intent startMpc = new Intent();
@@ -1243,7 +1262,7 @@ public class AMQPCommunication extends Service {
                 showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
                 mLocalBroadcastManager.sendBroadcast(showMpcProgress);
 
-                int numSec = 35000 * numAttendees;
+                int numSec = 70000 * numAttendees;
                 Log.d(TAG, "number of seconds until timeout: " + numSec);
 
                 mpctimer = new CountDownTimer(numSec, 1000) {
