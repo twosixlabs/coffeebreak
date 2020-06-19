@@ -336,7 +336,7 @@ public class MainActivity extends AppCompatActivity {
         mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-        Log.d(TAG, "pref: " + preferences.getAll());
+        Log.d(TAG, "preferences: " + preferences.getAll());
 
         TextView usernameDisplay = (TextView) findViewById(R.id.usernameDisplay);
         usernameDisplay.setText(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)).toUpperCase());

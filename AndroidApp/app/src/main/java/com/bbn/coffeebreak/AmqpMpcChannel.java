@@ -51,7 +51,7 @@ public class AmqpMpcChannel implements CoffeeChannel {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 super.handleDelivery(consumerTag, envelope, properties, body);
-                Log.d(TAG, "Received message from AMQP");
+                Log.d(TAG, "Received message from AMQP: " + envelope);
                 try {
                     mBlockingQueue.put(Arrays.copyOf(body, body.length));
                 } catch (InterruptedException e) {
@@ -85,10 +85,11 @@ public class AmqpMpcChannel implements CoffeeChannel {
                 .replyTo(mUsername)
                 .build();
 
-        if(mChannel.isOpen())
+        if(mChannel.isOpen()) {
             mChannel.basicPublish("", mSendQueue, basicProperties, data);
-        else
+        } else {
             throw new IOException("Channel is closed.");
+        }
     }
 
     @Override
@@ -109,6 +110,7 @@ public class AmqpMpcChannel implements CoffeeChannel {
             try {
                 r = mBlockingQueue.take();
             } catch (InterruptedException e) {
+                Log.d(TAG, "THREAD INTERRUPTED EXCEPTION: " + e);
                 Thread.currentThread().interrupt();
                 throw new IOException(e);
             }

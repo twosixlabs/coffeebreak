@@ -22,6 +22,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.MessageQueue;
 import android.os.ResultReceiver;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -30,6 +31,8 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.util.Log;
+import android.util.PrintWriterPrinter;
+import android.util.Printer;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -54,7 +57,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -62,6 +68,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
@@ -107,6 +114,7 @@ public class AMQPCommunication extends Service {
     private CountDownTimer notiftimer;
 
     private ResultReceiver starbucksLocationReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
+        @SuppressLint("MissingPermission")
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             super.onReceiveResult(resultCode, resultData);
@@ -120,10 +128,9 @@ public class AMQPCommunication extends Service {
                         try{
                             channel.basicCancel(s);
                         }catch(Exception e){
-                            // just catch
+                            Log.d(TAG, "channel.basicCancel exception: " + e);
                         }
                     }
-
                 }
             });
 
@@ -182,14 +189,44 @@ public class AMQPCommunication extends Service {
             }else{
                 Log.d(TAG, "Got error in HTTP request for mapbox");
                 Log.d(TAG, "LOG: " + mpc.getLog());
+
                 Intent showMeetingLocation = new Intent();
                 showMeetingLocation.putExtra("address", "ERROR");
                 showMeetingLocation.putExtra("latitude", 0.0f);
                 showMeetingLocation.putExtra("longitude", 0.0f);
                 showMeetingLocation.setAction(getString(R.string.broadcast_show_meeting_location));
                 mLocalBroadcastManager.sendBroadcast(showMeetingLocation);
+
                 mHandler.post(cleanupQueues);
 
+                if(connection != null){
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                connection.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+
+                }
+
+                mpcHandlerThread.interrupt();
+
+                mHandlerThread.quit();
+                mpcHandlerThread.quit();
+
+                mHandlerThread = new HandlerThread("AMQP-Handler-Thread");
+                mpcHandlerThread = new HandlerThread("MPC-Handler-Thread");
+                mpcHandlerThread.setPriority(Thread.MAX_PRIORITY);
+                mHandlerThread.start();
+                mpcHandlerThread.start();
+                mHandler = new Handler(mHandlerThread.getLooper());
+                mpcHandler = new Handler(mpcHandlerThread.getLooper());
+
+                setupAMQPConnection(context);
             }
 
 
@@ -200,6 +237,11 @@ public class AMQPCommunication extends Service {
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             super.onReceiveResult(resultCode, resultData);
+
+            if (resultData == null) {
+                Log.d(TAG, "result data null");
+                return;
+            }
 
             mpctimer.cancel();
 
@@ -226,7 +268,6 @@ public class AMQPCommunication extends Service {
             super.onLocationResult(locationResult);
             Location location = locationResult.getLastLocation();
             if (location != null) {
-                //Log.d(TAG, "Got location: " + location);
                 mLastLocation = location;
             }
         }
@@ -489,8 +530,6 @@ public class AMQPCommunication extends Service {
                             /*
                             Send meeting response back to all participants
                              */
-                            Log.d(TAG, "Calling sendMeetingResponse now");
-
                             JSONObject response = new JSONObject(new String(intent.getStringExtra("response")));
 
                             JSONObject message = new JSONObject(new String(response.toString().getBytes()));
@@ -763,7 +802,7 @@ public class AMQPCommunication extends Service {
         SharedPreferences.Editor editor = preferences.edit();
         editor.clear();
         editor.commit();
-        Log.d(TAG, "preference: " + preferences.getAll());
+        Log.d(TAG, "preferences: " + preferences.getAll());
 
         if(intent != null){
             AMQPHost = intent.getStringExtra(getString(R.string.amqpIp));
@@ -934,8 +973,6 @@ public class AMQPCommunication extends Service {
                             SharedPreferences.Editor editor = preferences.edit();
                             String meetingId = message.getString("meetingID");
 
-                            Log.d(TAG, "preferences: " + preferences.getAll());
-
                             meetingList.removeMeeting(meetingId);
 
                             JSONObject meeting = new JSONObject(preferences.getString(meetingId, "{}"));
@@ -954,10 +991,8 @@ public class AMQPCommunication extends Service {
                             b.putStringArrayList("attendees", attendees);
 
                             if (message.getInt("response") == 0) {
-                                Log.d(TAG, "Response code 0");
                                 showMeetingCancelDialog.send(1, b);
                             } else {
-                                Log.d(TAG, "Response code 2");
                                 showMeetingCancelDialog.send(0, b);
                             }
 
@@ -1093,7 +1128,6 @@ public class AMQPCommunication extends Service {
 
     public void sendMeetingResponse(Context c, String data, String routing_key) {
 
-        Log.d(TAG, "In sendMeetingResponse...");
         //set the message properties
         AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
                 .correlationId(UUID.randomUUID().toString())
@@ -1101,12 +1135,10 @@ public class AMQPCommunication extends Service {
                 .replyTo(username)
                 .build();
 
-        Log.d(TAG, "basic properties built.");
         if(channel == null){
             Log.d(TAG, "Error sending meeting response");
             return;
         }
-        Log.d(TAG, "Channel is not null...");
 
         try {
             Log.d(TAG, "attempting to publish on " + INVITE_EXCHANGE + " with routing key " + routing_key);
@@ -1144,6 +1176,7 @@ public class AMQPCommunication extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+
         if(connection != null){
             mHandler.post(new Runnable() {
                 @Override
@@ -1234,6 +1267,7 @@ public class AMQPCommunication extends Service {
                         AmqpMpcChannel c = new AmqpMpcChannel(channel, params[0].meetingId, s, username);
                         channels.add(c);
                         Log.d(TAG, " adding channel for " + s);
+                        Log.d(TAG, " channel consumer tag: " + c.getConsumerTag());
                         queueList.add(c.getConsumerTag());
                     }
                 }
@@ -1279,7 +1313,8 @@ public class AMQPCommunication extends Service {
                 showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
                 mLocalBroadcastManager.sendBroadcast(showMpcProgress);
 
-                int numSec = 70000 * numAttendees;
+                //int numSec = 70000 * numAttendees;
+                int numSec = 30000;
                 Log.d(TAG, "number of seconds until timeout: " + numSec);
 
                 mpctimer = new CountDownTimer(numSec, 1000) {
