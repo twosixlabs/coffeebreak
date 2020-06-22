@@ -3,7 +3,9 @@ package com.bbn.coffeebreak;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -37,6 +39,14 @@ public class MapActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Mapbox.getInstance(getApplicationContext(), "YOUR_MAPBOX_ACCESS_TOKEN_GOES_HERE");
         setContentView(R.layout.activity_map);
+
+        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("current_screen", "activity_map");
+        editor.commit();
+
+        Log.d("[MapActivity", "pref: " + preferences.getString("current_screen", "activity_main"));
+
         mapView = (MapView) findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(new OnMapReadyCallback() {

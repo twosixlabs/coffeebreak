@@ -12,6 +12,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -28,6 +30,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.telephony.PhoneNumberUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -162,6 +165,11 @@ public class MainActivity extends AppCompatActivity {
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcProgress.setVisibility(View.INVISIBLE);
                 mpcMessage.setVisibility(View.INVISIBLE);
+
+                FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+                fab.setEnabled(true);
+                fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
+
                 if(intent.getStringExtra("address").equals("ERROR")){
                     AlertDialog errorDialog = new AlertDialog.Builder(MainActivity.this).create();
                     errorDialog.setTitle("Error performing MPC");
@@ -205,6 +213,10 @@ public class MainActivity extends AppCompatActivity {
                 cancelButton.setVisibility(View.INVISIBLE);
                 cancelButton.setEnabled(false);
 
+                FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+                fab.setEnabled(false);
+                fab.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
+
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_location_dialog))) {
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                 alertDialog.setTitle("Can't get GPS location");
@@ -230,6 +242,10 @@ public class MainActivity extends AppCompatActivity {
                 mpcMessage.setVisibility(View.INVISIBLE);
                 cancelButton.setVisibility(View.INVISIBLE);
                 cancelButton.setEnabled(false);
+
+                FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+                fab.setEnabled(true);
+                fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
 
                 String meetingID = intent.getStringExtra("meetingID");
                 String invitee = intent.getStringExtra("invitee");
@@ -262,6 +278,10 @@ public class MainActivity extends AppCompatActivity {
                 cancelButton.setVisibility(View.VISIBLE);
                 cancelButton.setEnabled(true);
 
+                FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+                fab.setEnabled(false);
+                fab.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
+
                 Objects.requireNonNull(cancelButton).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -270,6 +290,9 @@ public class MainActivity extends AppCompatActivity {
                         mpcMessage.setVisibility(View.INVISIBLE);
                         cancelButton.setVisibility(View.INVISIBLE);
                         cancelButton.setEnabled(false);
+
+                        fab.setEnabled(true);
+                        fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
 
                         final Intent sendMeetingResponse = new Intent();
                         sendMeetingResponse.putExtra("meetingID", meetingID);
@@ -336,6 +359,10 @@ public class MainActivity extends AppCompatActivity {
         mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("current_screen", "activity_main");
+        editor.commit();
+
         Log.d(TAG, "preferences: " + preferences.getAll());
 
         TextView usernameDisplay = (TextView) findViewById(R.id.usernameDisplay);
@@ -360,6 +387,8 @@ public class MainActivity extends AppCompatActivity {
         generator = new Random();
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setEnabled(true);
+        fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
         Objects.requireNonNull(fab).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -387,7 +416,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("current_screen", "activity_main");
+        editor.commit();
+
+        Log.d(TAG, "in onResume");
+        Log.d(TAG, "pref: " + preferences.getString("current_screen", "activity_main"));
+
         ((TextView)(findViewById(R.id.noiseDisplay))).setText("Noise level: " + String.valueOf(preferences.getInt(getString(R.string.noise_value), 5)) + "km");
     }
 

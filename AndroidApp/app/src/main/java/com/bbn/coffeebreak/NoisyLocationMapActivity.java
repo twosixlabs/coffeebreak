@@ -117,6 +117,12 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
 
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
+
+        editor.putString("current_screen", "activity_noisy_map");
+        editor.commit();
+
+        Log.d(TAG, "pref: " + preferences.getString("current_screen", "activity_main"));
+
         int noise = preferences.getInt(getString(R.string.noise_value), 5);
         mMockLocation = preferences.getBoolean(getString(R.string.mock_location), getResources().getBoolean(R.bool.mock_location));
         if(mMockLocation){

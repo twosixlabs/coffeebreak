@@ -1,6 +1,7 @@
 package com.bbn.coffeebreak;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -12,6 +13,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.AssetManager;
+import android.hardware.display.DisplayManager;
 import android.location.Location;
 import android.media.RingtoneManager;
 import android.os.AsyncTask;
@@ -33,6 +36,11 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.util.Log;
 import android.util.PrintWriterPrinter;
 import android.util.Printer;
+import android.view.Display;
+import android.view.LayoutInflater;
+import android.view.WindowManager;
+import android.view.accessibility.AccessibilityManager;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -165,7 +173,7 @@ public class AMQPCommunication extends Service {
                             .setContentTitle("MPC complete")
                             .setContentText("Finished secure multi-party computation")
                             .setAutoCancel(true)
-                            .setPriority(NotificationCompat.PRIORITY_HIGH)
+                            .setPriority(NotificationCompat.PRIORITY_MAX)
                             .setColor(getColor(R.color.colorPrimary))
                             .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
                             .setChannelId(getString(R.string.notification_channel_id))
@@ -174,10 +182,19 @@ public class AMQPCommunication extends Service {
 
                     NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
                     // notificationId is a unique int for each notification that you must define
-                    if(isAppIsInBackground(context)){
+
+                    SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+
+                    if (isAppIsInBackground(context)){
                         Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                         notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-                        return;
+                        //return;
+                    } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
+                        Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
+                        notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+
+//                        Notification notification = builder.build();
+//                        startForeground(Integer.parseInt(resultData.getString("meetingID")), notification);
                     }
 
                     showMeetingLocation.setAction(getString(R.string.broadcast_show_meeting_location));
@@ -296,7 +313,7 @@ public class AMQPCommunication extends Service {
                     .setContentTitle("Meeting Request")
                     .setContentText(resultData.getString("organizer") + " is requesting to meet with you")
                     .setAutoCancel(true)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setColor(getColor(R.color.colorPrimary))
                     .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
                     .setChannelId(getString(R.string.notification_channel_id))
@@ -304,6 +321,8 @@ public class AMQPCommunication extends Service {
                     .setContentIntent(pendingIntent);
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+            Log.d(TAG, "preferences: " + preferences.getString("current_screen", "activity_main"));
 
             notiftimer = new CountDownTimer(30000, 1000) {
                 @Override
@@ -316,8 +335,16 @@ public class AMQPCommunication extends Service {
                 public void onFinish() {
                     Log.d(TAG, "notification timer finished");
                     if(isAppIsInBackground(context)){
+                        Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                         notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+                    } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
+                        Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
+                        notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+
+//                        Notification notification = builder.build();
+//                        startForeground(Integer.parseInt(resultData.getString("meetingID")), notification);
                     }
+
                 }
             }.start();
 
@@ -326,6 +353,12 @@ public class AMQPCommunication extends Service {
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
                 //return;
+            } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
+                Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
+                notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+
+//                Notification notification = builder.build();
+//                startForeground(Integer.parseInt(resultData.getString("meetingID")), notification);
             }
 
             Intent showMeetingRequest = new Intent();
@@ -361,7 +394,7 @@ public class AMQPCommunication extends Service {
                     .setContentTitle("Meeting Request")
                     .setContentText(resultData.getString("organizer") + " is requesting to meet with you")
                     .setAutoCancel(true)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setColor(getColor(R.color.colorPrimary))
                     .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
                     .setChannelId(getString(R.string.notification_channel_id))
@@ -370,10 +403,20 @@ public class AMQPCommunication extends Service {
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
             // notificationId is a unique int for each notification that you must define
+
+            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+            Log.d(TAG, "preferences: " + preferences.getString("current_screen", "activity_main"));
+
             if(isAppIsInBackground(context)){
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
                 //return;
+            } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
+                Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
+                notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+
+//                Notification notification = builder.build();
+//                startForeground(Integer.parseInt(resultData.getString("meetingID")), notification);
             }
         }
     };
@@ -404,7 +447,7 @@ public class AMQPCommunication extends Service {
                     .setContentTitle("Meeting cancelled")
                     .setContentText(message)
                     .setAutoCancel(true)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setColor(getColor(R.color.colorPrimary))
                     .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
                     .setChannelId(getString(R.string.notification_channel_id))
@@ -413,10 +456,20 @@ public class AMQPCommunication extends Service {
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
             // notificationId is a unique int for each notification that you must define
+
+            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+            Log.d(TAG, "preferences: " + preferences.getString("current_screen", "activity_main"));
+
             if(isAppIsInBackground(context)){
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
                 //return;
+            } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
+                Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
+                notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+
+//                Notification notification = builder.build();
+//                startForeground(Integer.parseInt(resultData.getString("meetingID")), notification);
             }
 
             Intent showMeetingCancel = new Intent();
