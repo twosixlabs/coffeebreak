@@ -192,9 +192,6 @@ public class AMQPCommunication extends Service {
                     } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
                         Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                         notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-
-//                        Notification notification = builder.build();
-//                        startForeground(Integer.parseInt(resultData.getString("meetingID")), notification);
                     }
 
                     showMeetingLocation.setAction(getString(R.string.broadcast_show_meeting_location));
@@ -340,9 +337,6 @@ public class AMQPCommunication extends Service {
                     } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
                         Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                         notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-
-//                        Notification notification = builder.build();
-//                        startForeground(Integer.parseInt(resultData.getString("meetingID")), notification);
                     }
 
                 }
@@ -356,9 +350,6 @@ public class AMQPCommunication extends Service {
             } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-
-//                Notification notification = builder.build();
-//                startForeground(Integer.parseInt(resultData.getString("meetingID")), notification);
             }
 
             Intent showMeetingRequest = new Intent();
@@ -414,9 +405,6 @@ public class AMQPCommunication extends Service {
             } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-
-//                Notification notification = builder.build();
-//                startForeground(Integer.parseInt(resultData.getString("meetingID")), notification);
             }
         }
     };
@@ -469,9 +457,6 @@ public class AMQPCommunication extends Service {
             } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-
-//                Notification notification = builder.build();
-//                startForeground(Integer.parseInt(resultData.getString("meetingID")), notification);
             }
 
             Intent showMeetingCancel = new Intent();
@@ -541,8 +526,7 @@ public class AMQPCommunication extends Service {
                                 }
                             }
 
-                            for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){
-                                String attendee = invite.getJSONArray("attendees").get(i).toString();
+                            for(String attendee : attendees){
                                 if(!attendee.equals(username)){
                                     Log.d(TAG, "Sending meeting invite to: " + attendee);
                                     sendMeetingInvite(context, invite.toString(), attendee);
