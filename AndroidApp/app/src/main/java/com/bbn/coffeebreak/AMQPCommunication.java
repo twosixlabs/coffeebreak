@@ -430,8 +430,10 @@ public class AMQPCommunication extends Service {
             String message = "";
             if (resultCode == 1) {
                 message = resultData.getString("user_cancelled") + " has rejected the meeting";
-            } else {
+            } else if (resultCode == 0) {
                 message = "Meeting invite timed out - not all invitees responded";
+            } else {
+                message = "Meeting invite not sent - not all parties are connected";
             }
 
             Intent notifIntent = new Intent(context, MainActivity.class);
@@ -514,10 +516,33 @@ public class AMQPCommunication extends Service {
 
                             Log.d(TAG, "preferences info: " + preferences.getAll());
 
+
+                            Channel tempChannel = null;
+                            try {
+                                tempChannel = connection.createChannel();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){
                                 String attendee = invite.getJSONArray("attendees").get(i).toString();
                                 attendees.add(attendee);
+                                if(!attendee.equals(username)){
+                                    try {
+                                        tempChannel.queueDeclarePassive("invite-" + attendee);
+                                    } catch (IOException e) {
+                                        Log.d(TAG, "queue does not exist for " + attendee);
+                                        e.printStackTrace();
+
+                                        sendMeetingErrorMessage(context, invite.toString(), username);
+                                        return;
+                                    }
+                                }
+                            }
+
+                            for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){
+                                String attendee = invite.getJSONArray("attendees").get(i).toString();
                                 if(!attendee.equals(username)){
                                     Log.d(TAG, "Sending meeting invite to: " + attendee);
                                     sendMeetingInvite(context, invite.toString(), attendee);
@@ -971,6 +996,7 @@ public class AMQPCommunication extends Service {
 
         // Consumer queue for invites
         final Consumer inviteConsumer = new DefaultConsumer(channel){
+
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 super.handleDelivery(consumerTag, envelope, properties, body);
@@ -1134,6 +1160,25 @@ public class AMQPCommunication extends Service {
                         temp.putString("end", message.getJSONObject("constraints").getString("end"));
 
                         showMeetingRequestDialog.send(0, temp);
+                    }else if(properties.getType().equals("error")){
+                        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                        String meetingId = message.getString("meetingID");
+
+                        JSONObject meeting = new JSONObject(preferences.getString(meetingId, "{}"));
+
+                        Bundle b = new Bundle();
+                        b.putString("meetingID", meetingId);
+                        b.putString("organizer", meeting.getString("organizer"));
+                        b.putString("user_cancelled", properties.getReplyTo());
+
+                        ArrayList<String> attendees = new ArrayList<>();
+                        JSONArray s = meeting.getJSONArray("attendees");
+                        for(int i = 0; i < s.length(); i++){
+                            attendees.add(s.get(i).toString());
+                        }
+                        b.putStringArrayList("attendees", attendees);
+
+                        showMeetingCancelDialog.send(2, b);
                     }
 
                 } catch (Exception e) {
@@ -1155,6 +1200,30 @@ public class AMQPCommunication extends Service {
     /*
     Function for sending a message to a user
      */
+    public void sendMeetingErrorMessage(Context c, String data, String routing_key) {
+
+        //set the message properties
+        AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
+                .correlationId(UUID.randomUUID().toString())
+                .type("error")
+                .replyTo(username)
+                .build();
+
+        if(channel == null){
+            Log.d(TAG, "Error sending meeting error message");
+            return;
+        }
+
+        try {
+            Log.d(TAG, "attempting to publish on " + INVITE_EXCHANGE + " with routing key " + routing_key);
+            channel.basicPublish(INVITE_EXCHANGE, routing_key, basicProperties, data.getBytes());
+            Log.d(TAG, "[x] Sent meeting error message to " + routing_key);
+        } catch (Exception e) {
+            Log.d(TAG, "Exception on AMQP Channel");
+            e.printStackTrace();
+        }
+    }
+
     public void sendMeetingInvite(Context c, String data, String routing_key) {
 
             //set the message properties

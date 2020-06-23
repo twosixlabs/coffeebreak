@@ -517,7 +517,9 @@ public class MainActivity extends AppCompatActivity {
                     sendMeetingInvite.putExtra("event", mapper.writeValueAsString(i));
                     sendMeetingInvite.setAction(getString(R.string.broadcast_send_meeting_invite));
                     mLocalBroadcastManager.sendBroadcast(sendMeetingInvite);
+                    Log.d(TAG, "sending invite");
                 } catch (JsonProcessingException e) {
+                    Log.d(TAG, "sending invite error: " + e);
                     e.printStackTrace();
                 }
 
