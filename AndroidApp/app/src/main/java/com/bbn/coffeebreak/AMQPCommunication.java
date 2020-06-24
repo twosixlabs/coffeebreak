@@ -1419,8 +1419,7 @@ public class AMQPCommunication extends Service {
                 showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
                 mLocalBroadcastManager.sendBroadcast(showMpcProgress);
 
-                //int numSec = 70000 * numAttendees;
-                int numSec = 30000;
+                int numSec = 70000 * numAttendees;
                 Log.d(TAG, "number of seconds until timeout: " + numSec);
 
                 mpctimer = new CountDownTimer(numSec, 1000) {

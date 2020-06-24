@@ -184,6 +184,7 @@ public class MainActivity extends AppCompatActivity {
                     errorDialog.show();
                 }else{
                     AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+                    alertDialog.setCancelable(false);
                     alertDialog.setTitle("Secure Meeting Location");
                     alertDialog.setMessage(intent.getStringExtra("address"));
                     alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Show on map",
@@ -195,6 +196,13 @@ public class MainActivity extends AppCompatActivity {
                                     showMap.putExtra("longitude", intent.getFloatExtra("longitude", 0.0f));
 
                                     startActivity(showMap);
+                                }
+                            });
+                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Dismiss",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    return;
                                 }
                             });
                     alertDialog.show();
