@@ -421,7 +421,7 @@ public class AMQPCommunication extends Service {
             } else if (resultCode == 0) {
                 message = "Meeting invite timed out - not all invitees responded";
             } else {
-                message = "Meeting invite not sent - not all parties are connected";
+                message = "Meeting invite not sent - " + resultData.getString("error");
             }
 
             Intent notifIntent = new Intent(context, MainActivity.class);
@@ -509,6 +509,12 @@ public class AMQPCommunication extends Service {
                                 e.printStackTrace();
                             }
 
+                            if (MeetingRequestDialog.dialogExists()) {
+                                invite.put("error", "must respond to another invite before starting new meeting");
+                                sendMeetingErrorMessage(context, invite.toString(), username);
+                                return;
+                            }
+
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){
                                 String attendee = invite.getJSONArray("attendees").get(i).toString();
@@ -520,6 +526,7 @@ public class AMQPCommunication extends Service {
                                         Log.d(TAG, "queue does not exist for " + attendee);
                                         e.printStackTrace();
 
+                                        invite.put("error", "not all parties are connected");
                                         sendMeetingErrorMessage(context, invite.toString(), username);
                                         return;
                                     }
@@ -1153,7 +1160,7 @@ public class AMQPCommunication extends Service {
                         Bundle b = new Bundle();
                         b.putString("meetingID", meetingId);
                         b.putString("organizer", meeting.getString("organizer"));
-                        b.putString("user_cancelled", properties.getReplyTo());
+                        b.putString("error", message.getString("error"));
 
                         ArrayList<String> attendees = new ArrayList<>();
                         JSONArray s = meeting.getJSONArray("attendees");

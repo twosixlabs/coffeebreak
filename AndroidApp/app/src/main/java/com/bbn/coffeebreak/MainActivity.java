@@ -265,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
                                 // do nothing
                             }
                         }).setTitle("Meeting Cancelled").show();
-                if (MeetingRequestDialog.dialogExists()) {
+                if (MeetingRequestDialog.dialogExists() && !message.contains("must respond to another invite before starting new meeting")) {
                     MeetingRequestDialog.dismiss();
                 }
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_pending))) {
