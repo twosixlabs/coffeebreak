@@ -372,6 +372,13 @@ public class AMQPCommunication extends Service {
             super.onReceiveResult(resultCode, resultData);
             Log.d(TAG, "in showMeetingCancelDialog");
 
+            if (username.equals(resultData.getString("organizer")) && resendTimer != null) {
+                resendTimer.cancel();
+            }
+            if (username.equals(resultData.getString("organizer")) && notiftimer != null) {
+                notiftimer.cancel();
+            }
+
             String message = "";
             if (resultCode == 1) {
                 message = resultData.getString("user_cancelled") + " has rejected the meeting";
@@ -466,11 +473,11 @@ public class AMQPCommunication extends Service {
                                 e.printStackTrace();
                             }
 
-//                            if (MeetingRequestDialog.dialogExists()) {
-//                                invite.put("error", "must respond to meeting invite before starting new meeting");
-//                                sendMeetingErrorMessage(context, invite.toString(), username);
-//                                return;
-//                            }
+                            if (MeetingRequestDialog.dialogExists()) {
+                                invite.put("error", "invitees are in another meeting");
+                                sendMeetingErrorMessage(context, invite.toString(), username);
+                                return;
+                            }
 
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){

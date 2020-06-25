@@ -274,8 +274,7 @@ public class MainActivity extends AppCompatActivity {
                 String username = intent.getStringExtra("username");
                 String message = "\n" + intent.getStringExtra("message");
 
-                if (!message.contains("Meeting invite not sent") ||
-                        (mpcMessage.getText().toString()).contains(intent.getStringExtra("meetingID"))) {
+                if (!message.contains("Meeting invite not sent") || (mpcMessage.getText().toString()).contains(meetingID)) {
                     mpcMessage.setVisibility(View.INVISIBLE);
                     cancelButton.setVisibility(View.INVISIBLE);
                     cancelButton.setEnabled(false);
@@ -321,12 +320,12 @@ public class MainActivity extends AppCompatActivity {
                 fab.setEnabled(false);
                 fab.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
 
-                if (MeetingRequestDialog.dialogExists()) {
-                    Log.d(TAG, "meeting overlap 4");
-
-                    cancelMeeting(meetingID, 2);
-                    return;
-                }
+//                if (MeetingRequestDialog.dialogExists()) {
+//                    Log.d(TAG, "meeting overlap 4");
+//
+//                    cancelMeeting(meetingID, 2);
+//                    return;
+//                }
 
                 Objects.requireNonNull(cancelButton).setOnClickListener(new View.OnClickListener() {
                     @Override
