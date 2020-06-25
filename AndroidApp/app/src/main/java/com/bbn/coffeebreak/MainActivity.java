@@ -121,6 +121,26 @@ public class MainActivity extends AppCompatActivity {
                 message += "\nWhen: Now";
 
                 final ObjectMapper mapper = new ObjectMapper();
+                TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+
+                if (MeetingRequestDialog.dialogExists()) {
+                    Log.d(TAG, "meeting overlap 1");
+
+                    cancelMeeting(intent.getStringExtra("meetingID"), 1);
+                    return;
+                } else if (mpcMessage.getVisibility() == View.VISIBLE) {
+                    Log.d(TAG, "meeting overlap 2");
+
+                    cancelMeeting(intent.getStringExtra("meetingID"), 1);
+                    return;
+                }
+
+//                else if (!(mpcMessage.getText().toString()).contains(intent.getStringExtra("organizer")) && (mpcMessage.getVisibility() == View.VISIBLE)) {
+//                    Log.d(TAG, "meeting overlap 3");
+//
+//                    cancelMeeting(intent.getStringExtra("meetingID"), 3);
+//                    return;
+//                }
 
                 MeetingRequestDialog.request(MainActivity.this, message,
                         new DialogSheet.OnPositiveClickListener() {
@@ -157,7 +177,8 @@ public class MainActivity extends AppCompatActivity {
                         }, new DialogInterface.OnDismissListener() {
                             @Override
                             public void onDismiss(DialogInterface dialogInterface) {
-                                //do nothing
+                                Log.d(TAG, "resetting");
+                                MeetingRequestDialog.reset();
                             }
                         }).setTitle(organizer + " wants to meet").show();
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
@@ -257,16 +278,22 @@ public class MainActivity extends AppCompatActivity {
 
                 String meetingID = intent.getStringExtra("meetingID");
                 String invitee = intent.getStringExtra("invitee");
+                String organizer = intent.getStringExtra("organizer");
+                String username = intent.getStringExtra("username");
                 String message = "\n" + intent.getStringExtra("message");
-                MeetingCancelDialog.request(MainActivity.this, message,
-                        new DialogSheet.OnPositiveClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                // do nothing
-                            }
-                        }).setTitle("Meeting Cancelled").show();
-                if (MeetingRequestDialog.dialogExists() && !message.contains("must respond to another invite before starting new meeting")) {
-                    MeetingRequestDialog.dismiss();
+                if (!message.contains("Meeting invite not sent") || username.equals(organizer)) {
+                    MeetingCancelDialog.request(MainActivity.this, message,
+                            new DialogSheet.OnPositiveClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    // do nothing
+                                }
+                            }).setTitle("Meeting Cancelled").show();
+                }
+                Log.d(TAG, "message: " + message);
+                if (!message.contains("Meeting invite not sent") || message.contains("invitees are in another meeting")) {
+                    Log.d(TAG, "dismissing dialogs - meetingID: " + intent.getStringExtra("meetingID"));
+                    MeetingRequestDialog.reset();
                 }
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_pending))) {
                 Log.d(TAG, "Received broadcast to show pending meeting");
@@ -276,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
                 MeetingList.Meeting meeting = meetingList.getMeeting(meetingID);
                 String pen = meeting.pending_invites.toString();
                 pen = pen.substring(1, pen.length() - 1);
-                String message = "Waiting on " + pen;
+                String message = "Meeting: " + meetingID + "\nWaiting on " + pen;
 
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcMessage.setText(message);
@@ -290,48 +317,19 @@ public class MainActivity extends AppCompatActivity {
                 fab.setEnabled(false);
                 fab.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
 
+                if (MeetingRequestDialog.dialogExists()) {
+                    Log.d(TAG, "meeting overlap 4");
+
+                    cancelMeeting(meetingID, 2);
+                    return;
+                }
+
                 Objects.requireNonNull(cancelButton).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
                         Log.d(TAG, "cancelling pending meeting");
 
-                        mpcMessage.setVisibility(View.INVISIBLE);
-                        cancelButton.setVisibility(View.INVISIBLE);
-                        cancelButton.setEnabled(false);
-
-                        fab.setEnabled(true);
-                        fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
-
-                        final Intent sendMeetingResponse = new Intent();
-                        sendMeetingResponse.putExtra("meetingID", meetingID);
-                        sendMeetingResponse.putExtra("organizer", meeting.organizer);
-
-                        ArrayList<String> attendees = new ArrayList<String>();
-                        for(int i = 0; i < meeting.attendees.length(); i++){
-                            try {
-                                String attendee = meeting.attendees.get(i).toString();
-                                attendees.add(attendee);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        sendMeetingResponse.putStringArrayListExtra("attendees", attendees);
-                        sendMeetingResponse.setAction(getString(R.string.broadcast_send_meeting_response));
-
-                        final ObjectMapper mapper = new ObjectMapper();
-
-                        InviteResponse response = new InviteResponse();
-                        response.setMeetingID(intent.getStringExtra("meetingID"));
-                        response.setAdditionalProperty("attendees", attendees);
-                        response.setAdditionalProperty("organizer", meeting.organizer);
-                        response.setResponse(0);
-                        try {
-                            sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
-                            mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
-                        } catch (JsonProcessingException e) {
-                            e.printStackTrace();
-                        }
+                        cancelMeeting(meetingID, 0);
                     }
                 });
             } else if (intent.getAction().equals(getString(R.string.broadcast_update_meeting_pending))) {
@@ -342,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
                 MeetingList.Meeting meeting = meetingList.getMeeting(meetingID);
                 String pen = meeting.pending_invites.toString();
                 pen = pen.substring(1, pen.length() - 1);
-                String message = "Waiting on " + pen;
+                String message = "Meeting: " + meetingID + "\nWaiting on " + pen;
 
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcMessage.setText(message);
@@ -350,6 +348,75 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private void cancelMeeting(String meetingID, int code) {
+        Log.d(TAG, "cancelling pending meeting");
+
+        MeetingList meetingList = AMQPCommunication.getMeetingList();
+        MeetingList.Meeting meeting = meetingList.getMeeting(meetingID);
+
+        if (meeting == null) {
+            Log.d(TAG, "meeting already cancelled");
+            return;
+        }
+
+        Log.d(TAG, "meeting id: " + meetingID);
+        Log.d(TAG, "meeting: " + meeting);
+
+        if (code != 1) {
+            TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+            Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
+            FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+
+            mpcMessage.setVisibility(View.INVISIBLE);
+            cancelButton.setVisibility(View.INVISIBLE);
+            cancelButton.setEnabled(false);
+
+            fab.setEnabled(true);
+            fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
+        }
+
+        final Intent sendMeetingResponse = new Intent();
+        sendMeetingResponse.putExtra("meetingID", meetingID);
+        sendMeetingResponse.putExtra("organizer", meeting.organizer);
+        Log.d(TAG, "Meeting organizer:" + meeting.organizer);
+
+        ArrayList<String> attendees = new ArrayList<String>();
+        for(int i = 0; i < meeting.attendees.length(); i++){
+            try {
+                String attendee = meeting.attendees.get(i).toString();
+                attendees.add(attendee);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        sendMeetingResponse.putStringArrayListExtra("attendees", attendees);
+        sendMeetingResponse.setAction(getString(R.string.broadcast_send_meeting_response));
+
+        final ObjectMapper mapper = new ObjectMapper();
+
+        InviteResponse response = new InviteResponse();
+        response.setMeetingID(meetingID);
+        response.setAdditionalProperty("attendees", attendees);
+        response.setAdditionalProperty("organizer", meeting.organizer);
+
+        if (code == 0) {
+            response.setResponse(0);
+        } else if (code == 1) {
+            response.setResponse(3);
+            response.setAdditionalProperty("error", "invitees are invited to another meeting");
+        } else {
+            response.setResponse(3);
+            response.setAdditionalProperty("error", "invitees are in another meeting");
+        }
+
+        try {
+            sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
+            mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
 
     //Suppressing PRIVATEDATA_SERIVCE warnings
     @SuppressLint({"ResourceType", "NewApi"})

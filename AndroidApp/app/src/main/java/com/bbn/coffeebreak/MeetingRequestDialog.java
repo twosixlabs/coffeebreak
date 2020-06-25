@@ -40,4 +40,11 @@ public class MeetingRequestDialog {
     public static void dismiss() {
         dialogSheet.dismiss();
     }
+
+    public static void reset() {
+        if (dialogSheet != null) {
+            dialogSheet.dismiss();
+            dialogSheet = null;
+        }
+    }
 }
