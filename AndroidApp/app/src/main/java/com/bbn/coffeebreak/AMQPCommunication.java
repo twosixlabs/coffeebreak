@@ -377,6 +377,8 @@ public class AMQPCommunication extends Service {
                 message = resultData.getString("user_cancelled") + " has rejected the meeting";
             } else if (resultCode == 0) {
                 message = "Meeting invite timed out - not all invitees responded";
+            } else if (resultData.getString("error").equals("not all parties are connected")) {
+                message = "Could not send meeting invite - " + resultData.getString("error");
             } else {
                 message = "Meeting invite not sent - " + resultData.getString("error");
             }

@@ -268,19 +268,23 @@ public class MainActivity extends AppCompatActivity {
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
 
-                mpcMessage.setVisibility(View.INVISIBLE);
-                cancelButton.setVisibility(View.INVISIBLE);
-                cancelButton.setEnabled(false);
-
-                FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-                fab.setEnabled(true);
-                fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
-
                 String meetingID = intent.getStringExtra("meetingID");
                 String invitee = intent.getStringExtra("invitee");
                 String organizer = intent.getStringExtra("organizer");
                 String username = intent.getStringExtra("username");
                 String message = "\n" + intent.getStringExtra("message");
+
+                if (!message.contains("Meeting invite not sent") ||
+                        (mpcMessage.getText().toString()).contains(intent.getStringExtra("meetingID"))) {
+                    mpcMessage.setVisibility(View.INVISIBLE);
+                    cancelButton.setVisibility(View.INVISIBLE);
+                    cancelButton.setEnabled(false);
+
+                    FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+                    fab.setEnabled(true);
+                    fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
+                }
+
                 if (!message.contains("Meeting invite not sent") || username.equals(organizer)) {
                     MeetingCancelDialog.request(MainActivity.this, message,
                             new DialogSheet.OnPositiveClickListener() {
