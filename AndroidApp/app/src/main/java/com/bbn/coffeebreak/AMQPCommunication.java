@@ -543,7 +543,7 @@ public class AMQPCommunication extends Service {
 
                                         MeetingRequestDialog.reset();
 
-                                        Log.d(TAG, "Sending meeting timed out response for meetingID: " + intent.getStringExtra("meetingID"));
+                                        Log.d(TAG, "Sending meeting timed out response for meetingID: " + invite.getString("meetingID"));
 
                                         sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
                                         mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
@@ -650,11 +650,6 @@ public class AMQPCommunication extends Service {
                                 SharedPreferences.Editor editor = preferences.edit();
                                 String meetingId = message.getString("meetingID");
                                 String organizer = message.getString("organizer");
-
-                                meetingList.removeMeeting(meetingId);
-
-                                editor.remove(meetingId);
-                                editor.commit();
 
                                 if (username.equals(organizer) && resendTimer != null) {
                                     resendTimer.cancel();

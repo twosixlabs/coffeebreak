@@ -135,12 +135,8 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-//                else if (!(mpcMessage.getText().toString()).contains(intent.getStringExtra("organizer")) && (mpcMessage.getVisibility() == View.VISIBLE)) {
-//                    Log.d(TAG, "meeting overlap 3");
-//
-//                    cancelMeeting(intent.getStringExtra("meetingID"), 3);
-//                    return;
-//                }
+                mpcMessage.setText("Meeting " + intent.getStringExtra("meetingID") + " waiting for response...");
+                mpcMessage.setVisibility(View.VISIBLE);
 
                 MeetingRequestDialog.request(MainActivity.this, message,
                         new DialogSheet.OnPositiveClickListener() {
@@ -179,6 +175,9 @@ public class MainActivity extends AppCompatActivity {
                             public void onDismiss(DialogInterface dialogInterface) {
                                 Log.d(TAG, "resetting");
                                 MeetingRequestDialog.reset();
+
+                                mpcMessage.setText("Responded");
+                                mpcMessage.setVisibility(View.INVISIBLE);
                             }
                         }).setTitle(organizer + " wants to meet").show();
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
@@ -294,7 +293,8 @@ public class MainActivity extends AppCompatActivity {
                             }).setTitle("Meeting Cancelled").show();
                 }
                 Log.d(TAG, "message: " + message);
-                if (!message.contains("Meeting invite not sent") || message.contains("invitees are in another meeting")) {
+                //if (!message.contains("Meeting invite not sent") || message.contains("invitees are in another meeting")) {
+                if (!message.contains("Meeting invite not sent") || (mpcMessage.getText().toString()).contains(meetingID)) {
                     Log.d(TAG, "dismissing dialogs - meetingID: " + intent.getStringExtra("meetingID"));
                     MeetingRequestDialog.reset();
                 }
@@ -320,13 +320,6 @@ public class MainActivity extends AppCompatActivity {
                 fab.setEnabled(false);
                 fab.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
 
-//                if (MeetingRequestDialog.dialogExists()) {
-//                    Log.d(TAG, "meeting overlap 4");
-//
-//                    cancelMeeting(meetingID, 2);
-//                    return;
-//                }
-
                 Objects.requireNonNull(cancelButton).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -346,7 +339,10 @@ public class MainActivity extends AppCompatActivity {
                 String message = "Meeting: " + meetingID + "\nWaiting on " + pen;
 
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
-                mpcMessage.setText(message);
+
+                if (!mpcMessage.getText().toString().contains("waiting for response...")) {
+                    mpcMessage.setText(message);
+                }
             }
         }
     };
