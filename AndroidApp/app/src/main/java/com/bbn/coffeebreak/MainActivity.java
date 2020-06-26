@@ -123,7 +123,15 @@ public class MainActivity extends AppCompatActivity {
                 final ObjectMapper mapper = new ObjectMapper();
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
 
-                if (MeetingRequestDialog.dialogExists()) {
+                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+
+                Log.d(TAG, "mpcMessage.getText() before if: " + mpcMessage.getText());
+                Log.d(TAG, "preferences.getString(\"status\", \"\"): " + preferences.getString("status", ""));
+
+                if (MeetingRequestDialog.dialogExists() && preferences.getString("status", "").equals("Meeting " +
+                        intent.getStringExtra("meetingID") + " waiting for response...")) {
+                    //return;
+                } else if (MeetingRequestDialog.dialogExists()) {
                     Log.d(TAG, "meeting overlap 1");
 
                     cancelMeeting(intent.getStringExtra("meetingID"), 1);
@@ -136,7 +144,14 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 mpcMessage.setText("Meeting " + intent.getStringExtra("meetingID") + " waiting for response...");
-                mpcMessage.setVisibility(View.VISIBLE);
+                //mpcMessage.setVisibility(View.VISIBLE);
+
+                SharedPreferences.Editor editor = preferences.edit();
+
+                editor.putString("status", mpcMessage.getText().toString());
+                editor.commit();
+
+                Log.d(TAG, "mpcMessage.getText() after set: " + mpcMessage.getText());
 
                 MeetingRequestDialog.request(MainActivity.this, message,
                         new DialogSheet.OnPositiveClickListener() {
@@ -176,15 +191,22 @@ public class MainActivity extends AppCompatActivity {
                                 Log.d(TAG, "resetting");
                                 MeetingRequestDialog.reset();
 
-                                mpcMessage.setText("Responded");
-                                mpcMessage.setVisibility(View.INVISIBLE);
+                                //mpcMessage.setText("Responded");
+                                //mpcMessage.setVisibility(View.INVISIBLE);
                             }
                         }).setTitle(organizer + " wants to meet").show();
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+                mpcMessage.setText("Start");
                 mpcProgress.setVisibility(View.INVISIBLE);
                 mpcMessage.setVisibility(View.INVISIBLE);
+
+                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                SharedPreferences.Editor editor = preferences.edit();
+
+                editor.putString("status", mpcMessage.getText().toString());
+                editor.commit();
 
                 FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
                 fab.setEnabled(true);
@@ -241,6 +263,12 @@ public class MainActivity extends AppCompatActivity {
                 cancelButton.setVisibility(View.INVISIBLE);
                 cancelButton.setEnabled(false);
 
+                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                SharedPreferences.Editor editor = preferences.edit();
+
+                editor.putString("status", mpcMessage.getText().toString());
+                editor.commit();
+
                 FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
                 fab.setEnabled(false);
                 fab.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
@@ -296,6 +324,13 @@ public class MainActivity extends AppCompatActivity {
                 if (!message.contains("Meeting invite not sent") || (mpcMessage.getText().toString()).contains(meetingID)) {
                     Log.d(TAG, "dismissing dialogs - meetingID: " + intent.getStringExtra("meetingID"));
                     MeetingRequestDialog.reset();
+                    mpcMessage.setText("Start");
+
+                    SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                    SharedPreferences.Editor editor = preferences.edit();
+
+                    editor.putString("status", mpcMessage.getText().toString());
+                    editor.commit();
                 }
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_pending))) {
                 Log.d(TAG, "Received broadcast to show pending meeting");
@@ -310,6 +345,12 @@ public class MainActivity extends AppCompatActivity {
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcMessage.setText(message);
                 mpcMessage.setVisibility(View.VISIBLE);
+
+                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                SharedPreferences.Editor editor = preferences.edit();
+
+                editor.putString("status", mpcMessage.getText().toString());
+                editor.commit();
 
                 Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
                 cancelButton.setVisibility(View.VISIBLE);
@@ -341,6 +382,12 @@ public class MainActivity extends AppCompatActivity {
 
                 if (!mpcMessage.getText().toString().contains("waiting for response...")) {
                     mpcMessage.setText(message);
+
+                    SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                    SharedPreferences.Editor editor = preferences.edit();
+
+                    editor.putString("status", mpcMessage.getText().toString());
+                    editor.commit();
                 }
             }
         }
@@ -497,6 +544,11 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(TAG, "in onResume");
         Log.d(TAG, "pref: " + preferences.getString("current_screen", "activity_main"));
+
+        TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+        mpcMessage.setText(preferences.getString("status", ""));
+
+        Log.d(TAG, "preferences.getString(\"status\", \"\"): " + preferences.getString("status", ""));
 
         ((TextView)(findViewById(R.id.noiseDisplay))).setText("Noise level: " + String.valueOf(preferences.getInt(getString(R.string.noise_value), 5)) + "km");
     }
