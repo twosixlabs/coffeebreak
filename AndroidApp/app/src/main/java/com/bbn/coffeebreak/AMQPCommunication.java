@@ -122,7 +122,6 @@ public class AMQPCommunication extends Service {
     private CountDownTimer mpctimer;
     private CountDownTimer resendTimer;
     private CountDownTimer notiftimer;
-    private CountDownTimer resetTimer;
 
     private ResultReceiver starbucksLocationReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @SuppressLint("MissingPermission")
@@ -345,28 +344,6 @@ public class AMQPCommunication extends Service {
                 }
             }.start();
 
-            if (resetTimer != null) {
-                resetTimer.cancel();
-
-                Log.d(TAG, "resetTimer restarted");
-            }
-
-            resetTimer = new CountDownTimer(65000, 1000) {
-                @Override
-                public void onTick(long l) {
-                    //do nothing
-                }
-
-                @Override
-                public void onFinish() {
-                    Log.d(TAG, "reset timer finished");
-
-                    MeetingRequestDialog.reset();
-
-                    Log.d(TAG, "MeetingRequestDialog.dialogExists(): " + MeetingRequestDialog.dialogExists());
-                }
-            }.start();
-
             // notificationId is a unique int for each notification that you must define
             if(isAppIsInBackground(context)){
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
@@ -576,13 +553,7 @@ public class AMQPCommunication extends Service {
                                 }
                             }.start();
 
-                            if (resetTimer != null) {
-                                resetTimer.cancel();
-
-                                Log.d(TAG, "resetTimer restarted");
-                            }
-
-                            resetTimer = new CountDownTimer(65000, 1000) {
+                            new CountDownTimer(61000, 1000) {
                                 @Override
                                 public void onTick(long l) {
                                     //do nothing
@@ -592,9 +563,7 @@ public class AMQPCommunication extends Service {
                                 public void onFinish() {
                                     Log.d(TAG, "reset timer finished");
 
-                                    MeetingRequestDialog.reset();
-
-                                    Log.d(TAG, "MeetingRequestDialog.dialogExists(): " + MeetingRequestDialog.dialogExists());
+                                    //MeetingRequestDialog.reset();
                                 }
                             }.start();
 
@@ -1184,13 +1153,6 @@ public class AMQPCommunication extends Service {
                         This is an invite message
                          */
                         Log.d(TAG, "Received invite message");
-
-                        if (resetTimer != null) {
-                            resetTimer.cancel();
-                            resetTimer.start();
-
-                            Log.d(TAG, "resetTimer restarted");
-                        }
 
                         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                         SharedPreferences.Editor editor = preferences.edit();
