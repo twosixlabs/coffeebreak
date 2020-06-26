@@ -375,7 +375,7 @@ public class AMQPCommunication extends Service {
             if (username.equals(resultData.getString("organizer")) && resendTimer != null) {
                 resendTimer.cancel();
             }
-            if (username.equals(resultData.getString("organizer")) && notiftimer != null) {
+            if (notiftimer != null) {
                 notiftimer.cancel();
             }
 
@@ -497,11 +497,6 @@ public class AMQPCommunication extends Service {
                                 }
                             }
 
-//                            for(String attendee : attendees){
-//                                Log.d(TAG, "Check if attendee is already in meeting: " + attendee);
-//                                sendMeetingCheck(context, invite.toString(), attendee);
-//                            }
-
                             editor.putString(meeting.getString("meetingID"), meeting.toString());
                             editor.commit();
                             meetingList.insertMeeting(invite);
@@ -553,20 +548,6 @@ public class AMQPCommunication extends Service {
                                 }
                             }.start();
 
-                            new CountDownTimer(61000, 1000) {
-                                @Override
-                                public void onTick(long l) {
-                                    //do nothing
-                                }
-
-                                @Override
-                                public void onFinish() {
-                                    Log.d(TAG, "reset timer finished");
-
-                                    //MeetingRequestDialog.reset();
-                                }
-                            }.start();
-
                             Log.d(TAG, "------ SHOWING PENDING 1 -------");
                             Intent sendPendingMessage = new Intent(context, MainActivity.class);
                             sendPendingMessage.putExtra("meetingID", invite.getString("meetingID"));
@@ -589,6 +570,11 @@ public class AMQPCommunication extends Service {
                             JSONObject response = new JSONObject(new String(intent.getStringExtra("response")));
 
                             JSONObject message = new JSONObject(new String(response.toString().getBytes()));
+
+                            if (notiftimer != null) {
+                                notiftimer.cancel();
+                            }
+
                             if(message.getInt("response") == 1) {
                                 MeetingList.Meeting m = meetingList.getMeeting(message.getString("meetingID"));
 
@@ -612,7 +598,6 @@ public class AMQPCommunication extends Service {
                                 sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
                                 mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
 
-                                //sendMeetingResponse(context, response.toString(), intent.getStringExtra("organizer"));
                                 for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
                                     String attendee = response.getJSONArray("attendees").get(i).toString();
                                     if(!attendee.equals(username)){
@@ -634,9 +619,6 @@ public class AMQPCommunication extends Service {
                                 if (username.equals(organizer) && resendTimer != null) {
                                     resendTimer.cancel();
                                 }
-                                if (username.equals(organizer) && notiftimer != null) {
-                                    notiftimer.cancel();
-                                }
 
                                 for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
                                     String attendee = response.getJSONArray("attendees").get(i).toString();
@@ -653,9 +635,6 @@ public class AMQPCommunication extends Service {
 
                                 if (username.equals(organizer) && resendTimer != null) {
                                     resendTimer.cancel();
-                                }
-                                if (username.equals(organizer) && notiftimer != null) {
-                                    notiftimer.cancel();
                                 }
 
                                 Log.d(TAG, "Sending meeting response to: " + username);
@@ -681,9 +660,6 @@ public class AMQPCommunication extends Service {
 
                                 if (username.equals(organizer) && resendTimer != null) {
                                     resendTimer.cancel();
-                                }
-                                if (username.equals(organizer) && notiftimer != null) {
-                                    notiftimer.cancel();
                                 }
 
                                 Log.d(TAG, "Sending meeting error message to: " + username);
@@ -1104,7 +1080,7 @@ public class AMQPCommunication extends Service {
                             if (username.equals(organizer) && resendTimer != null) {
                                 resendTimer.cancel();
                             }
-                            if (username.equals(organizer) && notiftimer != null) {
+                            if (notiftimer != null) {
                                 notiftimer.cancel();
                             }
                         }
@@ -1192,7 +1168,7 @@ public class AMQPCommunication extends Service {
                         if (username.equals(organizer) && resendTimer != null) {
                             resendTimer.cancel();
                         }
-                        if (username.equals(organizer) && notiftimer != null) {
+                        if (notiftimer != null) {
                             notiftimer.cancel();
                         }
 
@@ -1220,18 +1196,6 @@ public class AMQPCommunication extends Service {
                         editor.commit();
 
                         showMeetingCancelDialog.send(2, b);
-                    }else if(properties.getType().equals("check")){
-                        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-                        String meetingId = message.getString("meetingID");
-
-                        List<MeetingList.Meeting> meetings = meetingList.getMeetingArrayList();
-                        int size = meetings.size();
-
-                        Log.d(TAG, "size: " + size);
-
-                        if (size > 0) {
-
-                        }
                     }
 
                 } catch (Exception e) {
@@ -1271,30 +1235,6 @@ public class AMQPCommunication extends Service {
             Log.d(TAG, "attempting to publish on " + INVITE_EXCHANGE + " with routing key " + routing_key);
             channel.basicPublish(INVITE_EXCHANGE, routing_key, basicProperties, data.getBytes());
             Log.d(TAG, "[x] Sent meeting error message to " + routing_key);
-        } catch (Exception e) {
-            Log.d(TAG, "Exception on AMQP Channel");
-            e.printStackTrace();
-        }
-    }
-
-    public void sendMeetingCheck(Context c, String data, String routing_key) {
-
-        //set the message properties
-        AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
-                .correlationId(UUID.randomUUID().toString())
-                .type("check")
-                .replyTo(username)
-                .build();
-
-        if(channel == null){
-            Log.d(TAG, "Error sending meeting check");
-            return;
-        }
-
-        try {
-            Log.d(TAG, "attempting to publish on " + INVITE_EXCHANGE + " with routing key " + routing_key);
-            channel.basicPublish(INVITE_EXCHANGE, routing_key, basicProperties, data.getBytes());
-            Log.d(TAG, "[x] Sent meeting check to " + routing_key);
         } catch (Exception e) {
             Log.d(TAG, "Exception on AMQP Channel");
             e.printStackTrace();

@@ -293,7 +293,6 @@ public class MainActivity extends AppCompatActivity {
                             }).setTitle("Meeting Cancelled").show();
                 }
                 Log.d(TAG, "message: " + message);
-                //if (!message.contains("Meeting invite not sent") || message.contains("invitees are in another meeting")) {
                 if (!message.contains("Meeting invite not sent") || (mpcMessage.getText().toString()).contains(meetingID)) {
                     Log.d(TAG, "dismissing dialogs - meetingID: " + intent.getStringExtra("meetingID"));
                     MeetingRequestDialog.reset();
