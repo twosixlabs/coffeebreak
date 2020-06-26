@@ -125,11 +125,12 @@ public class MainActivity extends AppCompatActivity {
 
                 if (MeetingRequestDialog.dialogExists()) {
                     Log.d(TAG, "meeting overlap 1");
+                    Log.d(TAG, "MeetingRequestDialog.dialogExists(): " + MeetingRequestDialog.dialogExists());
 
                     cancelMeeting(intent.getStringExtra("meetingID"), 1);
                     return;
                 } else if (mpcMessage.getVisibility() == View.VISIBLE) {
-                    Log.d(TAG, "meeting overlap 2");
+                    Log.d(TAG, "meeting overlap 2 - text: " + mpcMessage.getText());
 
                     cancelMeeting(intent.getStringExtra("meetingID"), 1);
                     return;
@@ -460,6 +461,11 @@ public class MainActivity extends AppCompatActivity {
         // Random number generator
         generator = new Random();
 
+        MeetingRequestDialog.reset();
+
+        TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+        mpcMessage.setVisibility(View.INVISIBLE);
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setEnabled(true);
         fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
@@ -495,6 +501,13 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString("current_screen", "activity_main");
         editor.commit();
+
+        MeetingRequestDialog.reset();
+
+        Log.d(TAG, "MeetingRequestDialog.dialogExists(): " + MeetingRequestDialog.dialogExists());
+
+        TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+        mpcMessage.setVisibility(View.INVISIBLE);
 
         Log.d(TAG, "in onResume");
         Log.d(TAG, "pref: " + preferences.getString("current_screen", "activity_main"));

@@ -4,6 +4,7 @@ package com.bbn.coffeebreak;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.util.Log;
 
 import com.marcoscg.dialogsheet.DialogSheet;
 
@@ -27,10 +28,13 @@ public class MeetingRequestDialog {
                 .setBackgroundColorRes(R.color.white)
                 .setRoundedCorners(false);
 
+        Log.d("[MeetingRequestDialog]","creating dialogSheet: " + dialogSheet);
+
         return dialogSheet;
     }
 
     public static boolean dialogExists() {
+        Log.d("[MeetingRequestDialog]","dialogExists - dialogSheet: " + dialogSheet);
         if (dialogSheet == null) {
             return false;
         }
@@ -44,7 +48,8 @@ public class MeetingRequestDialog {
     public static void reset() {
         if (dialogSheet != null) {
             dialogSheet.dismiss();
-            dialogSheet = null;
         }
+        dialogSheet = null;
+        Log.d("[MeetingRequestDialog]","reset - dialogSheet: " + dialogSheet);
     }
 }
