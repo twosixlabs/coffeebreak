@@ -412,12 +412,20 @@ public class MainActivity extends AppCompatActivity {
             Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
             FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 
+            mpcMessage.setText("Start");
             mpcMessage.setVisibility(View.INVISIBLE);
+
             cancelButton.setVisibility(View.INVISIBLE);
             cancelButton.setEnabled(false);
 
             fab.setEnabled(true);
             fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
+
+            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+            SharedPreferences.Editor editor = preferences.edit();
+
+            editor.putString("status", mpcMessage.getText().toString());
+            editor.commit();
         }
 
         final Intent sendMeetingResponse = new Intent();
