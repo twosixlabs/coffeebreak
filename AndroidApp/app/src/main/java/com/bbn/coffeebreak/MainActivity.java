@@ -125,9 +125,6 @@ public class MainActivity extends AppCompatActivity {
 
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
-                Log.d(TAG, "mpcMessage.getText() before if: " + mpcMessage.getText());
-                Log.d(TAG, "preferences.getString(\"status\", \"\"): " + preferences.getString("status", ""));
-
                 if (MeetingRequestDialog.dialogExists() && preferences.getString("status", "").equals("Meeting " +
                         intent.getStringExtra("meetingID") + " waiting for response...")) {
                     //return;
@@ -144,14 +141,11 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 mpcMessage.setText("Meeting " + intent.getStringExtra("meetingID") + " waiting for response...");
-                //mpcMessage.setVisibility(View.VISIBLE);
 
                 SharedPreferences.Editor editor = preferences.edit();
 
                 editor.putString("status", mpcMessage.getText().toString());
                 editor.commit();
-
-                Log.d(TAG, "mpcMessage.getText() after set: " + mpcMessage.getText());
 
                 MeetingRequestDialog.request(MainActivity.this, message,
                         new DialogSheet.OnPositiveClickListener() {
@@ -188,7 +182,6 @@ public class MainActivity extends AppCompatActivity {
                         }, new DialogInterface.OnDismissListener() {
                             @Override
                             public void onDismiss(DialogInterface dialogInterface) {
-                                Log.d(TAG, "resetting");
                                 MeetingRequestDialog.reset();
 
                                 //mpcMessage.setText("Responded");
@@ -301,6 +294,8 @@ public class MainActivity extends AppCompatActivity {
                 String username = intent.getStringExtra("username");
                 String message = "\n" + intent.getStringExtra("message");
 
+                Log.d(TAG, "message: " + intent.getStringExtra("message"));
+
                 if (!message.contains("Meeting invite not sent") || (mpcMessage.getText().toString()).contains(meetingID)) {
                     mpcMessage.setVisibility(View.INVISIBLE);
                     cancelButton.setVisibility(View.INVISIBLE);
@@ -320,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }).setTitle("Meeting Cancelled").show();
                 }
-                Log.d(TAG, "message: " + message);
+
                 if (!message.contains("Meeting invite not sent") || (mpcMessage.getText().toString()).contains(meetingID)) {
                     Log.d(TAG, "dismissing dialogs - meetingID: " + intent.getStringExtra("meetingID"));
                     MeetingRequestDialog.reset();
@@ -404,9 +399,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        Log.d(TAG, "meeting id: " + meetingID);
-        Log.d(TAG, "meeting: " + meeting);
-
         if (code != 1) {
             TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
             Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
@@ -431,7 +423,6 @@ public class MainActivity extends AppCompatActivity {
         final Intent sendMeetingResponse = new Intent();
         sendMeetingResponse.putExtra("meetingID", meetingID);
         sendMeetingResponse.putExtra("organizer", meeting.organizer);
-        Log.d(TAG, "Meeting organizer:" + meeting.organizer);
 
         ArrayList<String> attendees = new ArrayList<String>();
         for(int i = 0; i < meeting.attendees.length(); i++){
@@ -551,12 +542,9 @@ public class MainActivity extends AppCompatActivity {
         editor.commit();
 
         Log.d(TAG, "in onResume");
-        Log.d(TAG, "pref: " + preferences.getString("current_screen", "activity_main"));
 
         TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
         mpcMessage.setText(preferences.getString("status", ""));
-
-        Log.d(TAG, "preferences.getString(\"status\", \"\"): " + preferences.getString("status", ""));
 
         ((TextView)(findViewById(R.id.noiseDisplay))).setText("Noise level: " + String.valueOf(preferences.getInt(getString(R.string.noise_value), 5)) + "km");
     }
@@ -650,9 +638,7 @@ public class MainActivity extends AppCompatActivity {
                     sendMeetingInvite.putExtra("event", mapper.writeValueAsString(i));
                     sendMeetingInvite.setAction(getString(R.string.broadcast_send_meeting_invite));
                     mLocalBroadcastManager.sendBroadcast(sendMeetingInvite);
-                    Log.d(TAG, "sending invite");
                 } catch (JsonProcessingException e) {
-                    Log.d(TAG, "sending invite error: " + e);
                     e.printStackTrace();
                 }
 

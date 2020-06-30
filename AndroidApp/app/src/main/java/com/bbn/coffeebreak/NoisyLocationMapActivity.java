@@ -240,7 +240,6 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
         SharedPreferences.Editor editor = preferences.edit();
         editor.putInt(getString(R.string.noise_value), noiseLevel.getProgress());
         editor.commit();
-        Toast.makeText(this, "Noise value set to: " + noiseLevel.getProgress() + "km", Toast.LENGTH_LONG).show();
     }
 
     @Override
