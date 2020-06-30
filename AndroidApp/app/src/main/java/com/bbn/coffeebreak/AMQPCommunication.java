@@ -34,14 +34,6 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.util.Log;
-import android.util.PrintWriterPrinter;
-import android.util.Printer;
-import android.view.Display;
-import android.view.LayoutInflater;
-import android.view.WindowManager;
-import android.view.accessibility.AccessibilityManager;
-import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -67,19 +59,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
@@ -120,7 +105,7 @@ public class AMQPCommunication extends Service {
     private static List<String> queueList = new ArrayList<>();
 
     private CountDownTimer mpctimer;
-    private CountDownTimer resendTimer;
+    private CountDownTimer inviteTimer;
     private CountDownTimer notiftimer;
 
     private ResultReceiver starbucksLocationReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
@@ -132,6 +117,7 @@ public class AMQPCommunication extends Service {
             final Thread cleanupQueues = new Thread(new Runnable() {
                 @Override
                 public void run() {
+                    // Removing channels from queue after mpc calculation
 
                     for(String s : queueList){
                         Log.d(TAG, "Removing consumer " + s);
@@ -144,9 +130,11 @@ public class AMQPCommunication extends Service {
                 }
             });
 
-            if(resultCode == 1){
+            if (resultCode == 1){
                 try {
+                    // MPC calculation finished, users notified, calls to clean up queues
                     Log.d(TAG, "LOG: " + mpc.getLog());
+
                     JSONObject httpResponse = new JSONObject(resultData.getString("location"));
                     JSONArray featuresArray = httpResponse.getJSONArray("features");
                     String address = featuresArray.getJSONObject(0).getString("place_name");
@@ -169,7 +157,6 @@ public class AMQPCommunication extends Service {
                     notifIntent.setAction(getString(R.string.broadcast_show_meeting_location));
                     PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, notifIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-
                     NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                             .setSmallIcon(R.drawable.ic_coffeebreak_56dp)
                             .setContentTitle("MPC complete")
@@ -183,14 +170,12 @@ public class AMQPCommunication extends Service {
                             .setContentIntent(pendingIntent);
 
                     NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-                    // notificationId is a unique int for each notification that you must define
-
                     SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
+                    // Sends notification if app is in background or on noisy map screen or meeting location map screen
                     if (isAppIsInBackground(context)){
                         Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                         notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-                        //return;
                     } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
                         Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                         notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
@@ -202,7 +187,8 @@ public class AMQPCommunication extends Service {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-            }else{
+            } else {
+                // Error in MPC calculation - calculation timed out, resets AMQP connection
                 Log.d(TAG, "Got error in HTTP request for mapbox");
                 Log.d(TAG, "LOG: " + mpc.getLog());
 
@@ -229,6 +215,7 @@ public class AMQPCommunication extends Service {
 
                 }
 
+                // MPC Handler Thread stuck in waiting state, must be interrupted and quit
                 mpcHandlerThread.interrupt();
 
                 mHandlerThread.quit();
@@ -252,6 +239,7 @@ public class AMQPCommunication extends Service {
     private ResultReceiver mpcResponse = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
+            // Receives MPC calculated location
             super.onReceiveResult(resultCode, resultData);
 
             if (resultData == null) {
@@ -289,13 +277,10 @@ public class AMQPCommunication extends Service {
         }
     };
 
-
-    /*
-    This ResultReceiver sends a local broadcast to show a meeting request dialog
-     */
     private ResultReceiver showMeetingRequestDialog = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @Override
         protected void onReceiveResult(final int resultCode, final Bundle resultData) {
+            // Sends a local broadcast to show a meeting request dialog
             super.onReceiveResult(resultCode, resultData);
 
             Intent notifIntent = new Intent(context, MainActivity.class);
@@ -321,18 +306,19 @@ public class AMQPCommunication extends Service {
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-            Log.d(TAG, "preferences: " + preferences.getString("current_screen", "activity_main"));
 
+            // Creates notification timer to send second meeting invite notification after 30 seconds
             notiftimer = new CountDownTimer(30000, 1000) {
                 @Override
                 public void onTick(long l) {
                     //do nothing
-                    Log.d(TAG, "notification timer start");
                 }
 
                 @Override
                 public void onFinish() {
                     Log.d(TAG, "notification timer finished");
+
+                    // Sends notification if app is in background or on noisy map screen or meeting location map screen
                     if(isAppIsInBackground(context)){
                         Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                         notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
@@ -344,11 +330,10 @@ public class AMQPCommunication extends Service {
                 }
             }.start();
 
-            // notificationId is a unique int for each notification that you must define
+            // Sends notification if app is in background or on noisy map screen or meeting location map screen
             if(isAppIsInBackground(context)){
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-                //return;
             } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
@@ -369,11 +354,11 @@ public class AMQPCommunication extends Service {
     private ResultReceiver showMeetingCancelDialog = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @Override
         protected void onReceiveResult(final int resultCode, final Bundle resultData) {
+            // Sends a local broadcast to show a meeting cancel dialog
             super.onReceiveResult(resultCode, resultData);
-            Log.d(TAG, "in showMeetingCancelDialog");
 
-            if (username.equals(resultData.getString("organizer")) && resendTimer != null) {
-                resendTimer.cancel();
+            if (username.equals(resultData.getString("organizer")) && inviteTimer != null) {
+                inviteTimer.cancel();
             }
             if (notiftimer != null) {
                 notiftimer.cancel();
@@ -413,15 +398,12 @@ public class AMQPCommunication extends Service {
                     .setContentIntent(pendingIntent);
 
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-            // notificationId is a unique int for each notification that you must define
-
             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-            Log.d(TAG, "preferences: " + preferences.getString("current_screen", "activity_main"));
 
+            // Sends notification if app is in background or on noisy map screen or meeting location map screen
             if(isAppIsInBackground(context)){
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-                //return;
             } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
                 Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
                 notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
@@ -447,14 +429,11 @@ public class AMQPCommunication extends Service {
         @Override
         public void onReceive(final Context context, final Intent intent) {
             if (intent.getAction().equals(getString(R.string.broadcast_send_meeting_invite))) {
-                Log.d(TAG, "Got broadcast to send meeting invite");
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            /*
-                            Send meeting invite to all participants
-                             */
+                            // Send meeting invite to all participants
                             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                             SharedPreferences.Editor editor = preferences.edit();
 
@@ -466,6 +445,14 @@ public class AMQPCommunication extends Service {
                             meeting.put("attendees", invite.getJSONArray("attendees"));
                             meeting.put("organizer", username);
 
+                            // Phone is currently invited to another meeting, will not send meeting invite
+                            if (MeetingRequestDialog.dialogExists()) {
+                                invite.put("error", "respond to meeting request before starting new meeting");
+                                sendMeetingErrorMessage(context, invite.toString(), username);
+                                return;
+                            }
+
+                            // Creates temporary channel to check if queues already exist on
                             Channel tempChannel = null;
                             try {
                                 tempChannel = connection.createChannel();
@@ -473,20 +460,16 @@ public class AMQPCommunication extends Service {
                                 e.printStackTrace();
                             }
 
-                            if (MeetingRequestDialog.dialogExists()) {
-                                invite.put("error", "invitees are in another meeting");
-                                sendMeetingErrorMessage(context, invite.toString(), username);
-                                return;
-                            }
-
                             ArrayList<String> attendees = new ArrayList<String>();
                             for(int i = 0; i < invite.getJSONArray("attendees").length(); i++){
                                 String attendee = invite.getJSONArray("attendees").get(i).toString();
                                 attendees.add(attendee);
                                 if(!attendee.equals(username)){
+                                    // Declares passive queues for each invitee, if queue does not exist error will be thrown
                                     try {
                                         tempChannel.queueDeclarePassive("invite-" + attendee);
                                     } catch (IOException e) {
+                                        // Phone is disconnected, will not send meeting invite
                                         Log.d(TAG, "queue does not exist for " + attendee);
                                         e.printStackTrace();
 
@@ -503,6 +486,7 @@ public class AMQPCommunication extends Service {
 
                             Log.d(TAG, "preferences info: " + preferences.getAll());
 
+                            // Sends meeting invite to each invitee
                             for(String attendee : attendees){
                                 if(!attendee.equals(username)){
                                     Log.d(TAG, "Sending meeting invite to: " + attendee);
@@ -512,16 +496,16 @@ public class AMQPCommunication extends Service {
 
                             final ObjectMapper mapper = new ObjectMapper();
 
-                            resendTimer = new CountDownTimer(60000, 1000) {
+                            // Create inviteTimer which cancels the meeting 60 seconds after meeting is sent if not all users respond
+                            inviteTimer = new CountDownTimer(60000, 1000) {
                                 @Override
                                 public void onTick(long l) {
                                     //do nothing
-                                    Log.d(TAG, "resend timer start");
                                 }
 
                                 @Override
                                 public void onFinish() {
-                                    Log.d(TAG, "resend timer finished");
+                                    Log.d(TAG, "invite timer finished");
 
                                     try {
                                         final Intent sendMeetingResponse = new Intent();
@@ -548,7 +532,7 @@ public class AMQPCommunication extends Service {
                                 }
                             }.start();
 
-                            Log.d(TAG, "------ SHOWING PENDING 1 -------");
+                            // Broadcast to show pending meeting screen for organizer
                             Intent sendPendingMessage = new Intent(context, MainActivity.class);
                             sendPendingMessage.putExtra("meetingID", invite.getString("meetingID"));
                             sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
@@ -559,16 +543,12 @@ public class AMQPCommunication extends Service {
                     }
                 });
             } else if (intent.getAction().equals(getString(R.string.broadcast_send_meeting_response))) {
-                Log.d(TAG, "Got broadcast to send meeting response");
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            /*
-                            Send meeting response back to all participants
-                             */
+                            // Send meeting response back to all participants
                             JSONObject response = new JSONObject(new String(intent.getStringExtra("response")));
-
                             JSONObject message = new JSONObject(new String(response.toString().getBytes()));
 
                             if (notiftimer != null) {
@@ -576,6 +556,8 @@ public class AMQPCommunication extends Service {
                             }
 
                             if(message.getInt("response") == 1) {
+                                // Meeting was accepted by current user
+
                                 MeetingList.Meeting m = meetingList.getMeeting(message.getString("meetingID"));
 
                                 if (m != null) {
@@ -592,12 +574,13 @@ public class AMQPCommunication extends Service {
                                 editor.putString(message.getString("meetingID"), meeting.toString());
                                 editor.commit();
 
-                                Log.d(TAG, "------ SHOWING PENDING 2 -------");
+                                // Broadcast to show pending meeting screen for current user
                                 Intent sendPendingMessage = new Intent(context, MainActivity.class);
                                 sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
                                 sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
                                 mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
 
+                                // Sending meeting accepted response to all other participants
                                 for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
                                     String attendee = response.getJSONArray("attendees").get(i).toString();
                                     if(!attendee.equals(username)){
@@ -606,6 +589,8 @@ public class AMQPCommunication extends Service {
                                     }
                                 }
                             } else if(message.getInt("response") == 0) {
+                                // Meeting was denied or cancelled by current user
+
                                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                                 SharedPreferences.Editor editor = preferences.edit();
                                 String meetingId = message.getString("meetingID");
@@ -616,10 +601,11 @@ public class AMQPCommunication extends Service {
                                 editor.remove(meetingId);
                                 editor.commit();
 
-                                if (username.equals(organizer) && resendTimer != null) {
-                                    resendTimer.cancel();
+                                if (username.equals(organizer) && inviteTimer != null) {
+                                    inviteTimer.cancel();
                                 }
 
+                                // Sending meeting cancelled response to all other participants
                                 for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
                                     String attendee = response.getJSONArray("attendees").get(i).toString();
                                     if(!attendee.equals(username)){
@@ -628,15 +614,18 @@ public class AMQPCommunication extends Service {
                                     }
                                 }
                             } else if (message.getInt("response") == 2) {
+                                // Meeting timed out
+
                                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                                 SharedPreferences.Editor editor = preferences.edit();
                                 String meetingId = message.getString("meetingID");
                                 String organizer = message.getString("organizer");
 
-                                if (username.equals(organizer) && resendTimer != null) {
-                                    resendTimer.cancel();
+                                if (username.equals(organizer) && inviteTimer != null) {
+                                    inviteTimer.cancel();
                                 }
 
+                                // Sending meeting timed out response to current user and all other participants
                                 Log.d(TAG, "Sending meeting response to: " + username);
                                 sendMeetingResponse(context, response.toString(), username);
 
@@ -648,6 +637,8 @@ public class AMQPCommunication extends Service {
                                     }
                                 }
                             } else if (message.getInt("response") == 3) {
+                                // User is in another meeting
+
                                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                                 SharedPreferences.Editor editor = preferences.edit();
                                 String meetingId = message.getString("meetingID");
@@ -658,10 +649,11 @@ public class AMQPCommunication extends Service {
                                 editor.remove(meetingId);
                                 editor.commit();
 
-                                if (username.equals(organizer) && resendTimer != null) {
-                                    resendTimer.cancel();
+                                if (username.equals(organizer) && inviteTimer != null) {
+                                    inviteTimer.cancel();
                                 }
 
+                                // Sending meeting error response to current user and all other participants
                                 Log.d(TAG, "Sending meeting error message to: " + username);
                                 sendMeetingErrorMessage(context, response.toString(), username);
 
@@ -679,15 +671,11 @@ public class AMQPCommunication extends Service {
                     }
                 });
             } else if (intent.getAction().equals(getString(R.string.broadcast_send_meeting_start))) {
-
-                Log.d(TAG, "Got broadcast to send meeting start message");
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            /*
-                            Send meeting start to all participants
-                             */
+                            // Send meeting start to all participants
                             JSONObject startMessage = new JSONObject(new String(intent.getStringExtra("event")));
                             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                             SharedPreferences.Editor editor = preferences.edit();
@@ -697,8 +685,8 @@ public class AMQPCommunication extends Service {
 
                             meetingList.removeMeeting(startMessage.getString("meetingID"));
 
-                            if (resendTimer != null) {
-                                resendTimer.cancel();
+                            if (inviteTimer != null) {
+                                inviteTimer.cancel();
                             }
 
                             if (notiftimer != null) {
@@ -714,18 +702,13 @@ public class AMQPCommunication extends Service {
                                 }
                             }
 
-                            /*
-                            Begin MPC
-                             */
+                            // Broadcast to start MPC
                             Intent startMpc = new Intent();
                             startMpc.putExtra("meetingID", startMessage.getString("meetingID"));
                             startMpc.putExtra("organizer", username);
                             startMpc.putStringArrayListExtra("attendees", attendees);
-                            //startMpc.putExtra("begin", startMessage.getJSONObject("constraints").getString("begin"));
-                            //startMpc.putExtra("end", startMessage.getJSONObject("constraints").getString("end"));
                             startMpc.setAction(getString(R.string.broadcast_start_mpc));
                             mLocalBroadcastManager.sendBroadcast(startMpc);
-
 
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -734,7 +717,7 @@ public class AMQPCommunication extends Service {
                 });
 
             } else if (intent.getAction().equals(getString(R.string.broadcast_start_mpc))) {
-
+                // Start MPC Calculation
                 Log.d(TAG, "starting mpc...");
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
@@ -748,7 +731,6 @@ public class AMQPCommunication extends Service {
                 }
 
                 if (location != null) {
-
                     Log.d(TAG, "Got location: " + location);
                     int noise = preferences.getInt(getString(R.string.noise_value), 5);
                     EncodedLatLon loc = new EncodedLatLon((float)location.getLatitude(), (float)location.getLongitude());
@@ -760,9 +742,8 @@ public class AMQPCommunication extends Service {
                     // Do this in the background since it requires network operations
                     new SetupMpcAsyncTask().execute(new SetupMpcTaskParams(intent.getStringArrayListExtra("attendees"),
                             noisyLocation, intent.getStringExtra("meetingID")));
-
-
                 } else {
+                    // Location not found, possibly can never get here
                     Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
                     Log.d(TAG, "No method to receive user location");
                     Intent showLocationDialog = new Intent();
@@ -862,7 +843,7 @@ public class AMQPCommunication extends Service {
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
+        // Starting AMQP
         Log.d(TAG, "Starting AMQP service...");
 
         Notification.Builder builder = new Notification.Builder(this, getString(R.string.notification_channel_id))
@@ -929,7 +910,7 @@ public class AMQPCommunication extends Service {
         protected Object doInBackground(Context... ctx) {
 
             try {
-
+                // Setting up AMQP Channel
                 Log.d(TAG, "Attempting to log in with: " + factory.getUsername() + ":" + factory.getPassword());
                 connection = factory.newConnection();
 
@@ -968,15 +949,15 @@ public class AMQPCommunication extends Service {
         }
 
         protected void onPostExecute(Object obj) {
-
-            if(channel != null){
+            if (channel != null) {
                 Log.d(TAG, "Finished SetupAMQPConnection");
                 Log.d(TAG, "Ending splash");
                 Intent splashEndBroadcast = new Intent();
+
                 // Send broadcast to end splash screen
                 splashEndBroadcast.setAction(getString(R.string.broadcast_end_splash));
                 mLocalBroadcastManager.sendBroadcast(splashEndBroadcast);
-            }else{
+            } else {
                 Log.d(TAG, "Error: Channel is NULL");
             }
 
@@ -987,7 +968,6 @@ public class AMQPCommunication extends Service {
     public void setupAMQPConnection(Context ctx) {
         new SetupAMQPConnection().execute(ctx);
     }
-
 
     // Set-up listener for topic exchange / push notification
     public void startAMQPListener(Context ctx) {
@@ -1000,38 +980,34 @@ public class AMQPCommunication extends Service {
                 super.handleDelivery(consumerTag, envelope, properties, body);
                 //channel.basicAck(envelope.getDeliveryTag(),false);
 
-                Log.d(TAG, "Received message: " + new String(body));
-
                 try {
-
+                    Log.d(TAG, "Received message: " + new String(body));
                     JSONObject message = new JSONObject(new String(body));
 
                     if(properties.getType().equals("response")){
-                        /*
-                        This is an invite response message
-                         */
+                        // Received invite response message
                         Log.d(TAG, "Received invite response code: " + message.getInt("response") + " from " + properties.getReplyTo()
                             + " for meeting: " + message.getString("meetingID"));
+
                         if (message.getInt("response") == 1) {
+                            // Received invite response: accepted
                             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                             SharedPreferences.Editor editor = preferences.edit();
 
                             String meetingId = message.getString("meetingID");
                             JSONObject meeting = new JSONObject(preferences.getString(meetingId, "{}"));
                             int responseCount =  meeting.getInt("responses") + 1;
-                            if(responseCount == meeting.getInt("size") && meeting.getString("organizer").equals(username)){
-                                /*
-                                Send MPC Start message to everyone
-                                 */
-                                Log.d(TAG, "Got responses for everyone on meetingID: " + message.getString("meetingID"));
+                            if (responseCount == meeting.getInt("size") && meeting.getString("organizer").equals(username)) {
+                                // All users responded, send MPC Start message to everyone
                                 Intent sendStartMessage = new Intent();
+
                                 JSONObject details = meetingList.getMeetingDetails(message.getString("meetingID"));
                                 Log.d(TAG, "MeetingList details: " + details);
 
                                 sendStartMessage.putExtra("event", meeting.toString());
                                 sendStartMessage.setAction(getString(R.string.broadcast_send_meeting_start));
                                 mLocalBroadcastManager.sendBroadcast(sendStartMessage);
-                            }else{
+                            } else {
                                 MeetingList.Meeting m = meetingList.getMeeting(meetingId);
                                 m.removePendingInvite(properties.getReplyTo());
 
@@ -1039,13 +1015,14 @@ public class AMQPCommunication extends Service {
                                 editor.putString(meetingId, meeting.toString());
                                 editor.commit();
 
-                                Log.d(TAG, "------ SHOWING PENDING 3 -------");
+                                // Update pending screen to show users who still haven't responded
                                 Intent sendPendingMessage = new Intent(context, MainActivity.class);
                                 sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
                                 sendPendingMessage.setAction(getString(R.string.broadcast_update_meeting_pending));
                                 mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
                             }
                         } else {
+                            // Received invite response: cancelled
                             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                             SharedPreferences.Editor editor = preferences.edit();
                             String meetingId = message.getString("meetingID");
@@ -1069,26 +1046,26 @@ public class AMQPCommunication extends Service {
                             b.putStringArrayList("attendees", attendees);
 
                             if (message.getInt("response") == 0) {
+                                // Meeting was denied or cancelled
                                 showMeetingCancelDialog.send(1, b);
                             } else {
+                                // Meeting timed out or there was an error
                                 showMeetingCancelDialog.send(0, b);
                             }
 
                             editor.remove(meetingId);
                             editor.commit();
 
-                            if (username.equals(organizer) && resendTimer != null) {
-                                resendTimer.cancel();
+                            if (username.equals(organizer) && inviteTimer != null) {
+                                inviteTimer.cancel();
                             }
                             if (notiftimer != null) {
                                 notiftimer.cancel();
                             }
                         }
 
-                    }else if(properties.getType().equals("start")){
-                        /*
-                        start MPC for this meeting
-                         */
+                    } else if(properties.getType().equals("start")) {
+                        // Received message to start MPC for this meeting
                         Log.d(TAG, "Received start meeting message!");
 
                         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
@@ -1099,8 +1076,8 @@ public class AMQPCommunication extends Service {
 
                         meetingList.removeMeeting(message.getString("meetingID"));
 
-                        if (resendTimer != null) {
-                            resendTimer.cancel();
+                        if (inviteTimer != null) {
+                            inviteTimer.cancel();
                         }
                         if (notiftimer != null) {
                             notiftimer.cancel();
@@ -1118,16 +1095,8 @@ public class AMQPCommunication extends Service {
                         startMpc.setAction(getString(R.string.broadcast_start_mpc));
                         mLocalBroadcastManager.sendBroadcast(startMpc);
 
-                    }else if(properties.getType().equals("cancel")){
-                        /*
-                        cancel the meeting
-                         */
-                        Log.d(TAG, "Received cancel meeting message");
-
-                    }else if(properties.getType().equals("invite")){
-                        /*
-                        This is an invite message
-                         */
+                    } else if(properties.getType().equals("invite")) {
+                        // Received invite message
                         Log.d(TAG, "Received invite message");
 
                         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
@@ -1159,14 +1128,15 @@ public class AMQPCommunication extends Service {
                         temp.putString("end", message.getJSONObject("constraints").getString("end"));
 
                         showMeetingRequestDialog.send(0, temp);
-                    }else if(properties.getType().equals("error")){
+                    } else if(properties.getType().equals("error")) {
+                        // Received error message
                         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                         SharedPreferences.Editor editor = preferences.edit();
                         String meetingId = message.getString("meetingID");
                         String organizer = message.getString("organizer");
 
-                        if (username.equals(organizer) && resendTimer != null) {
-                            resendTimer.cancel();
+                        if (username.equals(organizer) && inviteTimer != null) {
+                            inviteTimer.cancel();
                         }
                         if (notiftimer != null) {
                             notiftimer.cancel();
@@ -1214,9 +1184,7 @@ public class AMQPCommunication extends Service {
 
     }
 
-    /*
-    Function for sending a message to a user
-     */
+    // Sending an error message to a user
     public void sendMeetingErrorMessage(Context c, String data, String routing_key) {
 
         //set the message properties
@@ -1232,7 +1200,6 @@ public class AMQPCommunication extends Service {
         }
 
         try {
-            Log.d(TAG, "attempting to publish on " + INVITE_EXCHANGE + " with routing key " + routing_key);
             channel.basicPublish(INVITE_EXCHANGE, routing_key, basicProperties, data.getBytes());
             Log.d(TAG, "[x] Sent meeting error message to " + routing_key);
         } catch (Exception e) {
@@ -1241,6 +1208,7 @@ public class AMQPCommunication extends Service {
         }
     }
 
+    // Sending an invite message to a user
     public void sendMeetingInvite(Context c, String data, String routing_key) {
 
             //set the message properties
@@ -1256,7 +1224,6 @@ public class AMQPCommunication extends Service {
             }
 
         try {
-            Log.d(TAG, "attempting to publish on " + INVITE_EXCHANGE + " with routing key " + routing_key);
             channel.basicPublish(INVITE_EXCHANGE, routing_key, basicProperties, data.getBytes());
             Log.d(TAG, "[x] Sent meeting invite to " + routing_key);
         } catch (Exception e) {
@@ -1265,6 +1232,7 @@ public class AMQPCommunication extends Service {
         }
     }
 
+    // Sending a response message to a user
     public void sendMeetingResponse(Context c, String data, String routing_key) {
 
         //set the message properties
@@ -1280,7 +1248,6 @@ public class AMQPCommunication extends Service {
         }
 
         try {
-            Log.d(TAG, "attempting to publish on " + INVITE_EXCHANGE + " with routing key " + routing_key);
             channel.basicPublish(INVITE_EXCHANGE, routing_key, basicProperties, data.getBytes());
             Log.d(TAG, "[x] Sent meeting response to " + routing_key);
         } catch (Exception e) {
@@ -1289,6 +1256,7 @@ public class AMQPCommunication extends Service {
         }
     }
 
+    // Sending a start message to a user
     public void sendMeetingStart(Context c, String data, String routing_key) {
 
         //set the message properties
@@ -1335,12 +1303,9 @@ public class AMQPCommunication extends Service {
         client.removeLocationUpdates(locationCallback);
     }
 
-    /*
-    Create notification channel for alerting the user when the app is closed
-     */
+    // Create notification channel for alerting the user when the app is closed
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void createNotificationChannel() {
-
         CharSequence name = getString(R.string.notification_channel);
         String description = getString(R.string.notification_description);
         int importance = NotificationManager.IMPORTANCE_HIGH;
@@ -1348,14 +1313,10 @@ public class AMQPCommunication extends Service {
         channel.setDescription(description);
         NotificationManager notificationManager = getSystemService(NotificationManager.class);
         notificationManager.createNotificationChannel(channel);
-
     }
 
-    /*
-    Check whether or not Coffee Break is the foreground activity
-     */
+    // Check whether or not Coffee Break is the foreground activity
     private boolean isAppIsInBackground(Context context) {
-
         ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
 
         List<ActivityManager.RunningAppProcessInfo> processes = activityManager.getRunningAppProcesses();
@@ -1368,7 +1329,6 @@ public class AMQPCommunication extends Service {
                 }
             }
         }
-
         return true;
     }
 
@@ -1383,11 +1343,8 @@ public class AMQPCommunication extends Service {
         }
     }
 
-    /*
-        Creating the AMQP channels requires network operations (queue creation on the AMQP server),
-        so we do this in an AsyncTask and then start the thread.
-
-     */
+    // Creating the AMQP channels requires network operations (queue creation on the AMQP server),
+    // so we do this in an AsyncTask and then start the thread.
     private class SetupMpcAsyncTask extends AsyncTask<SetupMpcTaskParams, Void, Integer> {
 
         @Override
@@ -1424,7 +1381,6 @@ public class AMQPCommunication extends Service {
                 }
                 */
 
-                Log.d(TAG, "Spinning up MPC thread");
                 // Spin up the MPC thread
                 mpc = new ThreadMPC(context,
                         params[0].meetingId,
@@ -1446,7 +1402,7 @@ public class AMQPCommunication extends Service {
         protected void onPostExecute(Integer numAttendees) {
             super.onPostExecute(numAttendees);
 
-            if(numAttendees != null){
+            if (numAttendees != null) {
                 //show the result on the UI
                 Intent showMpcProgress = new Intent();
                 showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
@@ -1455,6 +1411,7 @@ public class AMQPCommunication extends Service {
                 int numSec = 70000 * numAttendees;
                 Log.d(TAG, "number of seconds until timeout: " + numSec);
 
+                // Create an mpc timer that times out after the mpc calculation should have finished and sends an error
                 mpctimer = new CountDownTimer(numSec, 1000) {
                     @Override
                     public void onTick(long l) {
@@ -1470,7 +1427,7 @@ public class AMQPCommunication extends Service {
                         starbucksLocationReceiver.send(0, b);
                     }
                 }.start();
-            }else{
+            } else {
                 // something went wrong
                 Toast.makeText(context, "Something went wrong.", Toast.LENGTH_LONG).show();
             }
@@ -1481,4 +1438,3 @@ public class AMQPCommunication extends Service {
         return meetingList;
     }
 }
-

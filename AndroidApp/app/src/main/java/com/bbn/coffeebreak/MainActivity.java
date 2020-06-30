@@ -84,10 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
 
             if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_request))) {
-
-                /*
-                For Showing a Meeting Request Dialog to a user
-                 */
+                // Receives broadcast to show a meeting dialog request, checks if user in another meeting, if not shows dialog
 
                 Log.d(TAG, "Got broadcast to show meeting dialog");
 
@@ -116,7 +113,6 @@ public class MainActivity extends AppCompatActivity {
                 String startDate = startTime.getMonth().toString() + " " + startTime.getDayOfMonth();
                 String endDate = endTime.getMonth().toString() + " " + endTime.getDayOfMonth();
 
-                //message += "\n\nWhen: between " + startDate + " and " + endDate;
                 message += "\n\nWhere: Private Starbucks location";
                 message += "\nWhen: Now";
 
@@ -127,13 +123,15 @@ public class MainActivity extends AppCompatActivity {
 
                 if (MeetingRequestDialog.dialogExists() && preferences.getString("status", "").equals("Meeting " +
                         intent.getStringExtra("meetingID") + " waiting for response...")) {
-                    //return;
+                    // Invite already showing for this meeting
                 } else if (MeetingRequestDialog.dialogExists()) {
+                    // Phone currently displaying an invite for another meeting
                     Log.d(TAG, "meeting overlap 1");
 
                     cancelMeeting(intent.getStringExtra("meetingID"), 1);
                     return;
                 } else if (mpcMessage.getVisibility() == View.VISIBLE) {
+                    // Phone currently waiting on pending invites or waiting on mpc calculation for another meeting
                     Log.d(TAG, "meeting overlap 2");
 
                     cancelMeeting(intent.getStringExtra("meetingID"), 1);
@@ -147,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
                 editor.putString("status", mpcMessage.getText().toString());
                 editor.commit();
 
+                // Display meeting request dialog
                 MeetingRequestDialog.request(MainActivity.this, message,
                         new DialogSheet.OnPositiveClickListener() {
                             @Override
@@ -183,12 +182,11 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onDismiss(DialogInterface dialogInterface) {
                                 MeetingRequestDialog.reset();
-
-                                //mpcMessage.setText("Responded");
-                                //mpcMessage.setVisibility(View.INVISIBLE);
                             }
                         }).setTitle(organizer + " wants to meet").show();
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
+                // Received broadcast to show meeting location dialog or error dialog, resets homescreen
+
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcMessage.setText("Start");
@@ -206,6 +204,8 @@ public class MainActivity extends AppCompatActivity {
                 fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
 
                 if(intent.getStringExtra("address").equals("ERROR")){
+                    // Error in mpc calculation
+
                     AlertDialog errorDialog = new AlertDialog.Builder(MainActivity.this).create();
                     errorDialog.setTitle("Error performing MPC");
                     errorDialog.setMessage("Was unable to determine meeting location");
@@ -218,6 +218,8 @@ public class MainActivity extends AppCompatActivity {
                             });
                     errorDialog.show();
                 }else{
+                    // Meeting location address was found, dialog with address is displayed
+
                     AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                     alertDialog.setCancelable(false);
                     alertDialog.setTitle("Secure Meeting Location");
@@ -244,6 +246,8 @@ public class MainActivity extends AppCompatActivity {
                 }
 
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_mpc_progress))) {
+                // Received broadcast to show MPC progress, updates homescreen
+
                 Log.d(TAG, "Received broadcast to show MPC progress");
 
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
@@ -267,6 +271,8 @@ public class MainActivity extends AppCompatActivity {
                 fab.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
 
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_location_dialog))) {
+                // Might not ever get to this method, received broadcast to show location dialog, user location not found
+
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                 alertDialog.setTitle("Can't get GPS location");
                 alertDialog.setMessage("Go outside to get a GPS location or set a mock location");
@@ -285,6 +291,8 @@ public class MainActivity extends AppCompatActivity {
                 });
                 alertDialog.show();
             } else if(intent.getAction().equals(getString(R.string.broadcast_show_meeting_cancel))){
+                // Received broadcast that meeting was cancelled, resets home screens and displays cancel dialog
+
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
 
@@ -296,6 +304,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d(TAG, "message: " + intent.getStringExtra("message"));
 
+                // Resets home screen if phone is not in another meeting
                 if (!message.contains("Meeting invite not sent") || (mpcMessage.getText().toString()).contains(meetingID)) {
                     mpcMessage.setVisibility(View.INVISIBLE);
                     cancelButton.setVisibility(View.INVISIBLE);
@@ -306,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
                     fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
                 }
 
+                // Displays meeting cancelled dialog, if the meeting was not sent only the organizer receives the cancel dialog
                 if (!message.contains("Meeting invite not sent") || username.equals(organizer)) {
                     MeetingCancelDialog.request(MainActivity.this, message,
                             new DialogSheet.OnPositiveClickListener() {
@@ -316,6 +326,7 @@ public class MainActivity extends AppCompatActivity {
                             }).setTitle("Meeting Cancelled").show();
                 }
 
+                // Removes old meeting request dialogs unless they are from a different ongoing meeting
                 if (!message.contains("Meeting invite not sent") || (mpcMessage.getText().toString()).contains(meetingID)) {
                     Log.d(TAG, "dismissing dialogs - meetingID: " + intent.getStringExtra("meetingID"));
                     MeetingRequestDialog.reset();
@@ -328,6 +339,8 @@ public class MainActivity extends AppCompatActivity {
                     editor.commit();
                 }
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_pending))) {
+                // Receives broadcast to show meeting pending screen, including the cancel button
+
                 Log.d(TAG, "Received broadcast to show pending meeting");
 
                 MeetingList meetingList = AMQPCommunication.getMeetingList();
@@ -364,6 +377,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
             } else if (intent.getAction().equals(getString(R.string.broadcast_update_meeting_pending))) {
+                // Received broadcast to update the meeting pending screen - new users accepted the invite
+
                 Log.d(TAG, "Received broadcast to update pending meeting invites");
 
                 MeetingList meetingList = AMQPCommunication.getMeetingList();
@@ -375,6 +390,7 @@ public class MainActivity extends AppCompatActivity {
 
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
 
+                // If the user has not responded yet, the message does not get displayed
                 if (!mpcMessage.getText().toString().contains("waiting for response...")) {
                     mpcMessage.setText(message);
 
@@ -389,16 +405,19 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void cancelMeeting(String meetingID, int code) {
+        // Cancelling the pending meeting
+
         Log.d(TAG, "cancelling pending meeting");
 
         MeetingList meetingList = AMQPCommunication.getMeetingList();
         MeetingList.Meeting meeting = meetingList.getMeeting(meetingID);
 
         if (meeting == null) {
-            Log.d(TAG, "meeting already cancelled");
+            // Meeting already cancelled
             return;
         }
 
+        // Reset home screen unless user is in another meeting
         if (code != 1) {
             TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
             Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
@@ -447,9 +466,6 @@ public class MainActivity extends AppCompatActivity {
         if (code == 0) {
             response.setResponse(0);
         } else if (code == 1) {
-            response.setResponse(3);
-            response.setAdditionalProperty("error", "invitees are invited to another meeting");
-        } else {
             response.setResponse(3);
             response.setAdditionalProperty("error", "invitees are in another meeting");
         }
@@ -505,6 +521,7 @@ public class MainActivity extends AppCompatActivity {
         // Random number generator
         generator = new Random();
 
+        // ContactPicker Button
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setEnabled(true);
         fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
@@ -516,6 +533,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Pending Screen Button (currently invisible)
         /*
         FloatingActionButton pending_fab = (FloatingActionButton) findViewById(R.id.pending_fab);
         Objects.requireNonNull(pending_fab).setOnClickListener(new View.OnClickListener() {
@@ -536,12 +554,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+        Log.d(TAG, "in onResume");
+
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString("current_screen", "activity_main");
         editor.commit();
-
-        Log.d(TAG, "in onResume");
 
         TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
         mpcMessage.setText(preferences.getString("status", ""));
@@ -556,16 +574,17 @@ public class MainActivity extends AppCompatActivity {
 
         //Eventually we may have multiple results returning to this Activity
         if (requestCode == getResources().getInteger(R.integer.contact_picker_request)) {
+            // Received results from ContactPicker
 
             if (resultCode == RESULT_OK) {
                 final SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
                 List<ContactResult> results = MultiContactPicker.obtainResult(data);
 
-                //Get all the names / emails of the picked contacts
+                //Get all the names / phone numbers of the picked contacts
                 final String[] contactNames = new String[results.size()];
-                //final String[] contactEmails = new String[results.size()];
                 final String[] contactPhones = new String[results.size()];
+
                 int j = 0;
                 for (ContactResult c : results) {
                     contactNames[j] = c.getDisplayName().toLowerCase();
@@ -601,7 +620,6 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d(TAG, "Invite Start Time Zulu: " + beginTime);
                 Log.d(TAG, "Invite End Time Zulu: " + endTime);
-
 
                 // Build meeting invite to send to scheduling server
                 Invite i = new Invite();
@@ -646,7 +664,9 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, getString(R.string.message_date_picker_cancel));
             }
         } else if (requestCode == getResources().getInteger(R.integer.pending_request)) {
-            if (data != null) {
+            // Received results from pending invite page
+
+            /*if (data != null) {
                 Log.d(TAG, "cancelling pending meeting");
 
                 final Intent sendMeetingResponse = new Intent();
@@ -668,7 +688,7 @@ public class MainActivity extends AppCompatActivity {
                 } catch (JsonProcessingException e) {
                     e.printStackTrace();
                 }
-            }
+            }*/
         }
     }
 
