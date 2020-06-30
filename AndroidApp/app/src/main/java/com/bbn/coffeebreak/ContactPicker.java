@@ -14,8 +14,6 @@ import com.wafflecopter.multicontactpicker.MultiContactPickerActivity;
 import com.wafflecopter.multicontactpicker.RxContacts.RxContacts;
 
 public class ContactPicker {
-    private static MultiContactPicker mcp;
-
     public static void startContactPicker(Context c){
         new MultiContactPicker.Builder((Activity)c)
                 .theme(R.style.MyCustomPickerTheme)

@@ -36,9 +36,7 @@ public class MeetingList {
     }
 
     public boolean incrementMeetingParticipation(String meetingId){
-        /*
-        Returns true if all participants are accounted for
-         */
+        // Returns true if all participants are accounted for
         if(meetings.get(meetingId) != null){
             return (++meetings.get(meetingId).current == meetings.get(meetingId).size);
         }else{

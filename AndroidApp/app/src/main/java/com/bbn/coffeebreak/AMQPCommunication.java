@@ -496,8 +496,9 @@ public class AMQPCommunication extends Service {
 
                             final ObjectMapper mapper = new ObjectMapper();
 
-                            // Create inviteTimer which cancels the meeting 60 seconds after meeting is sent if not all users respond
-                            inviteTimer = new CountDownTimer(60000, 1000) {
+                            // Create inviteTimer which cancels the meeting timeout seconds after meeting is sent if not all users respond
+                            int millis = preferences.getInt("timeout", 60) * 1000;
+                            inviteTimer = new CountDownTimer(millis, 1000) {
                                 @Override
                                 public void onTick(long l) {
                                     //do nothing

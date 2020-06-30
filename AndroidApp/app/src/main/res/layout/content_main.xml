@@ -94,6 +94,30 @@
             android:text="Cancel"
             android:focusable="true" />
 
+        <TextView
+            android:id="@+id/timeout_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Invite timeout after: 60s"
+            android:textSize="16sp"
+            android:paddingBottom="10dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:layout_marginTop="20dp" />
+
+        <SeekBar
+            android:id="@+id/timeout_seek_bar"
+            android:layout_marginRight="30dp"
+            android:layout_marginLeft="30dp"
+            android:max="180"
+            android:min="30"
+            android:maxHeight="10dp"
+            android:minHeight="10dp"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:progressDrawable="@drawable/custom_seekbar"/>
+
 
     </LinearLayout>
 

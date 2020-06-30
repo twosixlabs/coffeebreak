@@ -34,6 +34,8 @@ public class PendingActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Creates pending activity page - currently disabled
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pending);
 

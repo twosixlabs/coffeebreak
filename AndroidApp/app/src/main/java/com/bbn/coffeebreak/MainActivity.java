@@ -36,11 +36,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mapbox.mapboxsdk.annotations.Marker;
+import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.marcoscg.dialogsheet.DialogSheet;
 import com.wafflecopter.multicontactpicker.ContactResult;
 import com.wafflecopter.multicontactpicker.MultiContactPicker;
@@ -54,8 +57,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
@@ -103,15 +108,6 @@ public class MainActivity extends AppCompatActivity {
                     if (!s.equals(organizer))
                         message += s + "; ";
                 }
-
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'");
-                LocalDateTime startTime = LocalDateTime.parse(intent.getStringExtra("begin"), formatter)
-                        .atZone(ZoneId.of("America/New_York")).toLocalDateTime();
-                LocalDateTime endTime = LocalDateTime.parse(intent.getStringExtra("end"), formatter)
-                        .atZone(ZoneId.of("America/New_York")).toLocalDateTime();
-
-                String startDate = startTime.getMonth().toString() + " " + startTime.getDayOfMonth();
-                String endDate = endTime.getMonth().toString() + " " + endTime.getDayOfMonth();
 
                 message += "\n\nWhere: Private Starbucks location";
                 message += "\nWhen: Now";
@@ -189,9 +185,14 @@ public class MainActivity extends AppCompatActivity {
 
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
+                SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
+                TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
+
                 mpcMessage.setText("Start");
                 mpcProgress.setVisibility(View.INVISIBLE);
                 mpcMessage.setVisibility(View.INVISIBLE);
+                timeoutValue.setVisibility(View.VISIBLE);
+                timeoutMessage.setVisibility(View.VISIBLE);
 
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                 SharedPreferences.Editor editor = preferences.edit();
@@ -253,12 +254,16 @@ public class MainActivity extends AppCompatActivity {
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
+                SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
+                TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
 
                 mpcMessage.setText("Performing secure multi-party computation");
                 mpcProgress.setVisibility(View.VISIBLE);
                 mpcMessage.setVisibility(View.VISIBLE);
                 cancelButton.setVisibility(View.INVISIBLE);
                 cancelButton.setEnabled(false);
+                timeoutValue.setVisibility(View.INVISIBLE);
+                timeoutMessage.setVisibility(View.INVISIBLE);
 
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                 SharedPreferences.Editor editor = preferences.edit();
@@ -295,6 +300,8 @@ public class MainActivity extends AppCompatActivity {
 
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
+                SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
+                TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
 
                 String meetingID = intent.getStringExtra("meetingID");
                 String invitee = intent.getStringExtra("invitee");
@@ -309,6 +316,8 @@ public class MainActivity extends AppCompatActivity {
                     mpcMessage.setVisibility(View.INVISIBLE);
                     cancelButton.setVisibility(View.INVISIBLE);
                     cancelButton.setEnabled(false);
+                    timeoutValue.setVisibility(View.VISIBLE);
+                    timeoutMessage.setVisibility(View.VISIBLE);
 
                     FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
                     fab.setEnabled(true);
@@ -353,6 +362,11 @@ public class MainActivity extends AppCompatActivity {
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcMessage.setText(message);
                 mpcMessage.setVisibility(View.VISIBLE);
+
+                SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
+                TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
+                timeoutValue.setVisibility(View.INVISIBLE);
+                timeoutMessage.setVisibility(View.INVISIBLE);
 
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                 SharedPreferences.Editor editor = preferences.edit();
@@ -422,12 +436,17 @@ public class MainActivity extends AppCompatActivity {
             TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
             Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
             FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+            SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
+            TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
 
             mpcMessage.setText("Start");
             mpcMessage.setVisibility(View.INVISIBLE);
 
             cancelButton.setVisibility(View.INVISIBLE);
             cancelButton.setEnabled(false);
+
+            timeoutValue.setVisibility(View.VISIBLE);
+            timeoutMessage.setVisibility(View.VISIBLE);
 
             fab.setEnabled(true);
             fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
@@ -496,6 +515,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString("current_screen", "activity_main");
+        editor.putInt("timeout", 60);
         editor.commit();
 
         Log.d(TAG, "preferences: " + preferences.getAll());
@@ -517,9 +537,28 @@ public class MainActivity extends AppCompatActivity {
 
         mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
 
-
         // Random number generator
         generator = new Random();
+
+        SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
+        TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
+
+        timeoutMessage.setText("Invite timeout after: 60s");
+        timeoutValue.setProgress(60);
+        timeoutValue.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                timeoutMessage.setText("Invite timeout after: " + String.valueOf(progress) + "s");
+                editor.putInt("timeout", progress);
+                editor.commit();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
 
         // ContactPicker Button
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
