@@ -1,13 +1,27 @@
 package com.bbn.coffeebreak;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 
+import androidx.annotation.RequiresApi;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -37,6 +51,9 @@ public class AmqpMpcChannel implements CoffeeChannel {
 
     private static String consumerTag;
 
+    private CountDownTimer mpctimer;
+    private boolean timeout = false;
+
     public AmqpMpcChannel(Channel channel, String meetingId, String dest, String username) throws IOException{
         mChannel = channel;
         mSendQueue = "MPC:LOCATION:" + meetingId + ":" + username + ":" + dest;
@@ -48,20 +65,32 @@ public class AmqpMpcChannel implements CoffeeChannel {
         mChannel.queueDeclare(mSendQueue, false, false, true, args);
         mChannel.queueDeclare(mRecvQueue, false, false, true, args);
         mInviteConsumer = new DefaultConsumer(mChannel){
+            @RequiresApi(api = Build.VERSION_CODES.P)
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 super.handleDelivery(consumerTag, envelope, properties, body);
                 Log.d(TAG, "Received message from AMQP: " + envelope);
+
                 try {
                     mBlockingQueue.put(Arrays.copyOf(body, body.length));
+
+                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            //Log.d(TAG, "interrupting 1");
+                            //Thread.currentThread().interrupt();
+                        }
+                    }, new Object(), 10000);
+
                 } catch (InterruptedException e) {
+                    Log.d(TAG, "error in mpc channel");
                     Thread.currentThread().interrupt();
                     throw new IOException(e);
                 }
             }
         };
-        consumerTag = mChannel.basicConsume(mRecvQueue, true, mInviteConsumer);
 
+        consumerTag = mChannel.basicConsume(mRecvQueue, true, mInviteConsumer);
     }
 
     public String getmSendQueue(){

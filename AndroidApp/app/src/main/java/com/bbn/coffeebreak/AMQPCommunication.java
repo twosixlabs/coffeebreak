@@ -247,7 +247,9 @@ public class AMQPCommunication extends Service {
                 return;
             }
 
-            mpctimer.cancel();
+            if (mpctimer != null) {
+                mpctimer.cancel();
+            }
 
             try{
                 Log.d(TAG, "GOT MPC RESULT LOCATION: " + resultData.getFloat("latitude") + "," + resultData.getFloat("longitude"));
@@ -751,8 +753,8 @@ public class AMQPCommunication extends Service {
                     showLocationDialog.setAction(getString(R.string.broadcast_show_location_dialog));
                     mLocalBroadcastManager.sendBroadcast(showLocationDialog);
                 }
-
-
+            } else if (intent.getAction().equals(getString(R.string.broadcast_mpc_timed_out))) {
+                Log.d(TAG, "MPC HAS TIMED OUT!!!!!!!!!!!!!!!!!");
             }
         }
     };
@@ -836,6 +838,7 @@ public class AMQPCommunication extends Service {
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_response));
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_start));
         mIntentFilter.addAction(getString(R.string.broadcast_start_mpc));
+        mIntentFilter.addAction(getString(R.string.broadcast_mpc_timed_out));
 
         mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
 
@@ -916,6 +919,7 @@ public class AMQPCommunication extends Service {
                 connection = factory.newConnection();
 
                 channel = connection.createChannel();
+
                 channel.addShutdownListener(new ShutdownListener() {
                     @Override
                     public void shutdownCompleted(ShutdownSignalException cause) {
@@ -1392,6 +1396,7 @@ public class AMQPCommunication extends Service {
                 mpcHandler.post(mpc);
 
             }catch (Exception e){
+                Log.d(TAG, "error in amqp");
                 e.printStackTrace();
                 return null;
             }
@@ -1410,26 +1415,23 @@ public class AMQPCommunication extends Service {
                 mLocalBroadcastManager.sendBroadcast(showMpcProgress);
 
                 int numSec = 70000 * numAttendees;
-                Log.d(TAG, "number of seconds until timeout: " + numSec);
+                //Log.d(TAG, "number of seconds until timeout: " + numSec);
 
                 // Create an mpc timer that times out after the mpc calculation should have finished and sends an error
-                mpctimer = new CountDownTimer(numSec, 1000) {
+                mpctimer = new CountDownTimer(60000, 1000) {
                     @Override
-                    public void onTick(long l) {
-                        //do nothing
-                        Log.d(TAG, "reset mpc timer start");
-                    }
+                    public void onTick(long l) { }
 
                     @Override
                     public void onFinish() {
-                        Log.d(TAG, "reset mpc timer finished");
+                        Log.d(TAG, "old mpc timer finished");
 
                         Bundle b = new Bundle();
                         starbucksLocationReceiver.send(0, b);
                     }
                 }.start();
             } else {
-                // something went wrong
+                // Something went wrong
                 Toast.makeText(context, "Something went wrong.", Toast.LENGTH_LONG).show();
             }
         }

@@ -28,7 +28,7 @@
     <string name="broadcast_show_meeting_location">com.bbn.coffeebreak.action.SHOW_MEETING_LOCATION</string>
     <string name="broadcast_show_location_dialog">com.bbn.coffeebreak.action.SHOW_LOCATION_DIALOG</string>
     <string name="broadcast_show_meeting_cancel">com.bbn.coffeebreak.action.SHOW_MEETING_CANCEL</string>
-
+    <string name="broadcast_mpc_timed_out">com.bbn.coffeebreak.action.MPC_TIMED_OUT</string>
 
     <!-- preferences -->
     <string name="shared_preferences">coffeebreak_preferences</string>

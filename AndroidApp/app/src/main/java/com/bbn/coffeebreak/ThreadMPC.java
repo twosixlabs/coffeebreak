@@ -235,7 +235,6 @@ public final class ThreadMPC implements Runnable {
     public final void run() {
         this.exception = null;
         try {
-            Log.d(TAG, "In run try statement");
             final String[] r = mpcTask.call().split(",", -1);
             final long a = Long.parseLong(r[0]);
             final long b = Long.parseLong(r[1]);
@@ -255,7 +254,6 @@ public final class ThreadMPC implements Runnable {
                 this.receiver.send(0, results);
             }
         } catch (final Exception e1) {
-            Log.d(TAG,"in catch");
             try {
                 Log.d(TAG, "mpcTask.getLog(): " + mpcTask.getLog());
             } catch (final Exception e2) {

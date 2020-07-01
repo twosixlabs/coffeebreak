@@ -157,6 +157,13 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
                 }else{
                     drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), seekBar.getProgress() * 1000, R.color.transparent_green);
                 }
+
+                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putInt(getString(R.string.noise_value), noiseLevel.getProgress());
+                editor.commit();
+
+                Toast.makeText(NoisyLocationMapActivity.this, "Noise value set to: " + noiseLevel.getProgress() + "km", Toast.LENGTH_LONG).show();
             }
         });
 
