@@ -540,15 +540,16 @@ public class MainActivity extends AppCompatActivity {
         // Random number generator
         generator = new Random();
 
+        // Timeout bar can be set in 15s increments, will be the invite timeout for a meeting sent by this user
         SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
         TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
 
         timeoutMessage.setText("Invite timeout after: 60s");
-        timeoutValue.setProgress(60);
+        timeoutValue.setProgress(4);
         timeoutValue.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                timeoutMessage.setText("Invite timeout after: " + String.valueOf(progress) + "s");
+                timeoutMessage.setText("Invite timeout after: " + String.valueOf(progress * 15) + "s");
                 editor.putInt("timeout", progress);
                 editor.commit();
             }
