@@ -515,7 +515,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString("current_screen", "activity_main");
-        editor.putInt("timeout", 60);
+        editor.putInt("timeout", 4);
         editor.commit();
 
         Log.d(TAG, "preferences: " + preferences.getAll());
@@ -558,7 +558,10 @@ public class MainActivity extends AppCompatActivity {
             public void onStartTrackingTouch(SeekBar seekBar) { }
 
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) { }
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                Toast.makeText(MainActivity.this, "Meeting invites will timeout in " +
+                        String.valueOf(preferences.getInt("timeout", 4) * 15) + "s", Toast.LENGTH_LONG).show();
+            }
         });
 
         // ContactPicker Button

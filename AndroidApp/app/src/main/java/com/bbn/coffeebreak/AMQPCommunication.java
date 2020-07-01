@@ -310,27 +310,33 @@ public class AMQPCommunication extends Service {
             SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
             // Creates notification timer to send second meeting invite notification after 30 seconds
-            notiftimer = new CountDownTimer(30000, 1000) {
-                @Override
-                public void onTick(long l) {
-                    //do nothing
-                }
+            int timeout = resultData.getInt("timeout") * 15;
+            if (timeout >= 60) {
+                int millis = timeout / 2 * 1000;
+                //int millis = 30000;
 
-                @Override
-                public void onFinish() {
-                    Log.d(TAG, "notification timer finished");
-
-                    // Sends notification if app is in background or on noisy map screen or meeting location map screen
-                    if(isAppIsInBackground(context)){
-                        Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
-                        notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
-                    } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
-                        Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
-                        notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+                notiftimer = new CountDownTimer(millis, 1000) {
+                    @Override
+                    public void onTick(long l) {
+                        //do nothing
                     }
 
-                }
-            }.start();
+                    @Override
+                    public void onFinish() {
+                        Log.d(TAG, "notification timer finished");
+
+                        // Sends notification if app is in background or on noisy map screen or meeting location map screen
+                        if(isAppIsInBackground(context)){
+                            Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
+                            notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+                        } else if (!(preferences.getString("current_screen", "activity_main")).equals("activity_main")) {
+                            Log.d(TAG, "Building notification for meeting ID: " + resultData.getString("meetingID"));
+                            notificationManager.notify(Integer.parseInt(resultData.getString("meetingID")), builder.build());
+                        }
+
+                    }
+                }.start();
+            }
 
             // Sends notification if app is in background or on noisy map screen or meeting location map screen
             if(isAppIsInBackground(context)){
@@ -446,6 +452,7 @@ public class AMQPCommunication extends Service {
                             meeting.put("responses", 1);
                             meeting.put("attendees", invite.getJSONArray("attendees"));
                             meeting.put("organizer", username);
+                            invite.put("timeout", preferences.getInt("timeout", 4));
 
                             // Phone is currently invited to another meeting, will not send meeting invite
                             if (MeetingRequestDialog.dialogExists()) {
@@ -1121,6 +1128,7 @@ public class AMQPCommunication extends Service {
                         Bundle temp = new Bundle();
                         temp.putString("meetingID", message.getString("meetingID"));
                         temp.putString("organizer", message.getString("organizer"));
+                        temp.putInt("timeout", message.getInt("timeout"));
 
                         // Build array list from attendees
                         ArrayList<String> attendees = new ArrayList<String>();
