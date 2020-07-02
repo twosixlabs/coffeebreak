@@ -52,18 +52,22 @@ public class AmqpMpcChannel implements CoffeeChannel {
     private static String consumerTag;
 
     private CountDownTimer mpctimer;
-    private boolean timeout = false;
+    private Handler mHandler;
 
-    public AmqpMpcChannel(Channel channel, String meetingId, String dest, String username) throws IOException{
+    public AmqpMpcChannel(Channel channel, String meetingId, String dest, String username, Handler handler) throws IOException{
         mChannel = channel;
         mSendQueue = "MPC:LOCATION:" + meetingId + ":" + username + ":" + dest;
         mRecvQueue = "MPC:LOCATION:" + meetingId + ":" + dest + ":" + username;
         mUsername = username;
         mBlockingQueue = new LinkedBlockingQueue<byte[]>();
+        mHandler = handler;
+
         Map<String, Object> args = new HashMap<String, Object>();
         args.put("x-expires", 120000);
+
         mChannel.queueDeclare(mSendQueue, false, false, true, args);
         mChannel.queueDeclare(mRecvQueue, false, false, true, args);
+
         mInviteConsumer = new DefaultConsumer(mChannel){
             @RequiresApi(api = Build.VERSION_CODES.P)
             @Override
@@ -74,13 +78,29 @@ public class AmqpMpcChannel implements CoffeeChannel {
                 try {
                     mBlockingQueue.put(Arrays.copyOf(body, body.length));
 
-                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    // Interrupts the MPC thread if a message has not been sent or received in 30 seconds
+                    mHandler.removeCallbacksAndMessages(null);
+                    mHandler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            //Log.d(TAG, "interrupting 1");
-                            //Thread.currentThread().interrupt();
+                            Log.d(TAG, "interrupting 1 - handler: " + mHandler);
+
+                            Thread[] tarray = new Thread[Thread.activeCount()];
+                            Thread.enumerate(tarray);
+                            for (Thread t : tarray) {
+                                if ((t.getName()).equals("MPC-Handler-Thread")) {
+                                    Log.d(TAG, "t.getState(): " + t.getState());
+                                    Log.d(TAG, "Thread.currentThread().getState(): " + Thread.currentThread().getState());
+                                    Log.d(TAG, "handler: " + mHandler);
+                                    if (t.getState().equals(Thread.State.WAITING) && !t.isInterrupted()) {
+                                        Log.d(TAG, "interrupt");
+                                        t.interrupt();
+                                    }
+                                }
+                            }
+
                         }
-                    }, new Object(), 10000);
+                    }, null, 30000);
 
                 } catch (InterruptedException e) {
                     Log.d(TAG, "error in mpc channel");
@@ -107,6 +127,8 @@ public class AmqpMpcChannel implements CoffeeChannel {
 
     @Override
     public void send(byte[] data) throws IOException {
+        String message = new String(data);
+
         //set the message properties
         AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
                 .correlationId(UUID.randomUUID().toString())

@@ -8,11 +8,16 @@ package com.stealthsoftwareinc.bmc;
 /* begin_imports */
 
 import android.annotation.SuppressLint;
+import android.os.Build;
 import android.util.Log;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -322,6 +327,7 @@ public final class MpcTask
         jniError = m;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private void jniSend(
             final Channel channel,
             final byte[] buf
@@ -330,6 +336,7 @@ public final class MpcTask
         channel.send(buf);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private void jniRecv(
             final Channel channel,
             final byte[] buf

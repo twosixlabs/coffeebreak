@@ -104,7 +104,6 @@ public class AMQPCommunication extends Service {
     private static MeetingList meetingList;
     private static List<String> queueList = new ArrayList<>();
 
-    private CountDownTimer mpctimer;
     private CountDownTimer inviteTimer;
     private CountDownTimer notiftimer;
 
@@ -197,7 +196,7 @@ public class AMQPCommunication extends Service {
             } else {
                 // Error in MPC calculation - calculation timed out, resets AMQP connection
                 Log.d(TAG, "Got error in HTTP request for mapbox");
-                //Log.d(TAG, "LOG: " + mpc.getLog());
+                Log.d(TAG, "LOG: " + mpc.getLog());
 
                 Intent showMeetingLocation = new Intent();
                 showMeetingLocation.putExtra("address", "ERROR");
@@ -249,29 +248,31 @@ public class AMQPCommunication extends Service {
             // Receives MPC calculated location
             super.onReceiveResult(resultCode, resultData);
 
-            if (resultData == null) {
-                Log.d(TAG, "result data null");
-                return;
+            if (resultCode == 0) {
+                // MPC location was found, looks for a Starbucks
+                if (resultData == null) {
+                    Log.d(TAG, "result data null");
+                    return;
+                }
+
+                try{
+                    Log.d(TAG, "GOT MPC RESULT LOCATION: " + resultData.getFloat("latitude") + "," + resultData.getFloat("longitude"));
+
+                    //Perform Starbucks location reverse lookup
+                    mHandler.post(new StarbucksLocator(resultData.getFloat("latitude"),
+                            resultData.getFloat("longitude"),
+                            resultData,
+                            starbucksLocationReceiver));
+
+                }catch(Exception e){
+                    e.printStackTrace();
+
+                }
+            } else {
+                // MPC calculation timed out, broadcasts to send an error message
+                Bundle b = new Bundle();
+                starbucksLocationReceiver.send(0, b);
             }
-
-            if (mpctimer != null) {
-                mpctimer.cancel();
-            }
-
-            try{
-                Log.d(TAG, "GOT MPC RESULT LOCATION: " + resultData.getFloat("latitude") + "," + resultData.getFloat("longitude"));
-
-                //Perform Starbucks location reverse lookup
-                mHandler.post(new StarbucksLocator(resultData.getFloat("latitude"),
-                        resultData.getFloat("longitude"),
-                        resultData,
-                        starbucksLocationReceiver));
-
-            }catch(Exception e){
-                e.printStackTrace();
-
-            }
-
         }
     };
 
@@ -1388,13 +1389,14 @@ public class AMQPCommunication extends Service {
             try {
                 List<CoffeeChannel> channels = new ArrayList<>(params[0].attendees.size());
                 Collections.sort(params[0].attendees);
+                Handler handler = new Handler(Looper.getMainLooper());
                 for (String s : params[0].attendees) {
                     Log.d(TAG, "adding " + s);
                     if (s.equals(username)) {
                         channels.add(null);
                         Log.d(TAG, "adding null channel for " + s);
                     } else {
-                        AmqpMpcChannel c = new AmqpMpcChannel(channel, params[0].meetingId, s, username);
+                        AmqpMpcChannel c = new AmqpMpcChannel(channel, params[0].meetingId, s, username, handler);
                         channels.add(c);
                         Log.d(TAG, " adding channel for " + s);
                         Log.d(TAG, " channel consumer tag: " + c.getConsumerTag());
@@ -1442,23 +1444,6 @@ public class AMQPCommunication extends Service {
                 Intent showMpcProgress = new Intent();
                 showMpcProgress.setAction(getString(R.string.broadcast_show_mpc_progress));
                 mLocalBroadcastManager.sendBroadcast(showMpcProgress);
-
-                int numSec = 70000 * numAttendees;
-                //Log.d(TAG, "number of seconds until timeout: " + numSec);
-
-                // Create an mpc timer that times out after the mpc calculation should have finished and sends an error
-                mpctimer = new CountDownTimer(60000, 1000) {
-                    @Override
-                    public void onTick(long l) { }
-
-                    @Override
-                    public void onFinish() {
-                        Log.d(TAG, "old mpc timer finished");
-
-                        Bundle b = new Bundle();
-                        starbucksLocationReceiver.send(0, b);
-                    }
-                }.start();
             } else {
                 // Something went wrong
                 Toast.makeText(context, "Something went wrong.", Toast.LENGTH_LONG).show();
