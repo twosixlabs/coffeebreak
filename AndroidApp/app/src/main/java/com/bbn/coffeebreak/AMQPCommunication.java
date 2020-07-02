@@ -130,6 +130,14 @@ public class AMQPCommunication extends Service {
                 }
             });
 
+            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+            SharedPreferences.Editor editor = preferences.edit();
+
+            editor.remove(resultData.getString("meetingID"));
+            editor.commit();
+
+            meetingList.removeMeeting(resultData.getString("meetingID"));
+
             if (resultCode == 1){
                 try {
                     // MPC calculation finished, users notified, calls to clean up queues
@@ -170,7 +178,6 @@ public class AMQPCommunication extends Service {
                             .setContentIntent(pendingIntent);
 
                     NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-                    SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
                     // Sends notification if app is in background or on noisy map screen or meeting location map screen
                     if (isAppIsInBackground(context)){
@@ -190,7 +197,7 @@ public class AMQPCommunication extends Service {
             } else {
                 // Error in MPC calculation - calculation timed out, resets AMQP connection
                 Log.d(TAG, "Got error in HTTP request for mapbox");
-                Log.d(TAG, "LOG: " + mpc.getLog());
+                //Log.d(TAG, "LOG: " + mpc.getLog());
 
                 Intent showMeetingLocation = new Intent();
                 showMeetingLocation.putExtra("address", "ERROR");
@@ -674,6 +681,34 @@ public class AMQPCommunication extends Service {
                                         sendMeetingErrorMessage(context, response.toString(), attendee);
                                     }
                                 }
+                            } else if (message.getInt("response") == 4) {
+                                // Meeting was cancelled because location services were off for current user
+
+//                                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+//                                SharedPreferences.Editor editor = preferences.edit();
+//                                String meetingId = message.getString("meetingID");
+//                                String organizer = message.getString("organizer");
+//
+//                                meetingList.removeMeeting(meetingId);
+//
+//                                editor.remove(meetingId);
+//                                editor.commit();
+//
+//                                if (username.equals(organizer) && inviteTimer != null) {
+//                                    inviteTimer.cancel();
+//                                }
+//
+//                                // Sending meeting cancelled response to all other participants
+//                                for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
+//                                    String attendee = response.getJSONArray("attendees").get(i).toString();
+//                                    if(!attendee.equals(username)){
+//                                        Log.d(TAG, "Sending meeting response to: " + attendee);
+//                                        sendMeetingResponse(context, response.toString(), attendee);
+//                                    }
+//                                }
+
+                                //Bundle b = new Bundle();
+                                //starbucksLocationReceiver.send(0, b);
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -687,13 +722,6 @@ public class AMQPCommunication extends Service {
                         try {
                             // Send meeting start to all participants
                             JSONObject startMessage = new JSONObject(new String(intent.getStringExtra("event")));
-                            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-                            SharedPreferences.Editor editor = preferences.edit();
-
-                            editor.remove(startMessage.getString("meetingID"));
-                            editor.commit();
-
-                            meetingList.removeMeeting(startMessage.getString("meetingID"));
 
                             if (inviteTimer != null) {
                                 inviteTimer.cancel();
@@ -753,10 +781,11 @@ public class AMQPCommunication extends Service {
                     new SetupMpcAsyncTask().execute(new SetupMpcTaskParams(intent.getStringArrayListExtra("attendees"),
                             noisyLocation, intent.getStringExtra("meetingID")));
                 } else {
-                    // Location not found, possibly can never get here
+                    // Location not found, happens if location services are off and no mock location is set
                     Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
                     Log.d(TAG, "No method to receive user location");
                     Intent showLocationDialog = new Intent();
+                    showLocationDialog.putExtra("meetingID",intent.getStringExtra("meetingID"));
                     showLocationDialog.setAction(getString(R.string.broadcast_show_location_dialog));
                     mLocalBroadcastManager.sendBroadcast(showLocationDialog);
                 }
@@ -1079,14 +1108,6 @@ public class AMQPCommunication extends Service {
                     } else if(properties.getType().equals("start")) {
                         // Received message to start MPC for this meeting
                         Log.d(TAG, "Received start meeting message!");
-
-                        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-                        SharedPreferences.Editor editor = preferences.edit();
-
-                        editor.remove(message.getString("meetingID"));
-                        editor.commit();
-
-                        meetingList.removeMeeting(message.getString("meetingID"));
 
                         if (inviteTimer != null) {
                             inviteTimer.cancel();

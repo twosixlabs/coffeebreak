@@ -276,7 +276,9 @@ public class MainActivity extends AppCompatActivity {
                 fab.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
 
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_location_dialog))) {
-                // Might not ever get to this method, received broadcast to show location dialog, user location not found
+                // Received broadcast to show location dialog, user location not found, cancels meeting
+                String meetingID = intent.getStringExtra("meetingID");
+                cancelMeeting(meetingID, 2);
 
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                 alertDialog.setTitle("Can't get GPS location");
@@ -302,9 +304,9 @@ public class MainActivity extends AppCompatActivity {
                 Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
                 SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
                 TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
+                ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
 
                 String meetingID = intent.getStringExtra("meetingID");
-                String invitee = intent.getStringExtra("invitee");
                 String organizer = intent.getStringExtra("organizer");
                 String username = intent.getStringExtra("username");
                 String message = "\n" + intent.getStringExtra("message");
@@ -318,6 +320,7 @@ public class MainActivity extends AppCompatActivity {
                     cancelButton.setEnabled(false);
                     timeoutValue.setVisibility(View.VISIBLE);
                     timeoutMessage.setVisibility(View.VISIBLE);
+                    mpcProgress.setVisibility(View.INVISIBLE);
 
                     FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
                     fab.setEnabled(true);
@@ -428,6 +431,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (meeting == null) {
             // Meeting already cancelled
+            Log.d(TAG, "meeting is null");
             return;
         }
 
@@ -487,6 +491,8 @@ public class MainActivity extends AppCompatActivity {
         } else if (code == 1) {
             response.setResponse(3);
             response.setAdditionalProperty("error", "invitees are in another meeting");
+        } else {
+            response.setResponse(4);
         }
 
         try {

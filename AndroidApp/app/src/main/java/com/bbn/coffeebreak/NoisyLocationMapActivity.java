@@ -14,6 +14,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.location.LocationProvider;
@@ -44,9 +45,13 @@ import com.mapbox.mapboxsdk.annotations.Annotation;
 import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
+import com.mapbox.mapboxsdk.camera.CameraPosition;
+import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
+import com.mapbox.mapboxsdk.constants.Style;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
+import com.mapbox.mapboxsdk.maps.MapboxMapOptions;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerPlugin;
 import com.mapbox.mapboxsdk.plugins.locationlayer.modes.CameraMode;
@@ -98,6 +103,7 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         if (!PermissionsManager.areLocationPermissionsGranted(this)) {
             permissionsManager = new PermissionsManager(this);
             permissionsManager.requestLocationPermissions(this);
@@ -107,6 +113,7 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
         getUsersLocation();
 
         setContentView(R.layout.activity_noisy_map);
+
         mMapView = findViewById(R.id.mapView);
         mMapView.onCreate(savedInstanceState);
         mMapView.getMapAsync(this);
@@ -274,7 +281,6 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
             locationEngine.addLocationEngineListener(this);
         }
         locationEngine.removeLocationEngineListener(this);
-
     }
 
     @SuppressWarnings( {"MissingPermission"})
@@ -331,8 +337,15 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
         noiseLevel = (SeekBar)findViewById(R.id.noise_seek_bar);
         mockButton = (Button)findViewById(R.id.mock_enable);
 
-        //For now, displaying the user's location using Mapbox SDK causes tile loading issues
+        // For now, displaying the user's location using Mapbox SDK causes tile loading issues
         enableLocationPlugin();
+
+        // Sets initial camera position to the user's origin location
+        mMapboxMap.setCameraPosition(new CameraPosition.Builder()
+                .target(new LatLng(originLocation.getLatitude(), originLocation.getLongitude()))
+                .zoom(12)
+                .tilt(10)
+                .build());
 
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
@@ -340,6 +353,7 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
             MarkerOptions m = new MarkerOptions().setTitle("Mocked location").setPosition(
                     new LatLng(preferences.getFloat(getString(R.string.mock_latitude), 0.0f),
                             preferences.getFloat(getString(R.string.mock_longitude), 0.0f)));
+
             mMapboxMap.addMarker(m);
             drawCircleOverlay(mMapboxMap, this, new LatLng(m.getPosition().getLatitude(), m.getPosition().getLongitude()), preferences.getInt(getString(R.string.noise_value), 5) * 1000, R.color.transparent_green);
         }else{
@@ -447,7 +461,6 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
 
     @SuppressLint("MissingPermission")
     public void getUsersLocation(){
-
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(this, new OnSuccessListener<Location>() {
                     @Override
