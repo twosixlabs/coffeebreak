@@ -14,6 +14,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -278,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_location_dialog))) {
                 // Received broadcast to show location dialog, user location not found, cancels meeting
                 String meetingID = intent.getStringExtra("meetingID");
-                cancelMeeting(meetingID, 2);
+                cancelMeeting(meetingID, 0);
 
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                 alertDialog.setTitle("Can't get GPS location");

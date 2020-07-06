@@ -104,6 +104,7 @@ public class AmqpMpcChannel implements CoffeeChannel {
 
                 } catch (InterruptedException e) {
                     Log.d(TAG, "error in mpc channel");
+                    mHandler.removeCallbacksAndMessages(null);
                     Thread.currentThread().interrupt();
                     throw new IOException(e);
                 }

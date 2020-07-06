@@ -685,6 +685,23 @@ public class AMQPCommunication extends Service {
                             } else if (message.getInt("response") == 4) {
                                 // Meeting was cancelled because location services were off for current user
 
+                                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                                SharedPreferences.Editor editor = preferences.edit();
+                                String meetingId = message.getString("meetingID");
+                                String organizer = message.getString("organizer");
+
+                                meetingList.removeMeeting(meetingId);
+
+                                editor.remove(meetingId);
+                                editor.commit();
+
+                                if (username.equals(organizer) && inviteTimer != null) {
+                                    inviteTimer.cancel();
+                                }
+
+                                // Sending meeting cancelled response to current user
+                                sendMeetingResponse(context, response.toString(), username);
+
 //                                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 //                                SharedPreferences.Editor editor = preferences.edit();
 //                                String meetingId = message.getString("meetingID");
@@ -790,8 +807,6 @@ public class AMQPCommunication extends Service {
                     showLocationDialog.setAction(getString(R.string.broadcast_show_location_dialog));
                     mLocalBroadcastManager.sendBroadcast(showLocationDialog);
                 }
-            } else if (intent.getAction().equals(getString(R.string.broadcast_mpc_timed_out))) {
-                Log.d(TAG, "MPC HAS TIMED OUT!!!!!!!!!!!!!!!!!");
             }
         }
     };
@@ -875,7 +890,6 @@ public class AMQPCommunication extends Service {
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_response));
         mIntentFilter.addAction(getString(R.string.broadcast_send_meeting_start));
         mIntentFilter.addAction(getString(R.string.broadcast_start_mpc));
-        mIntentFilter.addAction(getString(R.string.broadcast_mpc_timed_out));
 
         mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
 
@@ -1146,6 +1160,26 @@ public class AMQPCommunication extends Service {
                         editor.commit();
 
                         meetingList.insertMeeting(meeting);
+
+                        Location location = null;
+                        if(preferences.getBoolean(getString(R.string.mock_location), false)){
+                            location = new Location("");
+                            location.setLatitude(preferences.getFloat(getString(R.string.mock_latitude), 0.0f));
+                            location.setLongitude(preferences.getFloat(getString(R.string.mock_longitude), 0.0f));
+                        }else{
+                            location = mLastLocation;
+                        }
+
+                        if (location == null) {
+                            // Location not found, happens if location services are off and no mock location is set
+                            Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
+                            Log.d(TAG, "No method to receive user location");
+                            Intent showLocationDialog = new Intent();
+                            showLocationDialog.putExtra("meetingID",message.getString("meetingID"));
+                            showLocationDialog.setAction(getString(R.string.broadcast_show_location_dialog));
+                            mLocalBroadcastManager.sendBroadcast(showLocationDialog);
+                            return;
+                        }
 
                         Bundle temp = new Bundle();
                         temp.putString("meetingID", message.getString("meetingID"));

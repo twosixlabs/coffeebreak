@@ -235,7 +235,6 @@ public final class ThreadMPC implements Runnable {
     public final void run() {
         this.exception = null;
         try {
-            Log.d(TAG, "ThreadMPC run before mpcTask.call()");
             final String[] r = mpcTask.call().split(",", -1);
             final long a = Long.parseLong(r[0]);
             final long b = Long.parseLong(r[1]);
