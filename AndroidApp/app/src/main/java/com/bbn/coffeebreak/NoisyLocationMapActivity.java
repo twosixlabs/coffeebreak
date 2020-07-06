@@ -203,7 +203,10 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
                         mockButton.setText("Mock location: OFF");
                         mMapboxMap.removeAnnotation(circleId);
                         mockButton.setBackground(getDrawable(R.drawable.grey_rectangle));
-                        drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), noiseLevel.getProgress() * 1000, R.color.transparent_green);
+
+                        if (originLocation != null) {
+                            drawCircleOverlay(mMapboxMap, NoisyLocationMapActivity.this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), noiseLevel.getProgress() * 1000, R.color.transparent_green);
+                        }
                     }
                 }
             }
@@ -341,22 +344,24 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
         enableLocationPlugin();
 
         // Sets initial camera position to the user's origin location
-        mMapboxMap.setCameraPosition(new CameraPosition.Builder()
-                .target(new LatLng(originLocation.getLatitude(), originLocation.getLongitude()))
-                .zoom(12)
-                .tilt(10)
-                .build());
+        if (originLocation != null) {
+            mMapboxMap.setCameraPosition(new CameraPosition.Builder()
+                    .target(new LatLng(originLocation.getLatitude(), originLocation.getLongitude()))
+                    .zoom(12)
+                    .tilt(10)
+                    .build());
+        }
 
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
-        if(mMockLocation){
+        if (mMockLocation) {
             MarkerOptions m = new MarkerOptions().setTitle("Mocked location").setPosition(
                     new LatLng(preferences.getFloat(getString(R.string.mock_latitude), 0.0f),
                             preferences.getFloat(getString(R.string.mock_longitude), 0.0f)));
 
             mMapboxMap.addMarker(m);
             drawCircleOverlay(mMapboxMap, this, new LatLng(m.getPosition().getLatitude(), m.getPosition().getLongitude()), preferences.getInt(getString(R.string.noise_value), 5) * 1000, R.color.transparent_green);
-        }else{
+        } else if (originLocation != null) {
             drawCircleOverlay(mMapboxMap, this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), preferences.getInt(getString(R.string.noise_value), 5) * 1000, R.color.transparent_green);
         }
 

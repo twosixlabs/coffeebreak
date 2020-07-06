@@ -361,6 +361,7 @@ public class AMQPCommunication extends Service {
             showMeetingRequest.putStringArrayListExtra("attendees", resultData.getStringArrayList("attendees"));
             showMeetingRequest.putExtra("begin", resultData.getString("begin"));
             showMeetingRequest.putExtra("end", resultData.getString("end"));
+            showMeetingRequest.putExtra("location", resultData.getBoolean("location"));
             showMeetingRequest.setAction(getString(R.string.broadcast_show_meeting_request));
             mLocalBroadcastManager.sendBroadcast(showMeetingRequest);
 
@@ -682,51 +683,6 @@ public class AMQPCommunication extends Service {
                                         sendMeetingErrorMessage(context, response.toString(), attendee);
                                     }
                                 }
-                            } else if (message.getInt("response") == 4) {
-                                // Meeting was cancelled because location services were off for current user
-
-                                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-                                SharedPreferences.Editor editor = preferences.edit();
-                                String meetingId = message.getString("meetingID");
-                                String organizer = message.getString("organizer");
-
-                                meetingList.removeMeeting(meetingId);
-
-                                editor.remove(meetingId);
-                                editor.commit();
-
-                                if (username.equals(organizer) && inviteTimer != null) {
-                                    inviteTimer.cancel();
-                                }
-
-                                // Sending meeting cancelled response to current user
-                                sendMeetingResponse(context, response.toString(), username);
-
-//                                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-//                                SharedPreferences.Editor editor = preferences.edit();
-//                                String meetingId = message.getString("meetingID");
-//                                String organizer = message.getString("organizer");
-//
-//                                meetingList.removeMeeting(meetingId);
-//
-//                                editor.remove(meetingId);
-//                                editor.commit();
-//
-//                                if (username.equals(organizer) && inviteTimer != null) {
-//                                    inviteTimer.cancel();
-//                                }
-//
-//                                // Sending meeting cancelled response to all other participants
-//                                for(int i = 0; i < response.getJSONArray("attendees").length(); i++){
-//                                    String attendee = response.getJSONArray("attendees").get(i).toString();
-//                                    if(!attendee.equals(username)){
-//                                        Log.d(TAG, "Sending meeting response to: " + attendee);
-//                                        sendMeetingResponse(context, response.toString(), attendee);
-//                                    }
-//                                }
-
-                                //Bundle b = new Bundle();
-                                //starbucksLocationReceiver.send(0, b);
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -1170,17 +1126,6 @@ public class AMQPCommunication extends Service {
                             location = mLastLocation;
                         }
 
-                        if (location == null) {
-                            // Location not found, happens if location services are off and no mock location is set
-                            Toast.makeText(context, "Can't get user's location", Toast.LENGTH_LONG).show();
-                            Log.d(TAG, "No method to receive user location");
-                            Intent showLocationDialog = new Intent();
-                            showLocationDialog.putExtra("meetingID",message.getString("meetingID"));
-                            showLocationDialog.setAction(getString(R.string.broadcast_show_location_dialog));
-                            mLocalBroadcastManager.sendBroadcast(showLocationDialog);
-                            return;
-                        }
-
                         Bundle temp = new Bundle();
                         temp.putString("meetingID", message.getString("meetingID"));
                         temp.putString("organizer", message.getString("organizer"));
@@ -1195,6 +1140,13 @@ public class AMQPCommunication extends Service {
 
                         temp.putString("begin", message.getJSONObject("constraints").getString("begin"));
                         temp.putString("end", message.getJSONObject("constraints").getString("end"));
+
+                        if (location == null) {
+                            // Location not found, happens if location services are off and no mock location is set
+                            temp.putBoolean("location", false);
+                        } else {
+                            temp.putBoolean("location", true);
+                        }
 
                         showMeetingRequestDialog.send(0, temp);
                     } else if(properties.getType().equals("error")) {

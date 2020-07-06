@@ -118,7 +118,14 @@ public class MainActivity extends AppCompatActivity {
 
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
-                if (MeetingRequestDialog.dialogExists() && preferences.getString("status", "").equals("Meeting " +
+                if (!intent.getBooleanExtra("location", true)) {
+                    Intent setLocation = new Intent();
+                    setLocation.putExtra("meetingID", intent.getStringExtra("meetingID"));
+                    setLocation.putExtra("organizer", intent.getStringExtra("organizer"));
+                    setLocation.putStringArrayListExtra("attendees", intent.getStringArrayListExtra("attendees"));
+                    setLocation.setAction(getString(R.string.broadcast_show_location_dialog));
+                    mLocalBroadcastManager.sendBroadcast(setLocation);
+                } else if (MeetingRequestDialog.dialogExists() && preferences.getString("status", "").equals("Meeting " +
                         intent.getStringExtra("meetingID") + " waiting for response...")) {
                     // Invite already showing for this meeting
                 } else if (MeetingRequestDialog.dialogExists()) {
@@ -279,6 +286,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_location_dialog))) {
                 // Received broadcast to show location dialog, user location not found, cancels meeting
                 String meetingID = intent.getStringExtra("meetingID");
+                MeetingRequestDialog.reset();
                 cancelMeeting(meetingID, 0);
 
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
@@ -492,8 +500,6 @@ public class MainActivity extends AppCompatActivity {
         } else if (code == 1) {
             response.setResponse(3);
             response.setAdditionalProperty("error", "invitees are in another meeting");
-        } else {
-            response.setResponse(4);
         }
 
         try {
