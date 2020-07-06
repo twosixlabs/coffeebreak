@@ -12,6 +12,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 
@@ -19,6 +20,7 @@ import android.util.Log;
 import android.view.Window;
 import android.widget.Toast;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -168,6 +170,7 @@ public class SplashActivity extends Activity {
     }
 
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private void SetupApp(){
         Log.d(TAG, "Setting up the app");
         //Start AMQP communication

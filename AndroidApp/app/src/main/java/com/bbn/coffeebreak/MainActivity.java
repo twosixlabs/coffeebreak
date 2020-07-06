@@ -400,11 +400,14 @@ public class MainActivity extends AppCompatActivity {
                 ProgressBar timeoutProgress = (ProgressBar) findViewById(R.id.timeout_progress);
                 timeoutProgress.setVisibility(View.VISIBLE);
                 timeoutProgress.setMin(0);
-                timeoutProgress.setMax(intent.getIntExtra("timeout", 60) / 1000);
-                timeoutProgress.setProgress(60 - intent.getIntExtra("timeLeft", 60) / 1000);
+
+                int timeout = intent.getIntExtra("timeout", 60) / 1000;
+                int timeLeft = intent.getIntExtra("timeLeft", 60) / 1000;
+                timeoutProgress.setMax(timeout);
+                timeoutProgress.setProgress(timeout - timeLeft);
 
                 // Increments invite timeout progress bar
-                new CountDownTimer(60000, 1000) {
+                new CountDownTimer(timeout * 1000, 1000) {
 
                     @Override
                     public void onTick(long l) {

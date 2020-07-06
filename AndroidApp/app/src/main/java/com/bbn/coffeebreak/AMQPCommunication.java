@@ -567,7 +567,6 @@ public class AMQPCommunication extends Service {
                             // Broadcast to show pending meeting screen for organizer
                             Intent sendPendingMessage = new Intent(context, MainActivity.class);
                             sendPendingMessage.putExtra("meetingID", invite.getString("meetingID"));
-                            Log.d(TAG, "timeLeft: " + millis);
                             sendPendingMessage.putExtra("timeLeft", millis);
                             sendPendingMessage.putExtra("timeout", preferences.getInt("timeout", 60) * 15000);
                             sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
@@ -612,7 +611,6 @@ public class AMQPCommunication extends Service {
                                 // Broadcast to show pending meeting screen for current user
                                 Intent sendPendingMessage = new Intent(context, MainActivity.class);
                                 sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
-                                Log.d(TAG, "timeLeft: " + timeLeft);
                                 sendPendingMessage.putExtra("timeLeft", timeLeft);
                                 sendPendingMessage.putExtra("timeout", meeting.getInt("timeout") * 15000);
                                 sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
