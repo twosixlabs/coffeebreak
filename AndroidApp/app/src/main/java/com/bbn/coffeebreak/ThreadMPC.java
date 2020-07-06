@@ -251,7 +251,6 @@ public final class ThreadMPC implements Runnable {
                 results.putFloat("latitude", locationAnswer.getLatitude());
                 results.putFloat("longitude", locationAnswer.getLongitude());
                 results.putString("meetingID", meeting);
-                Log.d(TAG, "resultCode 0");
                 this.receiver.send(0, results);
             }
         } catch (final Exception e1) {
@@ -262,8 +261,9 @@ public final class ThreadMPC implements Runnable {
             }
             try {
                 if (this.receiver != null) {
-                    Log.d(TAG, "resultCode 1");
-                    this.receiver.send(1, null);
+                    final Bundle results = new Bundle();
+                    results.putString("meetingID", meeting);
+                    this.receiver.send(1, results);
                 }
             } catch (final Exception e2) {
                 e1.addSuppressed(e2);

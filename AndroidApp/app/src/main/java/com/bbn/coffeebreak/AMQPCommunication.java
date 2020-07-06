@@ -120,6 +120,7 @@ public class AMQPCommunication extends Service {
                 @Override
                 public void run() {
                     // Removing channels from queue after mpc calculation
+                    Log.d(TAG, "in run cleanupQueues");
 
                     for(String s : queueList){
                         Log.d(TAG, "Removing consumer " + s);
@@ -132,18 +133,18 @@ public class AMQPCommunication extends Service {
                 }
             });
 
-            SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
-            SharedPreferences.Editor editor = preferences.edit();
-
-            editor.remove(resultData.getString("meetingID"));
-            editor.commit();
-
-            meetingList.removeMeeting(resultData.getString("meetingID"));
-
             if (resultCode == 1){
                 try {
                     // MPC calculation finished, users notified, calls to clean up queues
                     Log.d(TAG, "LOG: " + mpc.getLog());
+
+                    SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                    SharedPreferences.Editor editor = preferences.edit();
+
+                    editor.remove(resultData.getString("meetingID"));
+                    editor.commit();
+
+                    meetingList.removeMeeting(resultData.getString("meetingID"));
 
                     JSONObject httpResponse = new JSONObject(resultData.getString("location"));
                     JSONArray featuresArray = httpResponse.getJSONArray("features");
@@ -199,7 +200,6 @@ public class AMQPCommunication extends Service {
             } else {
                 // Error in MPC calculation - calculation timed out, resets AMQP connection
                 Log.d(TAG, "Got error in HTTP request for mapbox");
-                Log.d(TAG, "LOG: " + mpc.getLog());
 
                 Intent showMeetingLocation = new Intent();
                 showMeetingLocation.putExtra("address", "ERROR");
@@ -209,6 +209,14 @@ public class AMQPCommunication extends Service {
                 mLocalBroadcastManager.sendBroadcast(showMeetingLocation);
 
                 mHandler.post(cleanupQueues);
+
+                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                SharedPreferences.Editor editor = preferences.edit();
+
+                editor.remove(resultData.getString("meetingID"));
+                editor.commit();
+
+                meetingList.removeMeeting(resultData.getString("meetingID"));
 
                 if(connection != null){
                     mHandler.post(new Runnable() {
@@ -274,6 +282,7 @@ public class AMQPCommunication extends Service {
             } else {
                 // MPC calculation timed out, broadcasts to send an error message
                 Bundle b = new Bundle();
+                b.putString("meetingID", resultData.getString("meetingID"));
                 starbucksLocationReceiver.send(0, b);
             }
         }
