@@ -93,6 +93,17 @@
             android:textSize="12sp"
             android:text="Cancel"
             android:focusable="true" />
+        
+        <ProgressBar
+            android:id="@+id/timeout_progress"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:paddingTop="10dp"
+            android:progressBackgroundTint="@color/colorAccent"
+            android:progressTint="#bababa"
+            android:visibility="invisible" />
 
         <TextView
             android:id="@+id/timeout_message"

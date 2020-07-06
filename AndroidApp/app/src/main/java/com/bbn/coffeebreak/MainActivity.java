@@ -29,6 +29,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import android.os.Looper;
 import android.telephony.PhoneNumberUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -266,6 +267,7 @@ public class MainActivity extends AppCompatActivity {
                 Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
                 SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
                 TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
+                ProgressBar timeoutProgress = (ProgressBar) findViewById(R.id.timeout_progress);
 
                 mpcMessage.setText("Performing secure multi-party computation");
                 mpcProgress.setVisibility(View.VISIBLE);
@@ -274,6 +276,7 @@ public class MainActivity extends AppCompatActivity {
                 cancelButton.setEnabled(false);
                 timeoutValue.setVisibility(View.INVISIBLE);
                 timeoutMessage.setVisibility(View.INVISIBLE);
+                timeoutProgress.setVisibility(View.INVISIBLE);
 
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                 SharedPreferences.Editor editor = preferences.edit();
@@ -316,6 +319,7 @@ public class MainActivity extends AppCompatActivity {
                 SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
                 TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
+                ProgressBar timeoutProgress = (ProgressBar) findViewById(R.id.timeout_progress);
 
                 String meetingID = intent.getStringExtra("meetingID");
                 String organizer = intent.getStringExtra("organizer");
@@ -332,6 +336,7 @@ public class MainActivity extends AppCompatActivity {
                     timeoutValue.setVisibility(View.VISIBLE);
                     timeoutMessage.setVisibility(View.VISIBLE);
                     mpcProgress.setVisibility(View.INVISIBLE);
+                    timeoutProgress.setVisibility(View.INVISIBLE);
 
                     FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
                     fab.setEnabled(true);
@@ -392,10 +397,29 @@ public class MainActivity extends AppCompatActivity {
                 cancelButton.setVisibility(View.VISIBLE);
                 cancelButton.setEnabled(true);
 
+                ProgressBar timeoutProgress = (ProgressBar) findViewById(R.id.timeout_progress);
+                timeoutProgress.setVisibility(View.VISIBLE);
+                timeoutProgress.setMin(0);
+                timeoutProgress.setMax(intent.getIntExtra("timeout", 60) / 1000);
+                timeoutProgress.setProgress(60 - intent.getIntExtra("timeLeft", 60) / 1000);
+
+                // Increments invite timeout progress bar
+                new CountDownTimer(60000, 1000) {
+
+                    @Override
+                    public void onTick(long l) {
+                        timeoutProgress.incrementProgressBy(1);
+                    }
+
+                    @Override
+                    public void onFinish() { }
+                }.start();
+
                 FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
                 fab.setEnabled(false);
                 fab.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
 
+                // Cancel button OnClick listener
                 Objects.requireNonNull(cancelButton).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -453,12 +477,15 @@ public class MainActivity extends AppCompatActivity {
             FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
             SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
             TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
+            ProgressBar timeoutProgress = (ProgressBar) findViewById(R.id.timeout_progress);
 
             mpcMessage.setText("Start");
             mpcMessage.setVisibility(View.INVISIBLE);
 
             cancelButton.setVisibility(View.INVISIBLE);
             cancelButton.setEnabled(false);
+
+            timeoutProgress.setVisibility(View.INVISIBLE);
 
             timeoutValue.setVisibility(View.VISIBLE);
             timeoutMessage.setVisibility(View.VISIBLE);

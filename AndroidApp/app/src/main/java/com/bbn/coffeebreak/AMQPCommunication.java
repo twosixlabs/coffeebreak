@@ -34,6 +34,8 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.util.Log;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -106,6 +108,7 @@ public class AMQPCommunication extends Service {
 
     private CountDownTimer inviteTimer;
     private CountDownTimer notiftimer;
+    private int timeLeft;
 
     private ResultReceiver starbucksLocationReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @SuppressLint("MissingPermission")
@@ -319,10 +322,8 @@ public class AMQPCommunication extends Service {
 
             // Creates notification timer to send second meeting invite notification after 30 seconds
             int timeout = resultData.getInt("timeout") * 15;
+            int millis = timeout / 2 * 1000;
             if (timeout >= 60) {
-                int millis = timeout / 2 * 1000;
-                //int millis = 30000;
-
                 notiftimer = new CountDownTimer(millis, 1000) {
                     @Override
                     public void onTick(long l) {
@@ -345,6 +346,17 @@ public class AMQPCommunication extends Service {
                     }
                 }.start();
             }
+
+            // Creates timer to keep track of how much time is left until invite times out
+            new CountDownTimer(millis * 2, 1000) {
+                @Override
+                public void onTick(long l) {
+                    timeLeft = (int) l;
+                }
+
+                @Override
+                public void onFinish() { }
+            }.start();
 
             // Sends notification if app is in background or on noisy map screen or meeting location map screen
             if(isAppIsInBackground(context)){
@@ -461,6 +473,7 @@ public class AMQPCommunication extends Service {
                             meeting.put("responses", 1);
                             meeting.put("attendees", invite.getJSONArray("attendees"));
                             meeting.put("organizer", username);
+                            meeting.put("timeout", preferences.getInt("timeout", 4));
                             invite.put("timeout", preferences.getInt("timeout", 4));
 
                             // Phone is currently invited to another meeting, will not send meeting invite
@@ -519,7 +532,7 @@ public class AMQPCommunication extends Service {
                             inviteTimer = new CountDownTimer(millis, 1000) {
                                 @Override
                                 public void onTick(long l) {
-                                    //do nothing
+                                    timeLeft = (int) l;
                                 }
 
                                 @Override
@@ -554,6 +567,9 @@ public class AMQPCommunication extends Service {
                             // Broadcast to show pending meeting screen for organizer
                             Intent sendPendingMessage = new Intent(context, MainActivity.class);
                             sendPendingMessage.putExtra("meetingID", invite.getString("meetingID"));
+                            Log.d(TAG, "timeLeft: " + millis);
+                            sendPendingMessage.putExtra("timeLeft", millis);
+                            sendPendingMessage.putExtra("timeout", preferences.getInt("timeout", 60) * 15000);
                             sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
                             mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
                         } catch (JSONException e) {
@@ -596,6 +612,9 @@ public class AMQPCommunication extends Service {
                                 // Broadcast to show pending meeting screen for current user
                                 Intent sendPendingMessage = new Intent(context, MainActivity.class);
                                 sendPendingMessage.putExtra("meetingID", message.getString("meetingID"));
+                                Log.d(TAG, "timeLeft: " + timeLeft);
+                                sendPendingMessage.putExtra("timeLeft", timeLeft);
+                                sendPendingMessage.putExtra("timeout", meeting.getInt("timeout") * 15000);
                                 sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
                                 mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
 
@@ -1112,6 +1131,7 @@ public class AMQPCommunication extends Service {
                         meeting.put("responses", 1);
                         meeting.put("attendees", message.getJSONArray("attendees"));
                         meeting.put("organizer", message.getString("organizer"));
+                        meeting.put("timeout", message.getInt("timeout"));
                         editor.putString(meeting.getString("meetingID"), meeting.toString());
                         editor.commit();
 
