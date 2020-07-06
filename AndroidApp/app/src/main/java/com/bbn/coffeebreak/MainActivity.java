@@ -119,12 +119,14 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
                 if (!intent.getBooleanExtra("location", true)) {
+                    // Location not found, happens if location services are off and no mock location is set
                     Intent setLocation = new Intent();
                     setLocation.putExtra("meetingID", intent.getStringExtra("meetingID"));
                     setLocation.putExtra("organizer", intent.getStringExtra("organizer"));
                     setLocation.putStringArrayListExtra("attendees", intent.getStringArrayListExtra("attendees"));
                     setLocation.setAction(getString(R.string.broadcast_show_location_dialog));
                     mLocalBroadcastManager.sendBroadcast(setLocation);
+                    return;
                 } else if (MeetingRequestDialog.dialogExists() && preferences.getString("status", "").equals("Meeting " +
                         intent.getStringExtra("meetingID") + " waiting for response...")) {
                     // Invite already showing for this meeting
@@ -287,7 +289,7 @@ public class MainActivity extends AppCompatActivity {
                 // Received broadcast to show location dialog, user location not found, cancels meeting
                 String meetingID = intent.getStringExtra("meetingID");
                 MeetingRequestDialog.reset();
-                cancelMeeting(meetingID, 0);
+                cancelMeeting(meetingID, 2);
 
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                 alertDialog.setTitle("Can't get GPS location");
@@ -500,6 +502,9 @@ public class MainActivity extends AppCompatActivity {
         } else if (code == 1) {
             response.setResponse(3);
             response.setAdditionalProperty("error", "invitees are in another meeting");
+        } else {
+            response.setResponse(3);
+            response.setAdditionalProperty("error", "cannot get location for all invitees");
         }
 
         try {
