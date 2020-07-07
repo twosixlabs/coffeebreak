@@ -7,14 +7,17 @@ import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -30,6 +33,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.os.Looper;
+import android.provider.ContactsContract;
 import android.telephony.PhoneNumberUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -37,8 +41,10 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
+import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -47,6 +53,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.marcoscg.dialogsheet.DialogSheet;
+import com.onegravity.contactpicker.contact.Contact;
+import com.onegravity.contactpicker.ContactElement;
+import com.onegravity.contactpicker.contact.ContactDescription;
+import com.onegravity.contactpicker.contact.ContactSortOrder;
+import com.onegravity.contactpicker.core.ContactPickerActivity;
+import com.onegravity.contactpicker.group.Group;
+import com.onegravity.contactpicker.picture.ContactPictureType;
 import com.wafflecopter.multicontactpicker.ContactResult;
 import com.wafflecopter.multicontactpicker.MultiContactPicker;
 import com.wafflecopter.multicontactpicker.RxContacts.PhoneNumber;
@@ -81,6 +94,8 @@ public class MainActivity extends AppCompatActivity {
     private HandlerThread httpHandlerThread;
     private Handler mHandler;
 
+    private Map<String, String> phoneNumberMap;
+
     // Broadcast receiver for handling events
     BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
 
@@ -108,8 +123,9 @@ public class MainActivity extends AppCompatActivity {
                 String message = "Invites: ";
                 for (String s : attendees) {
                     if (!s.equals(organizer))
-                        message += s + "; ";
+                        message += phoneNumberMap.get(s) + ", ";
                 }
+                message = message.substring(0, message.length() - 2);
 
                 message += "\n\nWhere: Private Starbucks location";
                 message += "\nWhen: Now";
@@ -120,13 +136,15 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
                 if (!intent.getBooleanExtra("location", true)) {
-                    // Location not found, happens if location services are off and no mock location is set
+                    // Location not found, happens if location services are off and no mock location is set, cancel meeting
                     Intent setLocation = new Intent();
                     setLocation.putExtra("meetingID", intent.getStringExtra("meetingID"));
                     setLocation.putExtra("organizer", intent.getStringExtra("organizer"));
                     setLocation.putStringArrayListExtra("attendees", intent.getStringArrayListExtra("attendees"));
                     setLocation.setAction(getString(R.string.broadcast_show_location_dialog));
                     mLocalBroadcastManager.sendBroadcast(setLocation);
+
+                    cancelMeeting(intent.getStringExtra("meetingID"), 2);
                     return;
                 } else if (MeetingRequestDialog.dialogExists() && preferences.getString("status", "").equals("Meeting " +
                         intent.getStringExtra("meetingID") + " waiting for response...")) {
@@ -194,6 +212,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
                 // Received broadcast to show meeting location dialog or error dialog, resets homescreen
 
+                // Updating visibility of UI widgets
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
@@ -262,6 +281,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d(TAG, "Received broadcast to show MPC progress");
 
+                // Updating visibility of UI widgets
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
@@ -289,10 +309,9 @@ public class MainActivity extends AppCompatActivity {
                 fab.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
 
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_location_dialog))) {
-                // Received broadcast to show location dialog, user location not found, cancels meeting
-                String meetingID = intent.getStringExtra("meetingID");
+                // Received broadcast to show location dialog, user location not found
+
                 MeetingRequestDialog.reset();
-                cancelMeeting(meetingID, 2);
 
                 AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                 alertDialog.setTitle("Can't get GPS location");
@@ -324,7 +343,12 @@ public class MainActivity extends AppCompatActivity {
                 String meetingID = intent.getStringExtra("meetingID");
                 String organizer = intent.getStringExtra("organizer");
                 String username = intent.getStringExtra("username");
+                String user_cancelled = intent.getStringExtra("user_cancelled");
                 String message = "\n" + intent.getStringExtra("message");
+
+                if (user_cancelled != null) {
+                    message = "\n" + phoneNumberMap.get(user_cancelled) + intent.getStringExtra("message");
+                }
 
                 Log.d(TAG, "message: " + intent.getStringExtra("message"));
 
@@ -374,10 +398,20 @@ public class MainActivity extends AppCompatActivity {
                 MeetingList meetingList = AMQPCommunication.getMeetingList();
                 String meetingID = intent.getStringExtra("meetingID");
                 MeetingList.Meeting meeting = meetingList.getMeeting(meetingID);
+
+                // Constructing the message with the names of the pending users
+                String message = "Meeting: " + meetingID + "\nWaiting on ";
+
                 String pen = meeting.pending_invites.toString();
                 pen = pen.substring(1, pen.length() - 1);
-                String message = "Meeting: " + meetingID + "\nWaiting on " + pen;
+                String[] invitees = pen.split(", ");
 
+                for (String i : invitees) {
+                    message += phoneNumberMap.get(i) + ", ";
+                }
+                message = message.substring(0, message.length() - 2);
+
+                // Updating visibility of UI widgets
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcMessage.setText(message);
                 mpcMessage.setVisibility(View.VISIBLE);
@@ -439,9 +473,18 @@ public class MainActivity extends AppCompatActivity {
                 MeetingList meetingList = AMQPCommunication.getMeetingList();
                 String meetingID = intent.getStringExtra("meetingID");
                 MeetingList.Meeting meeting = meetingList.getMeeting(meetingID);
+
+                // Constructing the message with the names of the pending users
+                String message = "Meeting: " + meetingID + "\nWaiting on ";
+
                 String pen = meeting.pending_invites.toString();
                 pen = pen.substring(1, pen.length() - 1);
-                String message = "Meeting: " + meetingID + "\nWaiting on " + pen;
+                String[] invitees = pen.split(", ");
+
+                for (String i : invitees) {
+                    message += phoneNumberMap.get(i) + ", ";
+                }
+                message = message.substring(0, message.length() - 2);
 
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
 
@@ -475,6 +518,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Reset home screen unless user is in another meeting
         if (code != 1) {
+            // Updating visibility of UI widgets
             TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
             Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
             FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -545,6 +589,44 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Gets list of contact names with phone numbers and puts them into phoneNumberMap
+    private void getContactList() {
+        phoneNumberMap = new HashMap<String,String>();
+
+        ContentResolver cr = getContentResolver();
+        Cursor cur = cr.query(ContactsContract.Contacts.CONTENT_URI,
+                null, null, null, null);
+
+        if ((cur != null ? cur.getCount() : 0) > 0) {
+            while (cur != null && cur.moveToNext()) {
+                String id = cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID));
+                String name = cur.getString(cur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+
+                if (cur.getInt(cur.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER)) > 0) {
+                    Cursor pCur = cr.query(
+                            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                            null,
+                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
+                            new String[]{id}, null);
+                    while (pCur.moveToNext()) {
+                        String phoneNum = PhoneNumberUtils.formatNumberToE164(pCur.getString(pCur.getColumnIndex(
+                                ContactsContract.CommonDataKinds.Phone.NUMBER)), "US");
+
+                        Log.i(TAG, "Name: " + name);
+                        Log.i(TAG, "Phone Number: " + phoneNum);
+
+                        phoneNumberMap.put(phoneNum, name);
+                    }
+                    pCur.close();
+                }
+            }
+        }
+
+        if(cur!=null){
+            cur.close();
+        }
+    }
+
     //Suppressing PRIVATEDATA_SERIVCE warnings
     @SuppressLint({"ResourceType", "NewApi"})
     @Override
@@ -612,6 +694,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        getContactList();
+
         // ContactPicker Button
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setEnabled(true);
@@ -620,7 +704,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 //Note: The value of this ContactPicker is returned in the function onActivityResult
-                ContactPicker.startContactPicker(MainActivity.this);
+                //ContactPicker.startContactPicker(MainActivity.this);
+
+                Intent intent = new Intent(MainActivity.this, ContactPickerActivity.class)
+                        .putExtra(ContactPickerActivity.EXTRA_CONTACT_BADGE_TYPE, ContactPictureType.ROUND.name())
+                        .putExtra(ContactPickerActivity.EXTRA_SHOW_CHECK_ALL, true)
+                        .putExtra(ContactPickerActivity.EXTRA_ONLY_CONTACTS_WITH_PHONE, true)
+                        .putExtra(ContactPickerActivity.EXTRA_CONTACT_DESCRIPTION, ContactDescription.PHONE.name())
+                        .putExtra(ContactPickerActivity.EXTRA_CONTACT_DESCRIPTION_TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MAIN)
+                        .putExtra(ContactPickerActivity.EXTRA_CONTACT_SORT_ORDER, ContactSortOrder.AUTOMATIC.name());
+                startActivityForResult(intent, getResources().getInteger(R.integer.contact_picker_request));
             }
         });
 
@@ -670,6 +763,31 @@ public class MainActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
                 final SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
 
+                // Process contacts
+                List<Contact> contacts = (List<Contact>) data.getSerializableExtra(ContactPickerActivity.RESULT_CONTACT_DATA);
+                final String[] contactNames = new String[contacts.size()];
+                final String[] contactPhones = new String[contacts.size()];
+
+                int j = 0;
+                for (Contact contact : contacts) {
+                    contactNames[j] = contact.getDisplayName().toLowerCase();
+
+                    if (contact.getPhone(ContactsContract.CommonDataKinds.Phone.TYPE_MAIN) == null) {
+                        Toast.makeText(MainActivity.this, "No phone number associated with contact", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    contactPhones[j] = PhoneNumberUtils.formatNumberToE164((contact.getPhone(ContactsContract.CommonDataKinds.Phone.TYPE_MAIN)), "US");
+                    if (contactPhones[j] == null) {
+                        Toast.makeText(MainActivity.this, "Contact has invalid US phone number", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    j++;
+                }
+
+                // Process contact groups
+                List<Group> groups = (List<Group>) data.getSerializableExtra(ContactPickerActivity.RESULT_GROUP_DATA);
+
+                /*
                 List<ContactResult> results = MultiContactPicker.obtainResult(data);
 
                 //Get all the names / phone numbers of the picked contacts
@@ -689,7 +807,7 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                     j++;
-                }
+                }*/
 
                 LocalDateTime beginDate = LocalDateTime.now();
                 ZonedDateTime zBeginDate = beginDate.atZone(ZoneId.systemDefault());

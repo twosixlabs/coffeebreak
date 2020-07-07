@@ -16,6 +16,7 @@ import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.hardware.display.DisplayManager;
 import android.location.Location;
+import android.location.LocationManager;
 import android.media.RingtoneManager;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -299,6 +300,32 @@ public class AMQPCommunication extends Service {
         }
     };
 
+    // Checks if the user has location permissions on or if they have set a mock location
+    private boolean checkPermissions() {
+        LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        boolean gps_enabled = false;
+        boolean network_enabled = false;
+
+        SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+        boolean mockLocation = preferences.getBoolean(getString(R.string.mock_location), true);
+
+        if (mockLocation) {
+            return true;
+        }
+
+        try {
+            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        if(!gps_enabled && !network_enabled) {
+            return false;
+        }
+        return true;
+    }
+
     private ResultReceiver showMeetingRequestDialog = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @Override
         protected void onReceiveResult(final int resultCode, final Bundle resultData) {
@@ -404,7 +431,7 @@ public class AMQPCommunication extends Service {
 
             String message = "";
             if (resultCode == 1) {
-                message = resultData.getString("user_cancelled") + " has rejected the meeting";
+                message = " has rejected the meeting";
             } else if (resultCode == 0) {
                 message = "Meeting invite timed out - not all invitees responded";
             } else if (resultData.getString("error").equals("not all parties are connected")) {
@@ -415,7 +442,7 @@ public class AMQPCommunication extends Service {
 
             Intent notifIntent = new Intent(context, MainActivity.class);
             notifIntent.putExtra("meetingID", resultData.getString("meetingID"));
-            notifIntent.putExtra("invitee", resultData.getString("user_cancelled"));
+            notifIntent.putExtra("user_cancelled", resultData.getString("user_cancelled"));
             notifIntent.putExtra("message", message);
             notifIntent.putExtra("username", username);
             notifIntent.putExtra("organizer", resultData.getString("organizer"));
@@ -449,7 +476,7 @@ public class AMQPCommunication extends Service {
 
             Intent showMeetingCancel = new Intent();
             showMeetingCancel.putExtra("meetingID", resultData.getString("meetingID"));
-            showMeetingCancel.putExtra("invitee", resultData.getString("user_cancelled"));
+            showMeetingCancel.putExtra("user_cancelled", resultData.getString("user_cancelled"));
             showMeetingCancel.putExtra("message", message);
             showMeetingCancel.putExtra("username", username);
             showMeetingCancel.putExtra("organizer", resultData.getString("organizer"));
@@ -488,6 +515,12 @@ public class AMQPCommunication extends Service {
                             // Phone is currently invited to another meeting, will not send meeting invite
                             if (MeetingRequestDialog.dialogExists()) {
                                 invite.put("error", "respond to meeting request before starting new meeting");
+                                sendMeetingErrorMessage(context, invite.toString(), username);
+                                return;
+                            }
+
+                            if (!checkPermissions()) {
+                                invite.put("error", "location not set");
                                 sendMeetingErrorMessage(context, invite.toString(), username);
                                 return;
                             }
@@ -1144,15 +1177,6 @@ public class AMQPCommunication extends Service {
 
                         meetingList.insertMeeting(meeting);
 
-                        Location location = null;
-                        if(preferences.getBoolean(getString(R.string.mock_location), false)){
-                            location = new Location("");
-                            location.setLatitude(preferences.getFloat(getString(R.string.mock_latitude), 0.0f));
-                            location.setLongitude(preferences.getFloat(getString(R.string.mock_longitude), 0.0f));
-                        }else{
-                            location = mLastLocation;
-                        }
-
                         Bundle temp = new Bundle();
                         temp.putString("meetingID", message.getString("meetingID"));
                         temp.putString("organizer", message.getString("organizer"));
@@ -1168,7 +1192,7 @@ public class AMQPCommunication extends Service {
                         temp.putString("begin", message.getJSONObject("constraints").getString("begin"));
                         temp.putString("end", message.getJSONObject("constraints").getString("end"));
 
-                        if (location == null) {
+                        if (!checkPermissions()) {
                             // Location not found, happens if location services are off and no mock location is set
                             temp.putBoolean("location", false);
                         } else {

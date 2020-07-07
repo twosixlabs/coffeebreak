@@ -10,8 +10,6 @@ import androidx.core.content.ContextCompat;
 
 import com.wafflecopter.multicontactpicker.LimitColumn;
 import com.wafflecopter.multicontactpicker.MultiContactPicker;
-import com.wafflecopter.multicontactpicker.MultiContactPickerActivity;
-import com.wafflecopter.multicontactpicker.RxContacts.RxContacts;
 
 public class ContactPicker {
     public static void startContactPicker(Context c){

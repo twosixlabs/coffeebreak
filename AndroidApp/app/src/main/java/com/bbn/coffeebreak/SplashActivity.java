@@ -154,6 +154,7 @@ public class SplashActivity extends Activity {
         }else{
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
+                @RequiresApi(api = Build.VERSION_CODES.O)
                 @Override
                 public void run() {
                     SetupApp();
