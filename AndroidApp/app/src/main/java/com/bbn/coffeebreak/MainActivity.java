@@ -384,8 +384,9 @@ public class MainActivity extends AppCompatActivity {
                     fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
                 }
 
-                // Displays meeting cancelled dialog, if the meeting was not sent only the organizer receives the cancel dialog
+                // Displays meeting cancelled dialog, only sends cancel dialog if there isn't already one for the meeting
                 if (!message.contains("Meeting invite not sent") || username.equals(organizer) && !MeetingCancelDialog.dialogExists()) {
+                    // Meeting was cancelled or timed out, or the organizer receives a cancel message
                     MeetingCancelDialog.request(MainActivity.this, message,
                             new DialogSheet.OnPositiveClickListener() {
                                 @Override
@@ -395,7 +396,8 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }).setTitle("Meeting Cancelled").show();
                 } else if (!MeetingCancelDialog.dialogExists()) {
-                    MeetingCancelDialog.request(MainActivity.this, message,
+                    // Error with meeting invite received by invitee
+                    MeetingCancelDialog.request(MainActivity.this, "Not all invitees available",
                             new DialogSheet.OnPositiveClickListener() {
                                 @Override
                                 public void onClick(View view) {
@@ -748,10 +750,12 @@ public class MainActivity extends AppCompatActivity {
 
                 Intent intent = new Intent(MainActivity.this, ContactPickerActivity.class)
                         .putExtra(ContactPickerActivity.EXTRA_CONTACT_BADGE_TYPE, ContactPictureType.ROUND.name())
-                        .putExtra(ContactPickerActivity.EXTRA_SHOW_CHECK_ALL, true)
+                        .putExtra(ContactPickerActivity.EXTRA_SHOW_CHECK_ALL, false)
                         .putExtra(ContactPickerActivity.EXTRA_ONLY_CONTACTS_WITH_PHONE, true)
                         .putExtra(ContactPickerActivity.EXTRA_CONTACT_DESCRIPTION, ContactDescription.PHONE.name())
                         .putExtra(ContactPickerActivity.EXTRA_CONTACT_DESCRIPTION_TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MAIN)
+                        .putExtra(ContactPickerActivity.EXTRA_SELECT_CONTACTS_LIMIT, 9)
+                        .putExtra(ContactPickerActivity.EXTRA_LIMIT_REACHED_MESSAGE, "Select up to 9 contacts")
                         .putExtra(ContactPickerActivity.EXTRA_CONTACT_SORT_ORDER, ContactSortOrder.AUTOMATIC.name());
                 startActivityForResult(intent, getResources().getInteger(R.integer.contact_picker_request));
             }
