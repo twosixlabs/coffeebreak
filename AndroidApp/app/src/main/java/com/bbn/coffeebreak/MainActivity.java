@@ -385,7 +385,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // Displays meeting cancelled dialog, if the meeting was not sent only the organizer receives the cancel dialog
-                if (!message.contains("Meeting invite not sent") || username.equals(organizer)) {
+                if (!message.contains("Meeting invite not sent") || username.equals(organizer) && !MeetingCancelDialog.dialogExists()) {
                     MeetingCancelDialog.request(MainActivity.this, message,
                             new DialogSheet.OnPositiveClickListener() {
                                 @Override

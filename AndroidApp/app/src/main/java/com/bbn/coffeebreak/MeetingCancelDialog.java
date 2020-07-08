@@ -13,7 +13,7 @@ public class MeetingCancelDialog {
 
     public static DialogSheet request(Context c, String message,
                                       DialogSheet.OnPositiveClickListener posListen){
-        dialogSheet = new DialogSheet(c)
+        dialogSheet =  new DialogSheet(c)
                 .setTitle(c.getString(R.string.meeting_request_title))
                 .setMessage(message)
                 .setCancelable(false)
