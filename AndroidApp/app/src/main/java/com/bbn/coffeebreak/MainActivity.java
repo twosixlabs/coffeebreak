@@ -391,6 +391,16 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void onClick(View view) {
                                     // do nothing
+                                    MeetingCancelDialog.reset();
+                                }
+                            }).setTitle("Meeting Cancelled").show();
+                } else if (!MeetingCancelDialog.dialogExists()) {
+                    MeetingCancelDialog.request(MainActivity.this, message,
+                            new DialogSheet.OnPositiveClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    // do nothing
+                                    MeetingCancelDialog.reset();
                                 }
                             }).setTitle("Meeting Cancelled").show();
                 }
@@ -637,6 +647,7 @@ public class MainActivity extends AppCompatActivity {
                         String phoneNum = PhoneNumberUtils.formatNumberToE164(pCur.getString(pCur.getColumnIndex(
                                 ContactsContract.CommonDataKinds.Phone.NUMBER)), "US");
 
+                        // Returns 0 if default, 1 if not default
                         Log.d(TAG, "IS_SUPER_PRIMARY: " + pCur.getInt(pCur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.IS_SUPER_PRIMARY)));
 
                         Log.i(TAG, "Name: " + name);
@@ -732,6 +743,8 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 //Note: The value of this ContactPicker is returned in the function onActivityResult
                 //ContactPicker.startContactPicker(MainActivity.this);
+
+                //https://github.com/1gravity/Android-ContactPicker
 
                 Intent intent = new Intent(MainActivity.this, ContactPickerActivity.class)
                         .putExtra(ContactPickerActivity.EXTRA_CONTACT_BADGE_TYPE, ContactPictureType.ROUND.name())
