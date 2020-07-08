@@ -54,7 +54,7 @@ public class AmqpMpcChannel implements CoffeeChannel {
     private CountDownTimer mpctimer;
     private Handler mHandler;
 
-    public AmqpMpcChannel(Channel channel, String meetingId, String dest, String username, Handler handler) throws IOException{
+    public AmqpMpcChannel(Channel channel, String meetingId, String dest, String username, Handler handler, int mpc_timeout) throws IOException{
         mChannel = channel;
         mSendQueue = "MPC:LOCATION:" + meetingId + ":" + username + ":" + dest;
         mRecvQueue = "MPC:LOCATION:" + meetingId + ":" + dest + ":" + username;
@@ -100,7 +100,7 @@ public class AmqpMpcChannel implements CoffeeChannel {
                             }
 
                         }
-                    }, null, 30000);
+                    }, null, mpc_timeout * 15000);
 
                 } catch (InterruptedException e) {
                     Log.d(TAG, "error in mpc channel");

@@ -510,7 +510,9 @@ public class AMQPCommunication extends Service {
                             meeting.put("attendees", invite.getJSONArray("attendees"));
                             meeting.put("organizer", username);
                             meeting.put("timeout", preferences.getInt("timeout", 4));
+                            meeting.put("mpc_timeout", preferences.getInt("mpc_timeout", 2));
                             invite.put("timeout", preferences.getInt("timeout", 4));
+                            invite.put("mpc_timeout", preferences.getInt("mpc_timeout", 2));
 
                             // Phone is currently invited to another meeting, will not send meeting invite
                             if (MeetingRequestDialog.dialogExists()) {
@@ -1172,6 +1174,7 @@ public class AMQPCommunication extends Service {
                         meeting.put("attendees", message.getJSONArray("attendees"));
                         meeting.put("organizer", message.getString("organizer"));
                         meeting.put("timeout", message.getInt("timeout"));
+                        meeting.put("mpc_timeout", message.getInt("mpc_timeout"));
                         editor.putString(meeting.getString("meetingID"), meeting.toString());
                         editor.commit();
 
@@ -1424,6 +1427,10 @@ public class AMQPCommunication extends Service {
 
             // Create AMQP channels
             try {
+                SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
+                JSONObject meeting = new JSONObject(preferences.getString(params[0].meetingId, "{}"));
+                int mpc_timeout = meeting.getInt("mpc_timeout");
+
                 List<CoffeeChannel> channels = new ArrayList<>(params[0].attendees.size());
                 Collections.sort(params[0].attendees);
                 Handler handler = new Handler(Looper.getMainLooper());
@@ -1433,7 +1440,7 @@ public class AMQPCommunication extends Service {
                         channels.add(null);
                         Log.d(TAG, "adding null channel for " + s);
                     } else {
-                        AmqpMpcChannel c = new AmqpMpcChannel(channel, params[0].meetingId, s, username, handler);
+                        AmqpMpcChannel c = new AmqpMpcChannel(channel, params[0].meetingId, s, username, handler, mpc_timeout);
                         channels.add(c);
                         Log.d(TAG, " adding channel for " + s);
                         Log.d(TAG, " channel consumer tag: " + c.getConsumerTag());
