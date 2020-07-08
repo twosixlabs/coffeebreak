@@ -53,6 +53,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.marcoscg.dialogsheet.DialogSheet;
+import com.onegravity.contactpicker.OnContactCheckedListener;
 import com.onegravity.contactpicker.contact.Contact;
 import com.onegravity.contactpicker.ContactElement;
 import com.onegravity.contactpicker.contact.ContactDescription;
@@ -122,8 +123,13 @@ public class MainActivity extends AppCompatActivity {
                 List<String> attendees = intent.getStringArrayListExtra("attendees");
                 String message = "Invites: ";
                 for (String s : attendees) {
-                    if (!s.equals(organizer))
-                        message += phoneNumberMap.get(s) + ", ";
+                    if (!s.equals(organizer)) {
+                        if (phoneNumberMap.get(s) != null) {
+                            message += phoneNumberMap.get(s) + ", ";
+                        } else {
+                            message += s + ", ";
+                        }
+                    }
                 }
                 message = message.substring(0, message.length() - 2);
 
@@ -170,6 +176,13 @@ public class MainActivity extends AppCompatActivity {
                 editor.putString("status", mpcMessage.getText().toString());
                 editor.commit();
 
+                String title = "";
+                if (phoneNumberMap.get(organizer) != null) {
+                    title = phoneNumberMap.get(organizer) + " wants to meet";
+                } else {
+                    title = organizer + " wants to meet";
+                }
+
                 // Display meeting request dialog
                 MeetingRequestDialog.request(MainActivity.this, message,
                         new DialogSheet.OnPositiveClickListener() {
@@ -208,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
                             public void onDismiss(DialogInterface dialogInterface) {
                                 MeetingRequestDialog.reset();
                             }
-                        }).setTitle(organizer + " wants to meet").show();
+                        }).setTitle(title).show();
             } else if (intent.getAction().equals(getString(R.string.broadcast_show_meeting_location))) {
                 // Received broadcast to show meeting location dialog or error dialog, resets homescreen
 
@@ -347,7 +360,11 @@ public class MainActivity extends AppCompatActivity {
                 String message = "\n" + intent.getStringExtra("message");
 
                 if (user_cancelled != null) {
-                    message = "\n" + phoneNumberMap.get(user_cancelled) + intent.getStringExtra("message");
+                    if (phoneNumberMap.get(user_cancelled) != null) {
+                        message = "\n" + phoneNumberMap.get(user_cancelled) + intent.getStringExtra("message");
+                    } else {
+                        message = "\n" + user_cancelled + intent.getStringExtra("message");
+                    }
                 }
 
                 Log.d(TAG, "message: " + intent.getStringExtra("message"));
@@ -407,7 +424,11 @@ public class MainActivity extends AppCompatActivity {
                 String[] invitees = pen.split(", ");
 
                 for (String i : invitees) {
-                    message += phoneNumberMap.get(i) + ", ";
+                    if (phoneNumberMap.get(i) != null) {
+                        message += phoneNumberMap.get(i) + ", ";
+                    } else {
+                        message += i + ", ";
+                    }
                 }
                 message = message.substring(0, message.length() - 2);
 
@@ -482,7 +503,11 @@ public class MainActivity extends AppCompatActivity {
                 String[] invitees = pen.split(", ");
 
                 for (String i : invitees) {
-                    message += phoneNumberMap.get(i) + ", ";
+                    if (phoneNumberMap.get(i) != null) {
+                        message += phoneNumberMap.get(i) + ", ";
+                    } else {
+                        message += i + ", ";
+                    }
                 }
                 message = message.substring(0, message.length() - 2);
 
@@ -611,6 +636,8 @@ public class MainActivity extends AppCompatActivity {
                     while (pCur.moveToNext()) {
                         String phoneNum = PhoneNumberUtils.formatNumberToE164(pCur.getString(pCur.getColumnIndex(
                                 ContactsContract.CommonDataKinds.Phone.NUMBER)), "US");
+
+                        Log.d(TAG, "IS_SUPER_PRIMARY: " + pCur.getInt(pCur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.IS_SUPER_PRIMARY)));
 
                         Log.i(TAG, "Name: " + name);
                         Log.i(TAG, "Phone Number: " + phoneNum);
@@ -771,6 +798,13 @@ public class MainActivity extends AppCompatActivity {
                 int j = 0;
                 for (Contact contact : contacts) {
                     contactNames[j] = contact.getDisplayName().toLowerCase();
+                    List<String> phoneNumbers = new ArrayList<String>();
+
+                    for (String num : phoneNumberMap.keySet()) {
+                        if (phoneNumberMap.get(num).equals(contactNames[j])) {
+                            phoneNumbers.add(num);
+                        }
+                    }
 
                     if (contact.getPhone(ContactsContract.CommonDataKinds.Phone.TYPE_MAIN) == null) {
                         Toast.makeText(MainActivity.this, "No phone number associated with contact", Toast.LENGTH_LONG).show();
