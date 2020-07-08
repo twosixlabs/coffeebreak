@@ -734,7 +734,18 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Fills phoneNumberMap with the contacts
         getContactList();
+
+        // Displays whether or not the mock location is on
+        TextView location_type = (TextView) findViewById(R.id.location_type);
+        if (preferences.getBoolean(getString(R.string.mock_location), true)) {
+            location_type.setText("Mock Location On");
+            location_type.setTextColor(Color.RED);
+        } else {
+            location_type.setText("Mock Location Off");
+            location_type.setTextColor(Color.DKGRAY);
+        }
 
         // ContactPicker Button
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -792,6 +803,16 @@ public class MainActivity extends AppCompatActivity {
         TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
         mpcMessage.setText(preferences.getString("status", ""));
 
+        // Displays whether or not the mock location is on
+        TextView location_type = (TextView) findViewById(R.id.location_type);
+        if (preferences.getBoolean(getString(R.string.mock_location), true)) {
+            location_type.setText("Mock Location On");
+            location_type.setTextColor(Color.RED);
+        } else {
+            location_type.setText("Mock Location Off");
+            location_type.setTextColor(Color.DKGRAY);
+        }
+
         ((TextView)(findViewById(R.id.noiseDisplay))).setText("Noise level: " + String.valueOf(preferences.getInt(getString(R.string.noise_value), 5)) + "km");
     }
 
@@ -837,28 +858,6 @@ public class MainActivity extends AppCompatActivity {
 
                 // Process contact groups
                 List<Group> groups = (List<Group>) data.getSerializableExtra(ContactPickerActivity.RESULT_GROUP_DATA);
-
-                /*
-                List<ContactResult> results = MultiContactPicker.obtainResult(data);
-
-                //Get all the names / phone numbers of the picked contacts
-                final String[] contactNames = new String[results.size()];
-                final String[] contactPhones = new String[results.size()];
-
-                int j = 0;
-                for (ContactResult c : results) {
-                    contactNames[j] = c.getDisplayName().toLowerCase();
-                    if (c.getPhoneNumbers().size() == 0) {
-                        Toast.makeText(MainActivity.this, "No phone number associated with contact", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    contactPhones[j] = PhoneNumberUtils.formatNumberToE164((c.getPhoneNumbers().get(0).getNumber()), "US");
-                    if (contactPhones[j] == null) {
-                        Toast.makeText(MainActivity.this, "Contact has invalid US phone number", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    j++;
-                }*/
 
                 LocalDateTime beginDate = LocalDateTime.now();
                 ZonedDateTime zBeginDate = beginDate.atZone(ZoneId.systemDefault());

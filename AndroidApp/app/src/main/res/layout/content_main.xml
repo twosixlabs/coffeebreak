@@ -52,7 +52,6 @@
                 android:textSize="12pt"
                 android:layout_marginTop="20dp"/>
 
-
             <ProgressBar
                 android:id="@+id/progressbar_mpc"
                 style="?android:attr/progressBarStyleLarge"
@@ -67,6 +66,13 @@
 
         </RelativeLayout>
 
+        <TextView
+            android:id="@+id/location_type"
+            android:layout_gravity="center_horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mock Location Off"
+            android:textSize="8pt"/>
 
         <TextView
             android:id="@+id/mpc_message"
