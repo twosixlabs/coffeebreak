@@ -140,18 +140,15 @@ public class SplashActivity extends Activity {
         super.onResume();
 
         // Here, thisActivity is the current activity
-        if (ContextCompat.checkSelfPermission(SplashActivity.this,
-                Manifest.permission.READ_CONTACTS)
-                != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(SplashActivity.this,
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(SplashActivity.this,
-                        Manifest.permission.READ_PHONE_NUMBERS) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(SplashActivity.this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(SplashActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(SplashActivity.this, Manifest.permission.READ_PHONE_NUMBERS) != PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(SplashActivity.this,
                     new String[]{Manifest.permission.READ_CONTACTS, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_NUMBERS},
                     REQUEST_PERMISSIONS);
-
-        }else{
+        }
+        else {
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
                 @RequiresApi(api = Build.VERSION_CODES.O)
@@ -159,10 +156,8 @@ public class SplashActivity extends Activity {
                 public void run() {
                     SetupApp();
                 }
-            }, delay );
+            }, delay);
         }
-
-
     }
 
     protected void onDestroy() {
@@ -185,7 +180,6 @@ public class SplashActivity extends Activity {
         i.putExtra(getString(R.string.mock_longitude), preferences.getFloat(getString(R.string.mock_longitude),0.0f));
         i.putExtra(getString(R.string.mock_location), preferences.getBoolean(getString(R.string.mock_location), false));
         getApplicationContext().startForegroundService(i);
-
     }
 
     @Override
@@ -197,6 +191,7 @@ public class SplashActivity extends Activity {
                     Intent i = new Intent(SplashActivity.this, SplashActivity.class);
                     i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(i);
+
                 } else {
                     finish();
                 }

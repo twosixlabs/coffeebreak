@@ -847,6 +847,7 @@ public class MainActivity extends AppCompatActivity {
 
         TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
         mpcMessage.setText(preferences.getString("status", ""));
+        mpcMessage.setVisibility(View.INVISIBLE);
 
         // Displays whether or not the mock location is on
         TextView location_type = (TextView) findViewById(R.id.location_type);
@@ -877,6 +878,15 @@ public class MainActivity extends AppCompatActivity {
                 List<Contact> contacts = (List<Contact>) data.getSerializableExtra(ContactPickerActivity.RESULT_CONTACT_DATA);
                 final String[] contactNames = new String[contacts.size()];
                 final String[] contactPhones = new String[contacts.size()];
+
+                if (contacts.size() == 0) {
+                    return;
+                } else if (contacts.size() == 1) {
+                    String phoneNum = PhoneNumberUtils.formatNumberToE164((contacts.get(0).getPhone(ContactsContract.CommonDataKinds.Phone.TYPE_MAIN)), "US");
+                    if (phoneNum.equals(preferences.getString("username",""))) {
+                        return;
+                    }
+                }
 
                 int j = 0;
                 for (Contact contact : contacts) {
