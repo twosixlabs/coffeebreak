@@ -219,7 +219,7 @@ public class AMQPCommunication extends Service {
 
                 meetingList.removeMeeting(resultData.getString("meetingID"));
 
-                if(connection != null){
+                if(connection != null && connection.isOpen()){
                     mHandler.post(new Runnable() {
                         @Override
                         public void run() {
