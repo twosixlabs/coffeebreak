@@ -96,7 +96,7 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     final ResultReceiver mReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
-            
+
         }
     };
 

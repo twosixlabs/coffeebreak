@@ -572,7 +572,7 @@ public class AMQPCommunication extends Service {
                             final ObjectMapper mapper = new ObjectMapper();
 
                             // Create inviteTimer which cancels the meeting timeout seconds after meeting is sent if not all users respond
-                            int millis = preferences.getInt("timeout", 60) * 15000;
+                            int millis = preferences.getInt("timeout", 4) * 15000;
                             inviteTimer = new CountDownTimer(millis, 1000) {
                                 @Override
                                 public void onTick(long l) {
@@ -612,7 +612,7 @@ public class AMQPCommunication extends Service {
                             Intent sendPendingMessage = new Intent(context, MainActivity.class);
                             sendPendingMessage.putExtra("meetingID", invite.getString("meetingID"));
                             sendPendingMessage.putExtra("timeLeft", millis);
-                            sendPendingMessage.putExtra("timeout", preferences.getInt("timeout", 60) * 15000);
+                            sendPendingMessage.putExtra("timeout", preferences.getInt("timeout", 4) * 15000);
                             sendPendingMessage.setAction(getString(R.string.broadcast_show_meeting_pending));
                             mLocalBroadcastManager.sendBroadcast(sendPendingMessage);
                         } catch (JSONException e) {

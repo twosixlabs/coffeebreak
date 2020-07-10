@@ -99,6 +99,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Map<String, String> phoneNumberMap;
 
+    private CountDownTimer progress_timer;
+
     // Broadcast receiver for handling events
     BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
 
@@ -492,11 +494,19 @@ public class MainActivity extends AppCompatActivity {
                 timeoutProgress.setMax(timeout);
                 timeoutProgress.setProgress(timeout - timeLeft);
 
-                // Increments invite timeout progress bar
-                new CountDownTimer(timeout * 1000, 1000) {
+                Log.d(TAG, "timeout: " + timeout);
+                Log.d(TAG, "timeLeft: " + timeLeft);
 
+                if (progress_timer != null) {
+                    progress_timer.cancel();
+                }
+
+                // Increments invite timeout progress bar
+                progress_timer = new CountDownTimer(timeout * 1000, 1000) {
                     @Override
                     public void onTick(long l) {
+                        Log.d(TAG, "timeoutProgress.getProgress(): " + timeoutProgress.getProgress());
+                        Log.d(TAG, "millisUntilFinished: " + l);
                         timeoutProgress.incrementProgressBy(1);
                     }
 
