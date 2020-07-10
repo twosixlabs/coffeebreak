@@ -147,8 +147,7 @@ public class SplashActivity extends Activity {
             ActivityCompat.requestPermissions(SplashActivity.this,
                     new String[]{Manifest.permission.READ_CONTACTS, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_NUMBERS},
                     REQUEST_PERMISSIONS);
-        }
-        else {
+        } else {
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
                 @RequiresApi(api = Build.VERSION_CODES.O)
@@ -187,7 +186,7 @@ public class SplashActivity extends Activity {
         switch (requestCode) {
             case REQUEST_PERMISSIONS: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.d(TAG, "GRANTED LOCATION PERMISSION");
+                    Log.d(TAG, "GRANTED ALL PERMISSIONS");
                     Intent i = new Intent(SplashActivity.this, SplashActivity.class);
                     i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(i);

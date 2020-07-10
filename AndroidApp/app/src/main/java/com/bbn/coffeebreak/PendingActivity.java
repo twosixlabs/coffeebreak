@@ -84,7 +84,6 @@ public class PendingActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
 
-
                 setResult(MainActivity.RESULT_OK, returnIntent);
             }
         });

@@ -33,6 +33,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.os.Looper;
+import android.provider.Contacts;
 import android.provider.ContactsContract;
 import android.telephony.PhoneNumberUtils;
 import android.util.Log;
@@ -58,6 +59,7 @@ import com.onegravity.contactpicker.contact.Contact;
 import com.onegravity.contactpicker.ContactElement;
 import com.onegravity.contactpicker.contact.ContactDescription;
 import com.onegravity.contactpicker.contact.ContactSortOrder;
+import com.onegravity.contactpicker.core.ContactImpl;
 import com.onegravity.contactpicker.core.ContactPickerActivity;
 import com.onegravity.contactpicker.group.Group;
 import com.onegravity.contactpicker.picture.ContactPictureType;
@@ -667,6 +669,7 @@ public class MainActivity extends AppCompatActivity {
                             null,
                             ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
                             new String[]{id}, null);
+
                     while (pCur.moveToNext()) {
                         String phoneNum = PhoneNumberUtils.formatNumberToE164(pCur.getString(pCur.getColumnIndex(
                                 ContactsContract.CommonDataKinds.Phone.NUMBER)), "US");
@@ -897,6 +900,10 @@ public class MainActivity extends AppCompatActivity {
                         if (phoneNumberMap.get(num).equals(contactNames[j])) {
                             phoneNumbers.add(num);
                         }
+                    }
+
+                    if (phoneNumbers.size() > 1) {
+
                     }
 
                     if (contact.getPhone(ContactsContract.CommonDataKinds.Phone.TYPE_MAIN) == null) {

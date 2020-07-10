@@ -96,7 +96,7 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     final ResultReceiver mReceiver = new ResultReceiver(new Handler(Looper.getMainLooper())){
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
-
+            
         }
     };
 
@@ -296,7 +296,7 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
             LocationLayerPlugin locationLayerPlugin = new LocationLayerPlugin(mMapView, mMapboxMap);
 
             // Set the plugin's camera mode
-            locationLayerPlugin.setCameraMode(CameraMode.TRACKING);
+            //locationLayerPlugin.setCameraMode(CameraMode.TRACKING);
             getLifecycle().addObserver(locationLayerPlugin);
         } else {
             permissionsManager = new PermissionsManager(this);
@@ -344,13 +344,13 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
         enableLocationPlugin();
 
         // Sets initial camera position to the user's origin location
-        if (originLocation != null) {
-            mMapboxMap.setCameraPosition(new CameraPosition.Builder()
-                    .target(new LatLng(originLocation.getLatitude(), originLocation.getLongitude()))
-                    .zoom(12)
-                    .tilt(10)
-                    .build());
-        }
+//        if (originLocation != null) {
+//            mMapboxMap.setCameraPosition(new CameraPosition.Builder()
+//                    .target(new LatLng(originLocation.getLatitude(), originLocation.getLongitude()))
+//                    .zoom(12)
+//                    .tilt(10)
+//                    .build());
+//        }
 
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
@@ -361,8 +361,18 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
 
             mMapboxMap.addMarker(m);
             drawCircleOverlay(mMapboxMap, this, new LatLng(m.getPosition().getLatitude(), m.getPosition().getLongitude()), preferences.getInt(getString(R.string.noise_value), 5) * 1000, R.color.transparent_green);
+            mMapboxMap.setCameraPosition(new CameraPosition.Builder()
+                    .target(new LatLng(m.getPosition().getLatitude(), m.getPosition().getLongitude()))
+                    .zoom(12)
+                    .tilt(10)
+                    .build());
         } else if (originLocation != null) {
             drawCircleOverlay(mMapboxMap, this, new LatLng(originLocation.getLatitude(), originLocation.getLongitude()), preferences.getInt(getString(R.string.noise_value), 5) * 1000, R.color.transparent_green);
+            mMapboxMap.setCameraPosition(new CameraPosition.Builder()
+                    .target(new LatLng(originLocation.getLatitude(), originLocation.getLongitude()))
+                    .zoom(12)
+                    .tilt(10)
+                    .build());
         }
 
         mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
