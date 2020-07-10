@@ -494,9 +494,6 @@ public class MainActivity extends AppCompatActivity {
                 timeoutProgress.setMax(timeout);
                 timeoutProgress.setProgress(timeout - timeLeft);
 
-                Log.d(TAG, "timeout: " + timeout);
-                Log.d(TAG, "timeLeft: " + timeLeft);
-
                 if (progress_timer != null) {
                     progress_timer.cancel();
                 }
@@ -505,8 +502,6 @@ public class MainActivity extends AppCompatActivity {
                 progress_timer = new CountDownTimer(timeout * 1000, 1000) {
                     @Override
                     public void onTick(long l) {
-                        Log.d(TAG, "timeoutProgress.getProgress(): " + timeoutProgress.getProgress());
-                        Log.d(TAG, "millisUntilFinished: " + l);
                         timeoutProgress.incrementProgressBy(1);
                     }
 
@@ -720,8 +715,6 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString("current_screen", "activity_main");
-        editor.putInt("timeout", 4);
-        editor.commit();
 
         Log.d(TAG, "preferences: " + preferences.getAll());
 
@@ -749,8 +742,8 @@ public class MainActivity extends AppCompatActivity {
         SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
         TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
 
-        timeoutMessage.setText("Invite timeout after: 60s");
-        timeoutValue.setProgress(4);
+        timeoutMessage.setText("Invite timeout after: " + (preferences.getInt("timeout", 4) * 15) + "s");
+        timeoutValue.setProgress(preferences.getInt("timeout", 4));
         timeoutValue.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -773,8 +766,8 @@ public class MainActivity extends AppCompatActivity {
         SeekBar mpctimeoutValue = (SeekBar) findViewById(R.id.mpc_timeout_seek_bar);
         TextView mpctimeoutMessage = (TextView) findViewById(R.id.mpc_timeout_message);
 
-        mpctimeoutMessage.setText("Calculation timeout after: 30s");
-        mpctimeoutValue.setProgress(2);
+        mpctimeoutMessage.setText("Calculation timeout after: " + (preferences.getInt("mpc_timeout", 2) * 15) + "s");
+        mpctimeoutValue.setProgress(preferences.getInt("mpc_timeout", 2));
         mpctimeoutValue.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {

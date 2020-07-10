@@ -944,10 +944,13 @@ public class AMQPCommunication extends Service {
             editor.putString(getString(R.string.username), username);
             editor.putString(getString(R.string.password), password);
 
-
             editor.putFloat(getString(R.string.mock_latitude), intent.getFloatExtra(getString(R.string.mock_latitude), 0.0f));
             editor.putFloat(getString(R.string.mock_longitude), intent.getFloatExtra(getString(R.string.mock_longitude), 0.0f));
             editor.putBoolean(getString(R.string.mock_location), intent.getBooleanExtra(getString(R.string.mock_location), false));
+
+            editor.putInt(getString(R.string.noise_value), intent.getIntExtra(getString(R.string.noise_value), 5));
+            editor.putInt("timeout", intent.getIntExtra("timeout", 4));
+            editor.putInt("mpc_timeout", intent.getIntExtra("mpc_timeout", 2));
 
             editor.commit();
         }else{

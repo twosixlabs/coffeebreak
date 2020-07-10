@@ -123,6 +123,17 @@ public class SplashActivity extends Activity {
                 editor.putFloat(getString(R.string.mock_longitude), demoParams.getFloat(getString(R.string.mock_longitude)));
             }
 
+            if(demoParams.containsKey(getString(R.string.noise_value))){
+                editor.putFloat(getString(R.string.noise_value), demoParams.getFloat(getString(R.string.noise_value)));
+            }
+
+            if(demoParams.containsKey("timeout")){
+                editor.putFloat("timeout", demoParams.getFloat("timeout"));
+            }
+
+            if(demoParams.containsKey("mpc_timeout")){
+                editor.putFloat("mpc_timeout", demoParams.getFloat("mpc_timeout"));
+            }
 
             editor.commit();
         }
@@ -178,6 +189,9 @@ public class SplashActivity extends Activity {
         i.putExtra(getString(R.string.mock_latitude), preferences.getFloat(getString(R.string.mock_latitude),0.0f));
         i.putExtra(getString(R.string.mock_longitude), preferences.getFloat(getString(R.string.mock_longitude),0.0f));
         i.putExtra(getString(R.string.mock_location), preferences.getBoolean(getString(R.string.mock_location), false));
+        i.putExtra(getString(R.string.noise_value), preferences.getInt(getString(R.string.noise_value), 5));
+        i.putExtra("timeout", preferences.getInt("timeout", 4));
+        i.putExtra("mpc_timeout", preferences.getInt("mpc_timeout", 2));
         getApplicationContext().startForegroundService(i);
     }
 
