@@ -18,6 +18,8 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class SettingsFragment extends DialogFragment {
@@ -69,6 +71,54 @@ public class SettingsFragment extends DialogFragment {
         amqpPortEditText.setText(amqpPort);
         usernameEditText.setText(username);
         //passwordEditText.setText(password);
+
+        // Timeout bar can be set in 15s increments, will be the invite timeout for a meeting sent by this user
+        SeekBar timeoutValue = (SeekBar) v.findViewById(R.id.timeout_seek_bar);
+        TextView timeoutMessage = (TextView) v.findViewById(R.id.timeout_message);
+
+        timeoutMessage.setText("Invite timeout after: " + (preferences.getInt("timeout", 4) * 15) + "s");
+        timeoutValue.setProgress(preferences.getInt("timeout", 4));
+        timeoutValue.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                timeoutMessage.setText("Invite timeout after: " + String.valueOf(progress * 15) + "s");
+                editor.putInt("timeout", progress);
+                editor.commit();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                Toast.makeText(getContext(), "Meeting invites will timeout in " +
+                        String.valueOf(preferences.getInt("timeout", 4) * 15) + "s", Toast.LENGTH_LONG).show();
+            }
+        });
+
+        // Timeout bar can be set in 15s increments, will be the mpc calculation timeout for a meeting sent by this user
+        SeekBar mpctimeoutValue = (SeekBar) v.findViewById(R.id.mpc_timeout_seek_bar);
+        TextView mpctimeoutMessage = (TextView) v.findViewById(R.id.mpc_timeout_message);
+
+        mpctimeoutMessage.setText("Calculation timeout after: " + (preferences.getInt("mpc_timeout", 2) * 15) + "s");
+        mpctimeoutValue.setProgress(preferences.getInt("mpc_timeout", 2));
+        mpctimeoutValue.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                mpctimeoutMessage.setText("Calculation timeout after: " + String.valueOf(progress * 15) + "s");
+                editor.putInt("mpc_timeout", progress);
+                editor.commit();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                Toast.makeText(getContext(), "Calculation stops after " +
+                        String.valueOf(preferences.getInt("mpc_timeout", 4) * 15) + "s of no activity", Toast.LENGTH_LONG).show();
+            }
+        });
 
         Button submitButton = (Button) v.findViewById(R.id.settings_ok_button);
         submitButton.setOnClickListener(new View.OnClickListener() {

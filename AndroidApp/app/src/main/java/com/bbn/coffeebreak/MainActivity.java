@@ -232,18 +232,10 @@ public class MainActivity extends AppCompatActivity {
                 // Updating visibility of UI widgets
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
-                SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
-                TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
-                SeekBar mpctimeoutValue = (SeekBar) findViewById(R.id.mpc_timeout_seek_bar);
-                TextView mpctimeoutMessage = (TextView) findViewById(R.id.mpc_timeout_message);
 
                 mpcMessage.setText("Start");
                 mpcProgress.setVisibility(View.INVISIBLE);
                 mpcMessage.setVisibility(View.INVISIBLE);
-                timeoutValue.setVisibility(View.VISIBLE);
-                timeoutMessage.setVisibility(View.VISIBLE);
-                mpctimeoutValue.setVisibility(View.VISIBLE);
-                mpctimeoutMessage.setVisibility(View.VISIBLE);
 
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                 SharedPreferences.Editor editor = preferences.edit();
@@ -306,10 +298,6 @@ public class MainActivity extends AppCompatActivity {
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
-                SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
-                TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
-                SeekBar mpctimeoutValue = (SeekBar) findViewById(R.id.mpc_timeout_seek_bar);
-                TextView mpctimeoutMessage = (TextView) findViewById(R.id.mpc_timeout_message);
                 ProgressBar timeoutProgress = (ProgressBar) findViewById(R.id.timeout_progress);
 
                 mpcMessage.setText("Performing secure multi-party computation");
@@ -317,10 +305,6 @@ public class MainActivity extends AppCompatActivity {
                 mpcMessage.setVisibility(View.VISIBLE);
                 cancelButton.setVisibility(View.INVISIBLE);
                 cancelButton.setEnabled(false);
-                timeoutValue.setVisibility(View.INVISIBLE);
-                timeoutMessage.setVisibility(View.INVISIBLE);
-                mpctimeoutValue.setVisibility(View.INVISIBLE);
-                mpctimeoutMessage.setVisibility(View.INVISIBLE);
                 timeoutProgress.setVisibility(View.INVISIBLE);
 
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
@@ -360,10 +344,6 @@ public class MainActivity extends AppCompatActivity {
 
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
-                SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
-                TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
-                SeekBar mpctimeoutValue = (SeekBar) findViewById(R.id.mpc_timeout_seek_bar);
-                TextView mpctimeoutMessage = (TextView) findViewById(R.id.mpc_timeout_message);
                 ProgressBar mpcProgress = (ProgressBar) findViewById(R.id.progressbar_mpc);
                 ProgressBar timeoutProgress = (ProgressBar) findViewById(R.id.timeout_progress);
 
@@ -388,10 +368,6 @@ public class MainActivity extends AppCompatActivity {
                     mpcMessage.setVisibility(View.INVISIBLE);
                     cancelButton.setVisibility(View.INVISIBLE);
                     cancelButton.setEnabled(false);
-                    timeoutValue.setVisibility(View.VISIBLE);
-                    timeoutMessage.setVisibility(View.VISIBLE);
-                    mpctimeoutValue.setVisibility(View.VISIBLE);
-                    mpctimeoutMessage.setVisibility(View.VISIBLE);
                     mpcProgress.setVisibility(View.INVISIBLE);
                     timeoutProgress.setVisibility(View.INVISIBLE);
 
@@ -464,16 +440,6 @@ public class MainActivity extends AppCompatActivity {
                 TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
                 mpcMessage.setText(message);
                 mpcMessage.setVisibility(View.VISIBLE);
-
-                SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
-                TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
-                timeoutValue.setVisibility(View.INVISIBLE);
-                timeoutMessage.setVisibility(View.INVISIBLE);
-
-                SeekBar mpctimeoutValue = (SeekBar) findViewById(R.id.mpc_timeout_seek_bar);
-                TextView mpctimeoutMessage = (TextView) findViewById(R.id.mpc_timeout_message);
-                mpctimeoutValue.setVisibility(View.INVISIBLE);
-                mpctimeoutMessage.setVisibility(View.INVISIBLE);
 
                 SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
                 SharedPreferences.Editor editor = preferences.edit();
@@ -583,10 +549,6 @@ public class MainActivity extends AppCompatActivity {
             TextView mpcMessage = (TextView) findViewById(R.id.mpc_message);
             Button cancelButton = (Button) findViewById(R.id.cancel_meeting_button);
             FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-            SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
-            TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
-            SeekBar mpctimeoutValue = (SeekBar) findViewById(R.id.mpc_timeout_seek_bar);
-            TextView mpctimeoutMessage = (TextView) findViewById(R.id.mpc_timeout_message);
             ProgressBar timeoutProgress = (ProgressBar) findViewById(R.id.timeout_progress);
 
             mpcMessage.setText("Start");
@@ -596,12 +558,6 @@ public class MainActivity extends AppCompatActivity {
             cancelButton.setEnabled(false);
 
             timeoutProgress.setVisibility(View.INVISIBLE);
-
-            timeoutValue.setVisibility(View.VISIBLE);
-            timeoutMessage.setVisibility(View.VISIBLE);
-
-            mpctimeoutValue.setVisibility(View.VISIBLE);
-            mpctimeoutMessage.setVisibility(View.VISIBLE);
 
             fab.setEnabled(true);
             fab.setBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorPrimary)));
@@ -737,54 +693,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Random number generator
         generator = new Random();
-
-        // Timeout bar can be set in 15s increments, will be the invite timeout for a meeting sent by this user
-        SeekBar timeoutValue = (SeekBar) findViewById(R.id.timeout_seek_bar);
-        TextView timeoutMessage = (TextView) findViewById(R.id.timeout_message);
-
-        timeoutMessage.setText("Invite timeout after: " + (preferences.getInt("timeout", 4) * 15) + "s");
-        timeoutValue.setProgress(preferences.getInt("timeout", 4));
-        timeoutValue.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                timeoutMessage.setText("Invite timeout after: " + String.valueOf(progress * 15) + "s");
-                editor.putInt("timeout", progress);
-                editor.commit();
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) { }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                Toast.makeText(MainActivity.this, "Meeting invites will timeout in " +
-                        String.valueOf(preferences.getInt("timeout", 4) * 15) + "s", Toast.LENGTH_LONG).show();
-            }
-        });
-
-        // Timeout bar can be set in 15s increments, will be the mpc calculation timeout for a meeting sent by this user
-        SeekBar mpctimeoutValue = (SeekBar) findViewById(R.id.mpc_timeout_seek_bar);
-        TextView mpctimeoutMessage = (TextView) findViewById(R.id.mpc_timeout_message);
-
-        mpctimeoutMessage.setText("Calculation timeout after: " + (preferences.getInt("mpc_timeout", 2) * 15) + "s");
-        mpctimeoutValue.setProgress(preferences.getInt("mpc_timeout", 2));
-        mpctimeoutValue.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                mpctimeoutMessage.setText("Calculation timeout after: " + String.valueOf(progress * 15) + "s");
-                editor.putInt("mpc_timeout", progress);
-                editor.commit();
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) { }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                Toast.makeText(MainActivity.this, "Calculation stops after " +
-                        String.valueOf(preferences.getInt("mpc_timeout", 4) * 15) + "s of no activity", Toast.LENGTH_LONG).show();
-            }
-        });
 
         // Fills phoneNumberMap with the contacts
         getContactList();
