@@ -16,6 +16,7 @@ import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.hardware.display.DisplayManager;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.RingtoneManager;
 import android.os.AsyncTask;
@@ -87,7 +88,8 @@ public class AMQPCommunication extends Service {
     private final static String INVITE_EXCHANGE = "invite";
 
     private LocalBroadcastManager mLocalBroadcastManager;
-    private FusedLocationProviderClient client;
+    //private FusedLocationProviderClient client;
+    private LocationManager mLocationManager;
     private LocationRequest mLocationRequest;
 
     private Location mLastLocation;
@@ -289,14 +291,27 @@ public class AMQPCommunication extends Service {
         }
     };
 
-    private LocationCallback locationCallback = new LocationCallback() {
+    private LocationListener locationCallback = new LocationListener() {
         @Override
-        public void onLocationResult(LocationResult locationResult) {
-            super.onLocationResult(locationResult);
-            Location location = locationResult.getLastLocation();
+        public void onLocationChanged(Location location) {
             if (location != null) {
                 mLastLocation = location;
             }
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+
         }
     };
 
@@ -890,15 +905,18 @@ public class AMQPCommunication extends Service {
 
         mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
-        client = LocationServices.getFusedLocationProviderClient(this);
-        mLocationRequest = LocationRequest.create()
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(5000)
-                .setFastestInterval(2500);
+        //client = LocationServices.getFusedLocationProviderClient(this);
+        mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        //mLocationRequest = LocationRequest.create()
+        //        .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+        //        .setInterval(5000)
+        //        .setFastestInterval(2500);
 
-        client.requestLocationUpdates(mLocationRequest,
-                locationCallback,
-                null);
+        //client.requestLocationUpdates(mLocationRequest,
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                5000,
+                5,
+                locationCallback);
 
         meetingList = new MeetingList();
         createNotificationChannel();
@@ -1378,7 +1396,8 @@ public class AMQPCommunication extends Service {
         mLocalBroadcastManager.unregisterReceiver(mBroadcastReceiver);
         mHandlerThread.quitSafely();
         mpcHandlerThread.quitSafely();
-        client.removeLocationUpdates(locationCallback);
+        //client.removeLocationUpdates(locationCallback);
+        mLocationManager.removeUpdates(locationCallback);
     }
 
     // Create notification channel for alerting the user when the app is closed

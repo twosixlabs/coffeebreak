@@ -82,7 +82,8 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     private Button mockButton;
     private SeekBar noiseLevel;
     private TextView noiseValue;
-    private FusedLocationProviderClient fusedLocationClient;
+    private LocationManager mLocationManager;
+    //private FusedLocationProviderClient fusedLocationClient;
 
     //constants for drawing circle overlays
     private static final float EARTH_RADIUS_METERS = 6366710f;
@@ -109,7 +110,8 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
             permissionsManager.requestLocationPermissions(this);
         }
         Mapbox.getInstance(this, getString(R.string.mapbox_key));
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        //fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         getUsersLocation();
 
         setContentView(R.layout.activity_noisy_map);
@@ -272,7 +274,7 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
 
     @SuppressWarnings( {"MissingPermission"})
     private void initializeLocationEngine() {
-        LocationEngineProvider locationEngineProvider = new LocationEngineProvider(this);
+        /*LocationEngineProvider locationEngineProvider = new LocationEngineProvider(this);
         locationEngine = locationEngineProvider.obtainBestLocationEngineAvailable();
         locationEngine.setPriority(LocationEnginePriority.HIGH_ACCURACY);
         locationEngine.activate();
@@ -284,6 +286,8 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
             locationEngine.addLocationEngineListener(this);
         }
         locationEngine.removeLocationEngineListener(this);
+
+         */
     }
 
     @SuppressWarnings( {"MissingPermission"})
@@ -475,8 +479,8 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     }
 
     @SuppressLint("MissingPermission")
-    public void getUsersLocation(){
-        fusedLocationClient.getLastLocation()
+    public void getUsersLocation() {
+        /*fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(this, new OnSuccessListener<Location>() {
                     @Override
                     public void onSuccess(Location location) {
@@ -485,9 +489,21 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
                             originLocation = location;
                         }
                     }
-        });
+        });*/
 
+        if (mLocationManager != null) {
+            Location lastLoc = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if (lastLoc != null) {
+                originLocation = lastLoc;
+                Log.e("DRHDRH", "Location = " + originLocation.toString());
+                return;
+            }
+
+            lastLoc = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+            if (lastLoc != null) {
+                originLocation = lastLoc;
+            }
+            Log.e("DRHDRH", "Location = " + originLocation.toString());
+        }
     }
-
-
 }
