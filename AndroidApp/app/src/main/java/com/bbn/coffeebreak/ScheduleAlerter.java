@@ -18,7 +18,7 @@ public class ScheduleAlerter {
         return Alerter.create((Activity)c).setTitle(c.getString(R.string.scheduled_meeting_title))
                 .setText(String.valueOf(month + 1) + "/" + String.valueOf(day) + "/" +
                         String.valueOf(year))
-                .setBackgroundColorInt(R.color.colorPrimary)
+                .setBackgroundColorInt(c.getResources().getColor(R.color.colorPrimary))
                 .setBackgroundColorRes(R.color.colorPrimary)
                 .setDuration(c.getResources().getInteger(R.integer.alerter_notification_duration))
                 .setIcon(c.getDrawable(android.R.drawable.ic_menu_my_calendar));
@@ -35,7 +35,7 @@ public class ScheduleAlerter {
         }
         return Alerter.create((Activity)c).setTitle(c.getString(R.string.meeting_attempt))
                 .setText(meetingContacts.toString())
-                .setBackgroundColorInt(R.color.colorPrimary)
+                .setBackgroundColorInt(c.getResources().getColor(R.color.colorPrimary))
                 .setBackgroundColorRes(R.color.colorPrimary)
                 .setDuration(c.getResources().getInteger(R.integer.alerter_notification_duration))
                 .setIcon(c.getDrawable(android.R.drawable.ic_menu_my_calendar));

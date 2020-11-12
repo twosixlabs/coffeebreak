@@ -12,18 +12,13 @@ package com.bbn.coffeebreak;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
-import android.location.LocationProvider;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ResultReceiver;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -31,32 +26,20 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.mapbox.android.core.location.LocationEngine;
 import com.mapbox.android.core.location.LocationEngineListener;
-import com.mapbox.android.core.location.LocationEnginePriority;
-import com.mapbox.android.core.location.LocationEngineProvider;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
-import com.mapbox.mapboxsdk.annotations.Annotation;
 import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
-import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
-import com.mapbox.mapboxsdk.constants.Style;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
-import com.mapbox.mapboxsdk.maps.MapboxMapOptions;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerPlugin;
-import com.mapbox.mapboxsdk.plugins.locationlayer.modes.CameraMode;
-
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,7 +66,6 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
     private SeekBar noiseLevel;
     private TextView noiseValue;
     private LocationManager mLocationManager;
-    //private FusedLocationProviderClient fusedLocationClient;
 
     //constants for drawing circle overlays
     private static final float EARTH_RADIUS_METERS = 6366710f;
@@ -110,7 +92,6 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
             permissionsManager.requestLocationPermissions(this);
         }
         Mapbox.getInstance(this, getString(R.string.mapbox_key));
-        //fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         getUsersLocation();
 
@@ -480,22 +461,10 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
 
     @SuppressLint("MissingPermission")
     public void getUsersLocation() {
-        /*fusedLocationClient.getLastLocation()
-                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        // Got last known location. In some rare situations this can be null.
-                        if (location != null) {
-                            originLocation = location;
-                        }
-                    }
-        });*/
-
         if (mLocationManager != null) {
             Location lastLoc = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             if (lastLoc != null) {
                 originLocation = lastLoc;
-                Log.e("DRHDRH", "Location = " + originLocation.toString());
                 return;
             }
 
@@ -503,7 +472,6 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
             if (lastLoc != null) {
                 originLocation = lastLoc;
             }
-            Log.e("DRHDRH", "Location = " + originLocation.toString());
         }
     }
 }

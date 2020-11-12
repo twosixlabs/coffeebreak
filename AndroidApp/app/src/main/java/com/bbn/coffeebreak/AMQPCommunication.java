@@ -1,7 +1,6 @@
 package com.bbn.coffeebreak;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -13,8 +12,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.AssetManager;
-import android.hardware.display.DisplayManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -27,7 +24,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.MessageQueue;
 import android.os.ResultReceiver;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -36,26 +32,17 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.util.Log;
-import android.view.View;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.ConfirmListener;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import com.rabbitmq.client.ReturnListener;
 import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 
@@ -88,9 +75,7 @@ public class AMQPCommunication extends Service {
     private final static String INVITE_EXCHANGE = "invite";
 
     private LocalBroadcastManager mLocalBroadcastManager;
-    //private FusedLocationProviderClient client;
     private LocationManager mLocationManager;
-    private LocationRequest mLocationRequest;
 
     private Location mLastLocation;
 
@@ -318,6 +303,10 @@ public class AMQPCommunication extends Service {
     // Checks if the user has location permissions on or if they have set a mock location
     private boolean checkPermissions() {
         LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        if (lm == null) {
+            Log.e(TAG, "Unable to get LocationManager service");
+            return false;
+        }
         boolean gps_enabled = false;
         boolean network_enabled = false;
 
@@ -905,14 +894,13 @@ public class AMQPCommunication extends Service {
 
         mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
-        //client = LocationServices.getFusedLocationProviderClient(this);
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        //mLocationRequest = LocationRequest.create()
-        //        .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-        //        .setInterval(5000)
-        //        .setFastestInterval(2500);
 
-        //client.requestLocationUpdates(mLocationRequest,
+        if(mLocationManager == null) {
+            Log.e(TAG, "Unable to get LocationManager service");
+            return;
+        }
+
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
                 5000,
                 5,
@@ -1396,7 +1384,6 @@ public class AMQPCommunication extends Service {
         mLocalBroadcastManager.unregisterReceiver(mBroadcastReceiver);
         mHandlerThread.quitSafely();
         mpcHandlerThread.quitSafely();
-        //client.removeLocationUpdates(locationCallback);
         mLocationManager.removeUpdates(locationCallback);
     }
 
