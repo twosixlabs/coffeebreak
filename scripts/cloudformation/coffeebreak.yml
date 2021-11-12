@@ -1,0 +1,305 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Network Stack for Coffeebreak
+
+###########
+# Parameters
+###########
+
+Parameters:
+
+  ###########
+  # Cidrs
+  ###########
+
+  BaseCidr:
+    Type: String
+    Description: Address space for all AWS instances/resources used by Coffeebreak
+    Default: 10.0.0.0/16
+
+  PublicSubnetCidr:
+    Type: String
+    Description: Subnet for public connectivity to AWS instances used by Coffeebreak
+    Default: 10.0.0.0/24
+
+  ###########
+  # IP Addresses
+  ###########
+
+  ManagerIpAddress:
+    Type: String
+    Description: IP Address of Manager of AWS. Will be set by scripts to IP of whoever starts Network
+
+  ###########
+  # Instance Type
+  ###########
+
+  AmazonInstanceType:
+    Type: String
+    Description: Instance type to use for the EC2 instances in AWS
+
+  ###########
+  # AMIs
+  ###########
+
+  AmazonLinuxAMIID:
+    Type: String
+    Description: AMI to use for the EC2 instances in AWS
+
+  ###########
+  # SSH Key
+  ###########
+
+  SshKeyName:
+    Type: String
+    Description: SSH key pair saved in AWS to use to authenticate in AWS
+
+  ###########
+  # AutoScale Size
+  ###########
+
+  NumSecondaryNodes:
+    Type: String
+    Description: How many secondary rabbitmq nodes to spin up. will be the max/min for the secondary autoscale groups
+
+  ###########
+  # EBS Size
+  ###########
+
+  EbsSize:
+    Type: String
+    Default: 64
+    Description: Size of the EBS for the instances
+
+  ###########
+  # AMI Username
+  ###########
+
+  AmiUsername:
+    Type: String
+    Default: ec2-user
+    Description: Default username based on the AMI
+
+
+###########
+# Resources
+###########
+
+Resources:
+
+  ###########
+  # VPCs
+  ###########
+
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref BaseCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name 
+          Value: !Sub coffeebreak-Vpc
+
+  ###########
+  # IGWs
+  ###########
+
+  Igw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub coffeebreak-Igw
+
+  ConnectorVpcToIgw:
+    Type: AWS::EC2::VPCGatewayAttachment
+    DependsOn:
+      - Vpc
+      - Igw
+    Properties:
+      InternetGatewayId: !Ref Igw
+      VpcId: !Ref Vpc
+
+  ###########
+  # Public Route Table
+  ###########
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn:
+      - Vpc
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub coffeebreak-PublicRouteTable
+
+  PublicRouteToIgw:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - Igw
+      - PublicRouteTable
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref Igw
+      RouteTableId: !Ref PublicRouteTable
+
+  ###########
+  # Public Subnet
+  ###########
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+      - Vpc
+    Properties:
+      VpcId: !Ref Vpc
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Ref PublicSubnetCidr
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs
+          Ref: AWS::Region
+      Tags:
+        - Key: Name
+          Value: !Sub coffeebreak-PublicSubnet
+
+  PublicRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn:
+      - PublicRouteTable
+      - PublicSubnet
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  ###########
+  # Security Groups
+  ###########
+
+  ### Private Access
+
+  PrivateGlobalAccessSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: Vpc
+    Properties:
+      GroupName: !Sub coffeebreak-PrivateGlobalAccessSecurityGroup
+      GroupDescription: Global Access within the VPC. All Protocols, Ports, Subnets
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: !Ref BaseCidr
+      Tags:
+        - Key: Name
+          Value: !Sub coffeebreak-PrivateGlobalAccessSecurityGroup
+        - Key: type
+          Value: private
+        - Key: sub-type
+          Value: global
+
+  ### SSH Access
+
+  PublicAccessSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn:
+      - Vpc
+    Properties:
+      GroupName: !Sub coffeebreak-PublicAccessSecurityGroup
+      GroupDescription: Public SSH Access
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref ManagerIpAddress
+        - IpProtocol: tcp
+          FromPort: 5671
+          ToPort: 5671
+          CidrIp: !Ref ManagerIpAddress
+        - IpProtocol: tcp
+          FromPort: 15672
+          ToPort: 15672
+          CidrIp: !Ref ManagerIpAddress
+        - IpProtocol: tcp
+          FromPort: 25672
+          ToPort: 25672
+          CidrIp: !Ref ManagerIpAddress
+        - IpProtocol: tcp
+          FromPort: 4369
+          ToPort: 4369
+          CidrIp: !Ref ManagerIpAddress
+      Tags:
+        - Key: Name
+          Value: !Sub coffeebreak-PublicAccessSecurityGroup
+        - Key: type
+          Value: public
+        - Key: sub-type
+          Value: ssh
+
+  ###########
+  # EC2 Instances
+  ###########
+
+  CoffeebreakLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    DependsOn:
+      - PrivateGlobalAccessSecurityGroup
+      - PublicAccessSecurityGroup
+    Properties:
+      InstanceType: !Ref AmazonInstanceType
+      ImageId: !Ref AmazonLinuxAMIID
+      AssociatePublicIpAddress: true
+      SecurityGroups:
+        - !Ref PrivateGlobalAccessSecurityGroup
+        - !Ref PublicAccessSecurityGroup
+      KeyName: !Ref SshKeyName
+      BlockDeviceMappings: 
+        - DeviceName: /dev/xvda
+          Ebs: 
+            VolumeSize: !Ref EbsSize
+            VolumeType: "gp2"
+            DeleteOnTermination: "true"
+      UserData:
+        Fn::Base64:
+          Fn::Sub: |
+            #!/bin/bash -x
+            exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+              touch test.txt
+
+  CoffeebreakPrimaryAutoScaleGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+      - CoffeebreakLaunchConfig
+    Properties:
+      LaunchConfigurationName: !Ref CoffeebreakLaunchConfig
+      MinSize: 1
+      MaxSize: 1
+      VPCZoneIdentifier:
+        - !Ref PublicSubnet
+      Tags:
+        - Key: Type
+          Value: "coffeebreak"
+          PropagateAtLaunch: "true"
+        - Key: SubType
+          Value: "primary"
+          PropagateAtLaunch: "true"
+
+  CoffeebreakSecondaryAutoScaleGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+      - CoffeebreakLaunchConfig
+    Properties:
+      LaunchConfigurationName: !Ref CoffeebreakLaunchConfig
+      MinSize: !Ref NumSecondaryNodes
+      MaxSize: !Ref NumSecondaryNodes
+      VPCZoneIdentifier:
+        - !Ref PublicSubnet
+      Tags:
+        - Key: Type
+          Value: "coffeebreak"
+          PropagateAtLaunch: "true"
+        - Key: SubType
+          Value: "secondary"
+          PropagateAtLaunch: "true"
