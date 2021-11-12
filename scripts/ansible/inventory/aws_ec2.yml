@@ -1,0 +1,17 @@
+# See https://docs.ansible.com/ansible/latest/collections/amazon/aws/aws_ec2_inventory.html
+# for information on how this works. This dynamic inventory does a look-up with
+# AWS (the user must have run `rib aws init` first to set the AWS credentials)
+# and uses filters to group instances by the custom ClusterRole tag (set by the
+# Cloudformation template).
+#
+# You can run `ansible-inventory -i inventory.aws_ec2.yml --graph` to see all
+# dynamically-discovered hosts and the resulting Ansible inventory groups.
+plugin: amazon.aws.aws_ec2
+regions:
+  - us-east-1
+groups:
+  rabbitmq_hosts: true
+  rabbitmq_primary_hosts: tags.get('SubType') == "primary"
+  rabbitmq_secondary_hosts: tags.get('SubType') == "secondary"
+filters:
+  tag:Type: "coffeebreak"

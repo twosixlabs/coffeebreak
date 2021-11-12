@@ -1,0 +1,20 @@
+---
+
+###
+# Play to Teardown Coffeebreak
+###
+
+- name: Teardown Coffeebreak
+  hosts: localhost
+  gather_facts: False
+
+  ###
+  # Tasks in Play
+  ###
+
+  tasks:
+
+    - name: Teardown Coffeebreak Cloudformation Stack
+      cloudformation:
+        stack_name: "coffeebreak"
+        state: "absent"

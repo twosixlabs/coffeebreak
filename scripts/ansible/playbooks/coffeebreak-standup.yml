@@ -1,0 +1,283 @@
+---
+
+###
+# Playbook to Standup Coffeebreak
+###
+
+###
+# Play to Utilize Stand up Coffeebreak Cloudformation Stack
+###
+
+- name: Standup Coffeebreak Cloudformation Stack
+  hosts: localhost
+  gather_facts: False
+
+  ###
+  # Variables for Play
+  ###
+
+  vars:
+    - amazonInstanceType: ""
+    - amazonLinuxAMIID: ""
+    - cloudformationFile: ""
+    - numSecondaryNodes: ""
+    - ebsSize: 64
+    - sshKeyName: ""
+    - sshPublickKey: "~/.ssh/id_rsa.pub"
+    - managerIpAddress: ""
+
+  ###
+  # Tasks in Play
+  ###
+
+  tasks:
+
+    - name: Debug Vars
+      block:
+        - debug:
+            var: amazonInstanceType
+        - debug:
+            var: amazonLinuxAMIID
+        - debug:
+            var: cloudformationFile
+        - debug:
+            var: numSecondaryNodes
+        - debug:
+            var: ebsSize
+        - debug:
+            var: sshKeyName
+        - debug:
+            var: sshPublickKey
+        - debug:
+            var: managerIpAddress
+
+    - name: Create AWS key pair using key_material obtained using 'file' lookup plugin
+      amazon.aws.ec2_key:
+        name: "{{ sshKeyName }}"
+        key_material: "{{ lookup('file', sshPublickKey) }}"
+
+    - name: Create Coffeebreak Cloudformation Stack
+      cloudformation:
+        stack_name: "coffeebreak"
+        state: "present"
+        region: "us-east-1"
+        on_create_failure: "DELETE"
+        template: "{{ cloudformationFile }}"
+        template_parameters:
+          AmazonInstanceType: "{{ amazonInstanceType }}"
+          AmazonLinuxAMIID: "{{ amazonLinuxAMIID }}"
+          NumSecondaryNodes: "{{ numSecondaryNodes }}"
+          EbsSize: "{{ ebsSize }}"
+          SshKeyName: "{{ sshKeyName }}"
+          ManagerIpAddress: "{{ managerIpAddress }}"
+        tags:
+          Stack: "coffeebreak"
+
+    - name: Refresh inventory to ensure new instances exist in inventory
+      meta: refresh_inventory
+
+    - name: Gather information about any instance with Name beginning with RHEL and an uptime of at least 60 minutes
+      community.aws.ec2_instance_info:
+        filters:
+          "tag:Type": "coffeebreak"
+          "tag:SubType": "primary"
+          instance-state-name: [ "running"]
+        profile: "{{ awsProfile }}"
+      register: primaryNodeEc2Info
+
+    - name: Debug Vars
+      block:
+        - debug:
+            var: primaryNodeEc2Info
+
+###
+# Play to Generate Files (erlang cookie)
+###
+
+- name: Generate Files
+  hosts: localhost
+  gather_facts: False
+
+  ###
+  # Tasks in Play
+  ###
+
+  tasks:
+
+    - name: Write Erlang Cookie
+      shell: cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 24 | head -n 1 >> ../../rabbitmq/erlang-cookie
+
+###
+# Play to Verify Remote Host Connectivity
+###
+
+- name: Verify connectivity to the remote hosts
+  hosts: rabbitmq_hosts
+  gather_facts: False
+
+  tasks:
+    - name: Verify Ping
+      ping:
+
+    - name: Verify Connection
+      wait_for_connection:
+        delay: 0
+        timeout: 300
+
+    - name: Pause for 30 seconds for EC2 to stablize
+      pause:
+        seconds: 30
+
+###
+# Play to Configure Remote Hosts (Docker/Packages)
+###
+
+- name: Standup Coffeebreak Cloudformation Stack
+  hosts: rabbitmq_hosts
+  become: yes
+  become_user: root
+  gather_facts: true  
+
+  ###
+  # Handlers in Play
+  ###
+
+  handlers:
+
+    - name: Restart Docker Service
+      service:
+        name: docker
+        state: restarted
+
+  ###
+  # Tasks in Play
+  ###
+
+  tasks:
+
+    - name: Update Packages
+      yum:
+        name: "*"
+        state: latest
+        update_cache: true
+
+    - name: Install Packages
+      yum:
+        name: "{{ packages }}"
+        state: present
+        update_cache: true
+      vars:
+        packages:
+          - docker
+
+    - name: Add User To Docker Group
+      user:
+        name: "{{ ansible_env.SUDO_USER }}"
+        groups: docker
+        append: yes
+      notify:
+        - Restart Docker Service
+
+    - name: Restart the Docker Service
+      service:
+        name: docker
+        state: restarted
+
+    # Need to reset the connection so that group changes take effect
+    - name: Reset SSH Connection
+      meta: reset_connection
+
+
+###
+# Play to Copy Files to Remote Host
+###
+
+- name: Copy Files to Remote Host
+  hosts: rabbitmq_hosts
+  gather_facts: false
+
+  ###
+  # Variables for Play
+  ###
+
+  vars:
+    - itemsToScp: [
+      {
+        "localPath": "../../rabbitmq",
+        "remotePath": "/home/ec2-user/"
+      }
+    ]
+
+  ###
+  # Tasks in Play
+  ###
+
+  tasks:
+
+    - name: Make Directory If Necessary
+      file:
+        path: "{{ item.remotePath }}"
+        state: directory
+      with_items: "{{ itemsToScp }}"
+
+    - name: SCP Files or Dirs to Remote Host
+      copy:
+        src: "{{ item.localPath }}"
+        dest: "{{ item.remotePath }}"
+      with_items: "{{ itemsToScp }}"
+
+###
+# Play to Start RabbitMQ Primary Node
+###
+
+- name: Start the Primary RabbitMQ Node
+  hosts: rabbitmq_primary_hosts
+  gather_facts: false
+
+  ###
+  # Tasks in Play
+  ###
+
+  tasks:
+
+    - name: Make sure the Docker Service is Started
+      service:
+        name: docker
+        state: started
+
+    - name: Run the run-rabbitmq script to Start the Primary Node
+      shell: "bash /home/ec2-user/rabbitmq/run-rabbitmq.sh"
+
+    - name: Pause for 1 minute for RabbitMQ to Start
+      pause:
+        minutes: 1
+
+###
+# Play to Start RabbitMQ Secondary Node
+###
+
+- name: Start the RabbitMQ Secondary Node
+  hosts: rabbitmq_secondary_hosts
+  gather_facts: false
+
+  ###
+  # Tasks in Play
+  ###
+
+  tasks:
+
+    - name: Make sure the Docker Service is Started
+      service:
+        name: docker
+        state: started
+
+    - name: Debug Vars
+      block:
+        - debug:
+            var: hostvars['localhost']['primaryNodeEc2Info']
+      block:
+        - debug:
+            var: hostvars['localhost']['primaryNodeEc2Info']['instances'][0]['network_interfaces'][0]['private_dns_name']
+
+    - name: Run the run-rabbitmq script to Start the Secondary Node
+      shell: "bash /home/ec2-user/rabbitmq/run-rabbitmq.sh --rabbitmq-primary={{hostvars['localhost']['primaryNodeEc2Info']['instances'][0]['network_interfaces'][0]['private_dns_name'].split('.')[0] | lower}}"
