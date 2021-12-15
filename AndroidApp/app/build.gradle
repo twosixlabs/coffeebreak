@@ -62,7 +62,7 @@ dependencies {
     implementation "com.android.support:recyclerview-v7:28.0.0"
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation files('/home/jason/brandeis/coffeebreak/clean/pulsar-mpc-public-staging/parcels/pulsar-mpc-0.32.1-6+g330b5b84.aar')
+    implementation files('./pulsar-mpc-0.34.1-2+gf729d12a.aar')
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.3.0-alpha02'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0-alpha02'
