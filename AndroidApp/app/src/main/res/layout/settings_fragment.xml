@@ -135,24 +135,6 @@
                 android:layout_height="wrap_content"
                 android:progressDrawable="@drawable/custom_seekbar"/>
 
-            <!--
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:textColor="@color/black"
-                android:text="Password"/>
-
-            <EditText
-                android:id="@+id/amqp_password"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:hint="password"
-                android:layout_margin="10dp"
-                android:textAlignment="center"
-                android:layout_gravity="center_horizontal"/>
-                -->
-
         </LinearLayout>
 
 

@@ -1480,19 +1480,6 @@ public class AMQPCommunication extends Service {
                     }
                 }
 
-                // Prevents race condition when there are a large number of parties...
-                // every pairwise queue gets created
-                /*
-                for(int i = 0; i < params[0].attendees.size(); i++){
-                    for(int j = 0; j < params[0].attendees.size(); j++){
-                        if(i != j){
-                            String queueName = "MPC:LOCATION:" + params[0].meetingId + ":" + params[0].attendees.get(i) + ":" + params[0].attendees.get(j);
-                            channel.queueDeclare(queueName, false, false, true, null);
-                        }
-                    }
-                }
-                */
-
                 // Spin up the MPC thread
                 mpc = new ThreadMPC(context,
                         params[0].meetingId,

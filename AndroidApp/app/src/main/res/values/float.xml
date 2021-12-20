@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <item name="mock_latitude" format="float" type="integer">0.0</item>
-    <item name="mock_longitude" format="float" type="integer">0.0</item>
-
-</resources>

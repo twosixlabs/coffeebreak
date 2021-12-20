@@ -31,7 +31,6 @@
 
     <!-- preferences -->
     <string name="shared_preferences">coffeebreak_preferences</string>
-    <string name="privacyStreamsConfig">edu.cmu.brandeis.PrivacyStreams</string>
     <string name="noise_value">noise_value</string>
     <string name="mock_location">mock_location</string>
     <string name="mock_latitude">mock_latitude</string>
@@ -59,7 +58,5 @@
     <integer name="alerter_notification_duration">3000</integer>
 
     <string name="mapbox_key">YOUR_MAPBOX_ACCESS_TOKEN_GOES_HERE</string>
-    <string name="amqp_username">guest</string>
-    <string name="amqp_password">4rab1ca_r0bu$ta</string>
 
 </resources>

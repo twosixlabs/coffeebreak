@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.os.Parcelable.Creator;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -55,10 +54,6 @@ public class InviteResponse implements Serializable, Parcelable
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
     public final static Parcelable.Creator<InviteResponse> CREATOR = new Creator<InviteResponse>() {
 
-
-        @SuppressWarnings({
-                "unchecked"
-        })
         public InviteResponse createFromParcel(Parcel in) {
             return new InviteResponse(in);
         }

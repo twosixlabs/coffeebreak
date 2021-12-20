@@ -39,12 +39,9 @@ import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.database.Cursor;
 import android.graphics.Color;
-import android.location.Location;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.os.Handler;
 import android.os.HandlerThread;
 
 import androidx.annotation.RequiresApi;
@@ -55,42 +52,26 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import android.os.Looper;
-import android.provider.Contacts;
 import android.provider.ContactsContract;
 import android.telephony.PhoneNumberUtils;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
-import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.SeekBar;
-import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mapbox.mapboxsdk.annotations.Marker;
-import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.marcoscg.dialogsheet.DialogSheet;
-import com.onegravity.contactpicker.OnContactCheckedListener;
 import com.onegravity.contactpicker.contact.Contact;
-import com.onegravity.contactpicker.ContactElement;
 import com.onegravity.contactpicker.contact.ContactDescription;
 import com.onegravity.contactpicker.contact.ContactSortOrder;
-import com.onegravity.contactpicker.core.ContactImpl;
 import com.onegravity.contactpicker.core.ContactPickerActivity;
-import com.onegravity.contactpicker.group.Group;
 import com.onegravity.contactpicker.picture.ContactPictureType;
-import com.wafflecopter.multicontactpicker.ContactResult;
-import com.wafflecopter.multicontactpicker.MultiContactPicker;
-import com.wafflecopter.multicontactpicker.RxContacts.PhoneNumber;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.time.LocalDateTime;
@@ -118,7 +99,6 @@ public class MainActivity extends AppCompatActivity {
 
     // For sending HTTP Requests
     private HandlerThread httpHandlerThread;
-    private Handler mHandler;
 
     private Map<String, String> phoneNumberMap;
 
@@ -676,8 +656,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //Suppressing PRIVATEDATA_SERIVCE warnings
-    @SuppressLint({"ResourceType", "NewApi"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -687,7 +665,6 @@ public class MainActivity extends AppCompatActivity {
 
         httpHandlerThread = new HandlerThread("httpHandlerThread");
         httpHandlerThread.start();
-        mHandler = new Handler(httpHandlerThread.getLooper());
 
         mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
@@ -699,9 +676,6 @@ public class MainActivity extends AppCompatActivity {
 
         TextView usernameDisplay = (TextView) findViewById(R.id.usernameDisplay);
         usernameDisplay.setText(preferences.getString(getString(R.string.username), getString(R.string.defaultUsername)).toUpperCase());
-
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
 
         IntentFilter mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(getString(R.string.broadcast_show_meeting_request));
@@ -753,17 +727,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(intent, getResources().getInteger(R.integer.contact_picker_request));
             }
         });
-
-        // Pending Screen Button (currently invisible)
-        /*
-        FloatingActionButton pending_fab = (FloatingActionButton) findViewById(R.id.pending_fab);
-        Objects.requireNonNull(pending_fab).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent pendingActivity = new Intent(MainActivity.this, PendingActivity.class);
-                startActivityForResult(pendingActivity, getResources().getInteger(R.integer.pending_request));
-            }
-        }); */
 
         if(getIntent().getStringExtra("meetingID") != null){
             mLocalBroadcastManager.sendBroadcast(getIntent());
@@ -828,17 +791,6 @@ public class MainActivity extends AppCompatActivity {
                 int j = 0;
                 for (Contact contact : contacts) {
                     contactNames[j] = contact.getDisplayName().toLowerCase();
-                    List<String> phoneNumbers = new ArrayList<String>();
-
-                    for (String num : phoneNumberMap.keySet()) {
-                        if (phoneNumberMap.get(num).equals(contactNames[j])) {
-                            phoneNumbers.add(num);
-                        }
-                    }
-
-                    if (phoneNumbers.size() > 1) {
-
-                    }
 
                     if (contact.getPhone(ContactsContract.CommonDataKinds.Phone.TYPE_MAIN) == null) {
                         Toast.makeText(MainActivity.this, "No phone number associated with contact", Toast.LENGTH_LONG).show();
@@ -915,32 +867,6 @@ public class MainActivity extends AppCompatActivity {
             } else if (resultCode == RESULT_CANCELED) {
                 Log.d(TAG, getString(R.string.message_date_picker_cancel));
             }
-        } else if (requestCode == getResources().getInteger(R.integer.pending_request)) {
-            // Received results from pending invite page
-
-            /*if (data != null) {
-                Log.d(TAG, "cancelling pending meeting");
-
-                final Intent sendMeetingResponse = new Intent();
-                sendMeetingResponse.putExtra("meetingID", data.getStringExtra("meetingID"));
-                sendMeetingResponse.putExtra("organizer", data.getStringExtra("organizer"));
-                sendMeetingResponse.putStringArrayListExtra("attendees", data.getStringArrayListExtra("attendees"));
-                sendMeetingResponse.setAction(getString(R.string.broadcast_send_meeting_response));
-
-                final ObjectMapper mapper = new ObjectMapper();
-
-                InviteResponse response = new InviteResponse();
-                response.setMeetingID(data.getStringExtra("meetingID"));
-                response.setAdditionalProperty("attendees", data.getStringArrayListExtra("attendees"));
-                response.setAdditionalProperty("organizer", data.getStringExtra("organizer"));
-                response.setResponse(0);
-                try {
-                    sendMeetingResponse.putExtra("response", mapper.writeValueAsString(response));
-                    mLocalBroadcastManager.sendBroadcast(sendMeetingResponse);
-                } catch (JsonProcessingException e) {
-                    e.printStackTrace();
-                }
-            }*/
         }
     }
 

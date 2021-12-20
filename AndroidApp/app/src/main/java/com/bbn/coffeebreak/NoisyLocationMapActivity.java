@@ -275,30 +275,10 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
         mMapView.onSaveInstanceState(outState);
     }
 
-
-    @SuppressWarnings( {"MissingPermission"})
-    private void initializeLocationEngine() {
-        /*LocationEngineProvider locationEngineProvider = new LocationEngineProvider(this);
-        locationEngine = locationEngineProvider.obtainBestLocationEngineAvailable();
-        locationEngine.setPriority(LocationEnginePriority.HIGH_ACCURACY);
-        locationEngine.activate();
-
-        Location lastLocation = locationEngine.getLastLocation();
-        if (lastLocation != null) {
-            originLocation = lastLocation;
-        } else {
-            locationEngine.addLocationEngineListener(this);
-        }
-        locationEngine.removeLocationEngineListener(this);
-
-         */
-    }
-
     @SuppressWarnings( {"MissingPermission"})
     private void enableLocationPlugin() {
         // Check if permissions are enabled and if not request
         if (PermissionsManager.areLocationPermissionsGranted(this)) {
-            initializeLocationEngine();
             // Create an instance of the plugin. Adding in LocationLayerOptions is also an optional
             // parameter
             LocationLayerPlugin locationLayerPlugin = new LocationLayerPlugin(mMapView, mMapboxMap);
@@ -350,15 +330,6 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
 
         // For now, displaying the user's location using Mapbox SDK causes tile loading issues
         enableLocationPlugin();
-
-        // Sets initial camera position to the user's origin location
-//        if (originLocation != null) {
-//            mMapboxMap.setCameraPosition(new CameraPosition.Builder()
-//                    .target(new LatLng(originLocation.getLatitude(), originLocation.getLongitude()))
-//                    .zoom(12)
-//                    .tilt(10)
-//                    .build());
-//        }
 
         SharedPreferences preferences = getSharedPreferences(getString(R.string.shared_preferences), MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();

@@ -26,7 +26,6 @@ package com.bbn.coffeebreak;
 import android.annotation.SuppressLint;
 import android.app.DialogFragment;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -148,16 +147,6 @@ public class SettingsFragment extends DialogFragment {
             @Override
             public void onClick(View v) {
 
-                /*
-                editor.clear();
-                editor.putString(getString(R.string.amqpIp), amqpServerEditText.getText().toString());
-                editor.putString(getString(R.string.amqpPort), amqpPortEditText.getText().toString());
-                editor.putString(getString(R.string.username), usernameEditText.getText().toString());
-                editor.putString(getString(R.string.password), passwordEditText.getText().toString());
-
-                editor.commit();
-                */
-
                 Intent i = new Intent(getActivity().getApplicationContext(), SplashActivity.class);
                 i.putExtra(getString(R.string.amqpIp), amqpServerEditText.getText().toString());
                 i.putExtra(getString(R.string.amqpPort), amqpPortEditText.getText().toString());
@@ -166,8 +155,6 @@ public class SettingsFragment extends DialogFragment {
                     return;
                 }
                 i.putExtra(getString(R.string.username), PhoneNumberUtils.formatNumberToE164(usernameEditText.getText().toString(), "US"));
-                //i.putExtra(getString(R.string.password), passwordEditText.getText().toString());
-
                 i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
 
                 Intent amqpService = new Intent(getContext(), AMQPCommunication.class);
