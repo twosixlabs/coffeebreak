@@ -41,15 +41,17 @@ THIS_DIR=$(cd $(dirname ${BASH_SOURCE[0]}) >/dev/null 2>&1 && pwd)
 
 
 HELP=\
-"Script to standup the coffeebreak backend in AWS
+"Script to add IP addresses to the coffeebreak AWS Security Group
 
 Assumptions:
     - You have ansible installed on your local machine
     - You have aws credentials
 
 Arguments:
+    --anywhere
+        Allow access from anywhere to the RabbitMQ servers
     --ip
-        IP address to add to coffeebreak
+        IP address to add to coffeebreak security group to allow access
     --aws-profile
         AWS profile to use to connect to AWS, defaults to default. 
     --ssh-key-name
@@ -65,6 +67,7 @@ Examples:
     ./add-ip.sh --ip=1.2.3.4
 "
 
+ALLOW_ANYWHERE=0
 IP_ADDRESS=""
 AWS_PROFILE="default"
 
@@ -74,6 +77,11 @@ do
     key="$1"
 
     case $key in
+
+        --anywhere)
+        ALLOW_ANYWHERE=1
+        shift
+        ;;
 
         --aws-profile)
         if [ $# -lt 2 ]; then
@@ -90,9 +98,9 @@ do
         shift
         ;;
 
-        --ip-size)
+        --ip)
         if [ $# -lt 2 ]; then
-            formatlog "ERROR" "Missing Value for --cluster-size" >&2
+            formatlog "ERROR" "Missing Value for --ip" >&2
             exit 1
         fi
         IP_ADDRESS="$2"
@@ -128,14 +136,20 @@ do
     esac
 done
 
-if [ -z $IP_ADDRESS ]; then
+if [[ -z $IP_ADDRESS ]] && [[ "$ALLOW_ANYWHERE" -ne 1 ]]; then
     formatlog "ERROR" "Missing --ip"
     exit 1
 fi
 
+if [ "$ALLOW_ANYWHERE" -eq 1 ]; then
+    IP_RULE="0.0.0.0/0"
+else
+    IP_RULE="${IP_ADDRESS}/32"
+fi
+
 # Debugging Printing Variables
 formatlog "DEBUG" "AWS_PROFILE=${AWS_PROFILE}"
-formatlog "DEBUG" "IP_ADDRESS=${IP_ADDRESS}"
+formatlog "DEBUG" "IP_ADDRESS=${IP_RULE}"
 
 AWS_GROUPID=$(aws ec2 describe-security-groups --filter "Name=tag:Name,Values=coffeebreak-PublicAccessSecurityGroup" --query "SecurityGroups[].GroupId" --output=text)
 
@@ -147,24 +161,24 @@ formatlog "INFO" "Adding IP (${IP_ADDRESS}) to Coffeebreak Security Group (${AWS
 aws ec2 --profile=${AWS_PROFILE} \
     authorize-security-group-ingress \
     --group-id ${AWS_GROUPID} \
-    --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges="[{CidrIp=${IP_ADDRESS}/32}]"
+    --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges="[{CidrIp=${IP_RULE}}]"
 
 aws ec2 --profile=${AWS_PROFILE} \
     authorize-security-group-ingress \
     --group-id ${AWS_GROUPID} \
-    --ip-permissions IpProtocol=tcp,FromPort=5671,ToPort=5671,IpRanges="[{CidrIp=${IP_ADDRESS}/32}]"
+    --ip-permissions IpProtocol=tcp,FromPort=5671,ToPort=5671,IpRanges="[{CidrIp=${IP_RULE}}]"
 
 aws ec2 --profile=${AWS_PROFILE} \
     authorize-security-group-ingress \
     --group-id ${AWS_GROUPID} \
-    --ip-permissions IpProtocol=tcp,FromPort=15672,ToPort=15672,IpRanges="[{CidrIp=${IP_ADDRESS}/32}]"
+    --ip-permissions IpProtocol=tcp,FromPort=15672,ToPort=15672,IpRanges="[{CidrIp=${IP_RULE}}]"
 
 aws ec2 --profile=${AWS_PROFILE} \
     authorize-security-group-ingress \
     --group-id ${AWS_GROUPID} \
-    --ip-permissions IpProtocol=tcp,FromPort=25672,ToPort=25672,IpRanges="[{CidrIp=${IP_ADDRESS}/32}]"
+    --ip-permissions IpProtocol=tcp,FromPort=25672,ToPort=25672,IpRanges="[{CidrIp=${IP_RULE}}]"
 
 aws ec2 --profile=${AWS_PROFILE} \
     authorize-security-group-ingress \
     --group-id ${AWS_GROUPID} \
-    --ip-permissions IpProtocol=tcp,FromPort=4369,ToPort=4369,IpRanges="[{CidrIp=${IP_ADDRESS}/32}]"
+    --ip-permissions IpProtocol=tcp,FromPort=4369,ToPort=4369,IpRanges="[{CidrIp=${IP_RULE}}]"
