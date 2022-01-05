@@ -8,4 +8,4 @@ local.properties
 build/
 /captures
 .externalNativeBuild
-
+AndroidApp/app/src/main/res/values/developer-config.xml

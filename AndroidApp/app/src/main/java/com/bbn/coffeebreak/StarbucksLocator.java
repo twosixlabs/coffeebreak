@@ -23,6 +23,7 @@
  
 package com.bbn.coffeebreak;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.os.ResultReceiver;
 import android.util.Log;
@@ -37,6 +38,7 @@ import java.net.URL;
 public class StarbucksLocator implements Runnable{
 
     private static final String TAG = "[StarbucksLocator]";
+    private Context mContext;
     float mLat;
     float mLon;
     private ResultReceiver mReceiver;
@@ -45,11 +47,12 @@ public class StarbucksLocator implements Runnable{
     private final String MAPBOX_BASE_URL = "https://api.mapbox.com/geocoding/v5/mapbox.places/starbucks.json?";
     private final String MAPBOX_RESULTS_LIMIT = "&limit=1";
     private final String MAPBOX_PROXIMITY = "&proximity=";
-    private final String API_KEY = "&access_token=YOUR_MAPBOX_ACCESS_TOKEN_GOES_HERE";
+    private final String API_KEY = "&access_token=";
     private final String HTTP_REQUEST_TYPE = "GET";
 
 
-    public StarbucksLocator( float lat, float lon, Bundle extras, ResultReceiver r){
+    public StarbucksLocator( Context context, float lat, float lon, Bundle extras, ResultReceiver r){
+        mContext = context ;
         mLat = lat;
         mLon = lon;
         mReceiver = r;
@@ -60,7 +63,7 @@ public class StarbucksLocator implements Runnable{
     public void run() {
         String request = MAPBOX_BASE_URL + MAPBOX_RESULTS_LIMIT + MAPBOX_PROXIMITY +
                 String.valueOf(mLon) + "," + String.valueOf(mLat) +
-                API_KEY;
+                API_KEY + mContext.getString(R.string.mapbox_access_token);
 
         try {
             URL url = new URL(request);

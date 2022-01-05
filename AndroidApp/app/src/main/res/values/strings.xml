@@ -57,6 +57,4 @@
     <integer name="pending_request">0x20</integer>
     <integer name="alerter_notification_duration">3000</integer>
 
-    <string name="mapbox_key">YOUR_MAPBOX_ACCESS_TOKEN_GOES_HERE</string>
-
 </resources>

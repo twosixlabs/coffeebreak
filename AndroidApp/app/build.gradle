@@ -81,3 +81,5 @@ configurations.all {
             }
         }
     }}
+
+apply from: "${projectDir}/gradle-config.gradle"

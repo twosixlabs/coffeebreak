@@ -281,7 +281,8 @@ public class AMQPCommunication extends Service {
                     Log.d(TAG, "GOT MPC RESULT LOCATION: " + resultData.getFloat("latitude") + "," + resultData.getFloat("longitude"));
 
                     //Perform Starbucks location reverse lookup
-                    mHandler.post(new StarbucksLocator(resultData.getFloat("latitude"),
+                    mHandler.post(new StarbucksLocator(context,
+                            resultData.getFloat("latitude"),
                             resultData.getFloat("longitude"),
                             resultData,
                             starbucksLocationReceiver));

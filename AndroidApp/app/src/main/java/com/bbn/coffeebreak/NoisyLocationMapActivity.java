@@ -114,7 +114,7 @@ public class NoisyLocationMapActivity extends AppCompatActivity implements Locat
             permissionsManager = new PermissionsManager(this);
             permissionsManager.requestLocationPermissions(this);
         }
-        Mapbox.getInstance(this, getString(R.string.mapbox_key));
+        Mapbox.getInstance(this, getString(R.string.mapbox_access_token));
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         getUsersLocation();
 
