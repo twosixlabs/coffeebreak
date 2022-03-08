@@ -60,6 +60,7 @@ import android.widget.Toast;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -1398,7 +1399,7 @@ public class AMQPCommunication extends Service {
                 public void run() {
                     try {
                         connection.close();
-                    } catch (IOException e) {
+                    } catch (IOException | AlreadyClosedException e) {
                         e.printStackTrace();
                     }
                 }
