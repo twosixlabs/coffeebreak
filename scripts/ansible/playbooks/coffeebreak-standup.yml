@@ -97,7 +97,7 @@
     - name: Refresh inventory to ensure new instances exist in inventory
       meta: refresh_inventory
 
-    - name: Gather information about any instance with Name beginning with RHEL and an uptime of at least 60 minutes
+    - name: Gather information about the primary coffebreak node
       community.aws.ec2_instance_info:
         filters:
           "tag:Type": "coffeebreak"

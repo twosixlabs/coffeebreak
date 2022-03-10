@@ -48,8 +48,6 @@ Assumptions:
     - You have aws credentials
 
 Arguments:
-    --ip
-        IP address to add to coffeebreak
     --cluster-size
         The size of the RabbitMQ cluster (and number of coffeebreak servers)
     --aws-instance-type
@@ -58,8 +56,10 @@ Arguments:
         AWS profile to use to connect to AWS, defaults to default. 
     --ssh-key-name
         The name of the AWS ssh key to create/use for the EC2-Instance
-    --ssh-key
+    --ssh-key-private
         The private key to use to connect to AWS instances
+    --ssh-key-public
+        The public key to used by AWS instances for SSH access
     --verbose
         Set verbosity
     -h, --help
@@ -87,7 +87,7 @@ AWS_AMI="ami-0b69ea66ff7391e80"
 AWS_PROFILE="default"
 
 # Cluster Details
-RABBITMQ_CLUSTER_SIZE=2
+RABBITMQ_CLUSTER_SIZE=1
 
 # Auth Config
 SSH_KEY_PRIVATE="~/.ssh/id_rsa"

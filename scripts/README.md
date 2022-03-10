@@ -23,7 +23,7 @@ You will need an AWS account and have it properly configured on your local machi
 
  1. **Obtain an AWS account**
 
-	If you already have one, you can use it. If you do not, you can sign up for one at https://aws.amazon.com. If this is a new account, their Free Tier will let you run the servers approximately half the time for the first year without charge.
+	If you already have one, you can use it. If you do not, you can sign up for one at https://aws.amazon.com. If this is a new account, their Free Tier will let you run the 1 server for approximately the first year without charge.
 
  2. **Create AWS access keys**
 
