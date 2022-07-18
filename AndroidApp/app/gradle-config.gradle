@@ -27,7 +27,11 @@
 task accessToken {
     def tokenFile = new File("${projectDir}/src/main/res/values/developer-config.xml")
     if (!tokenFile.exists()) {
-        String mapboxAccessToken = "$System.env.MAPBOX_ACCESS_TOKEN"
+        Properties props = new Properties()
+        props.load(project.file('local.properties').newDataInputStream())
+
+        String mapboxAccessToken =  props.getProperty('mapbox.token') ?: "$System.env.MAPBOX_ACCESS_TOKEN"
+
         if (mapboxAccessToken == "null") {
             System.out.println("You should set the MAPBOX_ACCESS_TOKEN environment variable.")
             mapboxAccessToken = "YOUR_MAPBOX_ACCESS_TOKEN_GOES_HERE"
@@ -40,6 +44,6 @@ task accessToken {
     }
 }
 
-//gradle.projectsEvaluated {
+gradle.projectsEvaluated {
     preBuild.dependsOn('accessToken')
-//}
+}

@@ -7,7 +7,7 @@ android {
         minSdkVersion 27
         targetSdkVersion 28
         versionCode 1
-        versionName "1.1"
+        versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
     }
@@ -26,6 +26,20 @@ android {
     lintOptions {
         warning 'InvalidPackage'
         abortOnError false
+    }
+}
+
+repositories {
+    Properties props = new Properties()
+    props.load(project.file('local.properties').newDataInputStream())
+
+    maven {
+        name = "GitHubPackages_Stealth"
+        url = "https://maven.pkg.github.com/stealthsoftwareinc/pulsar-mpc"
+        credentials {
+            username = props.getProperty("gpr.user") ?: System.getenv("USERNAME")
+            password = props.getProperty("gpr.key") ?: System.getenv("TOKEN")
+        }
     }
 }
 
@@ -62,7 +76,7 @@ dependencies {
     implementation "com.android.support:recyclerview-v7:28.0.0"
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation files('./pulsar-mpc-0.34.1-2+gf729d12a.aar')
+    implementation 'com.stealthsoftwareinc.bmc:pulsar-mpc:1.0.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.3.0-alpha02'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0-alpha02'
