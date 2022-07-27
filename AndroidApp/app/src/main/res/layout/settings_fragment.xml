@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="fill_parent"
+    android:background="@drawable/circle_background"
+    android:layout_height="wrap_content"
+    >
+
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Settings"
+        android:gravity="center_horizontal"
+        android:textSize="30dp"
+        android:textColor="@android:color/white"
+        android:backgroundTint="@color/colorPrimary"
+        android:background="@drawable/rounded_top_text_box"
+        android:fontFamily="sans-serif-condensed"/>
+
+
+    <TextView
+        android:layout_marginBottom="25dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Configure your AMQP server settings here."/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_gravity="center_horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:textColor="@color/black"
+                android:text="AMQP Server IP"/>
+
+            <EditText
+                android:id="@+id/amqp_server_ip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="AMQP Server IP"
+                android:layout_margin="10dp"
+                android:textAlignment="center"
+                android:layout_gravity="center_horizontal"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:textColor="@color/black"
+                android:text="AMQP Server Port"/>
+
+            <EditText
+                android:id="@+id/amqp_server_port"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="AMQP Server port"
+                android:layout_margin="10dp"
+                android:textAlignment="center"
+                android:layout_gravity="center_horizontal"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:textColor="@color/black"
+                android:text="Phone number (US)"/>
+
+
+            <EditText
+                android:id="@+id/amqp_username"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="phone number"
+                android:layout_margin="10dp"
+                android:textAlignment="center"
+                android:layout_gravity="center_horizontal"/>
+
+            <TextView
+                android:id="@+id/timeout_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="Invite timeout after: 60s"
+                android:textSize="16sp"
+                android:paddingBottom="10dp"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                android:layout_marginTop="20dp" />
+
+            <SeekBar
+                android:id="@+id/timeout_seek_bar"
+                android:layout_marginRight="30dp"
+                android:layout_marginLeft="30dp"
+                android:max="12"
+                android:min="1"
+                android:maxHeight="10dp"
+                android:minHeight="10dp"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:progressDrawable="@drawable/custom_seekbar"/>
+
+            <TextView
+                android:id="@+id/mpc_timeout_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="Calculation timeout after: 30s"
+                android:textSize="16sp"
+                android:paddingBottom="10dp"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                android:layout_marginTop="20dp" />
+
+            <SeekBar
+                android:id="@+id/mpc_timeout_seek_bar"
+                android:layout_marginRight="30dp"
+                android:layout_marginLeft="30dp"
+                android:max="12"
+                android:min="1"
+                android:maxHeight="10dp"
+                android:minHeight="10dp"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:progressDrawable="@drawable/custom_seekbar"/>
+
+        </LinearLayout>
+
+
+    </ScrollView>
+
+
+
+    <Button
+        android:id="@+id/settings_ok_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/white"
+        android:layout_gravity="center_horizontal"
+        android:layout_margin="8dp"
+        android:background="@drawable/green_rectangle"
+        android:text="Ok"/>
+
+</LinearLayout>

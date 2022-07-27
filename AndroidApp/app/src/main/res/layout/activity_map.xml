@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:mapbox="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.mapbox.mapboxsdk.maps.MapView
+        android:id="@+id/mapView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        mapbox:layout_constraintBottom_toBottomOf="parent"
+        mapbox:layout_constraintEnd_toEndOf="parent"
+        mapbox:layout_constraintStart_toStartOf="parent"
+        mapbox:layout_constraintTop_toTopOf="parent"
+        mapbox:mapbox_cameraTargetLat="41.885"
+        mapbox:mapbox_cameraTargetLng="-87.679"
+        mapbox:mapbox_cameraTilt="60"
+        mapbox:mapbox_cameraZoom="12" />
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="340dp"
+        android:layout_marginTop="20dp"
+        mapbox:layout_constraintTop_toTopOf="@+id/mapView"
+        mapbox:layout_constraintLeft_toLeftOf="@+id/mapView"
+        mapbox:layout_constraintRight_toRightOf="@+id/mapView"
+        android:backgroundTint="@color/white"
+        android:background="@drawable/green_rectangle" >
+
+        <TextView
+            android:id="@+id/address_display"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxWidth="340dp"
+            android:padding="10dp"
+            android:textColor="@color/black"
+            android:text="Address" />
+
+        <Button
+            android:id="@+id/copy_button"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="10dp"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:backgroundTint="@color/colorPrimary"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="Copy" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

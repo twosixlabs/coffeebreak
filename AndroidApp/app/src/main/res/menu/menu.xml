@@ -1,0 +1,17 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- "Mark Favorite", should appear as action button if possible -->
+    <item
+        android:id="@+id/server_settings"
+        android:icon="@drawable/ic_server_settings_24dp"
+        android:title="Server Settings"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/noise_settings"
+        android:icon="@drawable/ic_noise_settings_24dp"
+        android:title="Noise Settings"
+        app:showAsAction="ifRoom"/>
+
+</menu>

@@ -1,0 +1,11 @@
+*.iml
+.gradle
+gradle
+gradlew.bat
+local.properties
+.idea
+/.DS_Store
+build/
+/captures
+.externalNativeBuild
+AndroidApp/app/src/main/res/values/developer-config.xml
